@@ -1,0 +1,83 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "cSpell.ignorePaths": [
+            "*.code-workspace",
+            ".vscode",
+            ".vscode-insiders",
+            "vscode-extension",
+            "**/.gitignore",
+            "**.log",
+            "**/build/**",
+            "node_modules",
+            "package.json",
+            "bun.lock",
+            ".env*",
+            ".open-next/**",
+            "mcp.json",
+            ".gitignore"
+        ],
+        "cSpell.ignoreWords": [
+            "reitaisai"
+        ],
+        "cSpell.languageSettings": [
+            {
+                "languageId": "*",
+                "dictionaries": [
+                    "css",
+                    "docker",
+                    "html",
+                    "javascript",
+                    "nodejs",
+                    "npm",
+                    "sql",
+                    "typescript",
+                ]
+            }
+        ],
+        "cSpell.maxDuplicateProblems": 1,
+        "cSpell.words": [
+            "dorny",
+            "drizzle",
+            "hyperdrive",
+        ],
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.fontFamily": "Monaspace Neon, PlemolJPHS",
+        "editor.fontLigatures": true,
+        "editor.maxTokenizationLineLength": 9999999999,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports.biome": "always",
+            "source.fixAll.biome": "always"
+        },
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 10,
+        "files.exclude": {
+            "**/.git": true,
+            "**/.next": true,
+            "**/.open-next": true,
+            "**/.wrangler": true,
+            "**/node_modules": true
+        },
+        "[typescript]": {
+            "editor.defaultFormatter": "biomejs.biome",
+            "editor.formatOnSave": true
+        },
+        "[typescriptreact]": {
+            "editor.defaultFormatter": "biomejs.biome",
+            "editor.formatOnSave": true
+        },
+        "[json]": {
+            "editor.defaultFormatter": "vscode.json-language-features"
+        },
+        "[jsonc]": {
+            "editor.defaultFormatter": "vscode.json-language-features"
+        },
+        "[yaml]": {
+            "editor.defaultFormatter": "redhat.vscode-yaml"
+        },
+    }
+}

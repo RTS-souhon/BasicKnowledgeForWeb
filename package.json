@@ -1,0 +1,10 @@
+{
+    "name": "basic-knowledge-for-web",
+    "devDependencies": {
+        "@biomejs/biome": "^2.4.7"
+    },
+    "private": true,
+    "workspaces": [
+        "apps/*"
+    ]
+}
