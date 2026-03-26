@@ -1,6 +1,4 @@
-# AikidoSec/safe-chain を利用して、悪意ある npm パッケージが含まれていないかチェックする
-# https://github.com/AikidoSec/safe-chain
-name: Check npm packages by AikidoSec Safe Chain
+name: Security scan
 
 on:
   pull_request:
@@ -22,6 +20,25 @@ jobs:
       # AikidoSec Safe Chainをセットアップ
       - name: Install safe-chain
         run: curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh -s -- --ci
-
+      
       - name: Install dependencies
         run: bun install
+
+      # Betterleaksをセットアップ
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Betterleaks scan
+        run: |
+          brew install betterleaks/tap/betterleaks
+          betterleaks git .
+
+      # Anti-trojan-sourceをセットアップ
+      - name: Install anti-trojan-source
+        run: |
+          bun install anti-trojan-source
+      
+      - name: Anti-trojan-source scan
+        run: |
+          bunx anti-trojan-source --scan .

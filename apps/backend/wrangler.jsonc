@@ -1,0 +1,48 @@
+{
+	"$schema": "https://unpkg.com/wrangler/config-schema.json",
+	"name": "basic-knowledge-for-web-backend",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-02-24",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "00000000000000000000000000000000",
+			"localConnectionString": "postgresql://root:root@localhost:26257/basic-knowledge-for-web?sslmode=disable"
+		}
+	],
+	"env": {
+		"dev": {
+			"name": "basic-knowledge-for-web-backend-dev",
+			"routes": [
+				{
+					"pattern": "dev.reitaisai.info/api/*",
+					"zone_name": "reitaisai.info"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "HYPERDRIVE",
+					"id": "f7f0ede9c7464673ab6f5bdcf0753218"
+				}
+			]
+		},
+		"prod": {
+			"name": "basic-knowledge-for-web-backend",
+			"routes": [
+				{
+					"pattern": "reitaisai.info/api/*",
+					"zone_name": "reitaisai.info"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "HYPERDRIVE",
+					"id": "5a36ae3ca5ed4a4697040c00685f213e"
+				}
+			]
+		}
+	}
+}

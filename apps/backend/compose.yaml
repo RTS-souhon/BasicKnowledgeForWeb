@@ -1,0 +1,18 @@
+services:
+  db:
+    image: cockroachdb/cockroach:latest
+    container_name: basic-knowledge-for-web-cockroachdb
+    restart: unless-stopped
+    command: start-single-node --insecure
+    environment:
+      COCKROACH_DATABASE: basic-knowledge-for-web
+      COCKROACH_USER: root
+      COCKROACH_PASSWORD: root
+    ports:
+      - "26257:26257"
+      - "8888:8080"
+    volumes:
+      - db_data:/cockroach/cockroach-data
+
+volumes:
+  db_data:
