@@ -8,7 +8,7 @@ const config: Config = {
         '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
     },
     moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@backend/(.*)$': '<rootDir>/$1',
     },
 };
 

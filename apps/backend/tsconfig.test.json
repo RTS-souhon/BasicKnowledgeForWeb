@@ -12,7 +12,7 @@
         "jsxImportSource": "hono/jsx",
         "baseUrl": ".",
         "paths": {
-            "@/*": ["src/*"]
+            "@backend/*": ["*"]
         }
     },
     "include": ["tests/**/*", "src/**/*"]
