@@ -1,0 +1,33 @@
+{
+    "$schema": "https://unpkg.com/wrangler/config-schema.json",
+    "name": "basic-knowledge-for-web-frontend",
+    "main": ".open-next/worker.js",
+    "compatibility_date": "2025-02-24",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+    },
+    "env": {
+        "dev": {
+            "name": "basic-knowledge-for-web-frontend-dev",
+            "routes": [
+                {
+                    "pattern": "dev.reitaisai.info/*",
+                    "zone_name": "reitaisai.info"
+                }
+            ]
+        },
+        "prod": {
+            "name": "basic-knowledge-for-web-frontend",
+            "routes": [
+                {
+                    "pattern": "reitaisai.info/*",
+                    "zone_name": "reitaisai.info"
+                }
+            ]
+        }
+    }
+}
