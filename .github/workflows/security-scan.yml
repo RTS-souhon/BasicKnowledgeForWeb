@@ -41,4 +41,4 @@ jobs:
       
       - name: Anti-trojan-source scan
         run: |
-          anti-trojan-source --scan .
+          bunx anti-trojan-source --scan .
