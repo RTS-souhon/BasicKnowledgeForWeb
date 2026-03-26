@@ -1,6 +1,6 @@
+import type { IUserRepository } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import type { CreateUserInput } from '@backend/src/infrastructure/validators/userValidator';
 import bcrypt from 'bcryptjs';
-import type { IUserRepository } from '@/infrastructure/repositories/user/IUserRepository';
-import type { CreateUserInput } from '@/infrastructure/validators/userValidator';
 import type { ICreateUserUseCase } from './ICreateUserUseCase';
 
 export class CreateUserUseCase implements ICreateUserUseCase {

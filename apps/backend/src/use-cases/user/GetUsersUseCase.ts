@@ -1,4 +1,4 @@
-import type { IUserRepository } from '@/infrastructure/repositories/user/IUserRepository';
+import type { IUserRepository } from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import type { IGetUsersUseCase } from './IGetUsersUseCase';
 
 export class GetUsersUseCase implements IGetUsersUseCase {

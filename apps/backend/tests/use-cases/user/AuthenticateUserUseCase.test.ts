@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { beforeAll, describe, expect, it } from '@jest/globals';
-import type { IUserRepository, User } from '@/infrastructure/repositories/user/IUserRepository';
-import { AuthenticateUserUseCase } from '@/use-cases/user/AuthenticateUserUseCase';
+import type { IUserRepository, User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import { AuthenticateUserUseCase } from '@backend/src/use-cases/user/AuthenticateUserUseCase';
 
 const CORRECT_PASSWORD = 'correct-password';
 

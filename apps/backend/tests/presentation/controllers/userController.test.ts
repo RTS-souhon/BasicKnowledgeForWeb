@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { describe, expect, it } from '@jest/globals';
-import { createUser, getUsers } from '@/presentation/controllers/userController';
-import type { User } from '@/infrastructure/repositories/user/IUserRepository';
-import type { ICreateUserUseCase } from '@/use-cases/user/ICreateUserUseCase';
-import type { IGetUsersUseCase } from '@/use-cases/user/IGetUsersUseCase';
+import { createUser, getUsers } from '@backend/src/presentation/controllers/userController';
+import type { User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import type { ICreateUserUseCase } from '@backend/src/use-cases/user/ICreateUserUseCase';
+import type { IGetUsersUseCase } from '@backend/src/use-cases/user/IGetUsersUseCase';
 
 const mockUser: User = {
     id: 'uuid-1',

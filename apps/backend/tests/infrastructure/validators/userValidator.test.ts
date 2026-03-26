@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
     createUserSchema,
     updateUserSchema,
-} from '@/infrastructure/validators/userValidator';
+} from '@backend/src/infrastructure/validators/userValidator';
 
 // ---- createUserSchema ----
 

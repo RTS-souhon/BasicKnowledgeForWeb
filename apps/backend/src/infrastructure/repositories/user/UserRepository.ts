@@ -1,6 +1,6 @@
+import type { createDatabaseClient } from '@backend/src/db/connection';
+import { users } from '@backend/src/db/schema';
 import { eq } from 'drizzle-orm';
-import type { createDatabaseClient } from '@/db/connection';
-import { users } from '@/db/schema';
 import type { IUserRepository, NewUser, User } from './IUserRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;

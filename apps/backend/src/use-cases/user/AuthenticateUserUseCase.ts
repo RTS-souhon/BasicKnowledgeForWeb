@@ -1,5 +1,5 @@
+import type { IUserRepository } from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import bcrypt from 'bcryptjs';
-import type { IUserRepository } from '@/infrastructure/repositories/user/IUserRepository';
 import type { IAuthenticateUserUseCase } from './IAuthenticateUserUseCase';
 
 export interface AuthenticateUserInput {

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { createDatabaseClient } from '@/db/connection';
-import { HealthRepository } from '@/infrastructure/repositories/health/HealthRepository';
+import type { createDatabaseClient } from '@backend/src/db/connection';
+import { HealthRepository } from '@backend/src/infrastructure/repositories/health/HealthRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;
 

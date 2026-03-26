@@ -1,5 +1,5 @@
+import type { ICheckDatabaseHealthUseCase } from '@backend/src/use-cases/health/ICheckDatabaseHealthUseCase';
 import type { Context } from 'hono';
-import type { ICheckDatabaseHealthUseCase } from '@/use-cases/health/ICheckDatabaseHealthUseCase';
 
 export async function checkHealth(
     c: Context,

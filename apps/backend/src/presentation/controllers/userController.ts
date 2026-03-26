@@ -1,7 +1,7 @@
+import { createUserSchema } from '@backend/src/infrastructure/validators/userValidator';
+import type { ICreateUserUseCase } from '@backend/src/use-cases/user/ICreateUserUseCase';
+import type { IGetUsersUseCase } from '@backend/src/use-cases/user/IGetUsersUseCase';
 import type { Context } from 'hono';
-import { createUserSchema } from '@/infrastructure/validators/userValidator';
-import type { ICreateUserUseCase } from '@/use-cases/user/ICreateUserUseCase';
-import type { IGetUsersUseCase } from '@/use-cases/user/IGetUsersUseCase';
 
 export async function getUsers(c: Context, useCase: IGetUsersUseCase) {
     try {

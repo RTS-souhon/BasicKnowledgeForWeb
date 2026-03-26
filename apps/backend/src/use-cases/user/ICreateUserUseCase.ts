@@ -1,5 +1,5 @@
-import type { User } from '@/infrastructure/repositories/user/IUserRepository';
-import type { CreateUserInput } from '@/infrastructure/validators/userValidator';
+import type { User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import type { CreateUserInput } from '@backend/src/infrastructure/validators/userValidator';
 
 export interface ICreateUserUseCase {
     execute(

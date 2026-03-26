@@ -1,4 +1,4 @@
-import type { User } from '@/infrastructure/repositories/user/IUserRepository';
+import type { User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import type { AuthenticateUserInput } from './AuthenticateUserUseCase';
 
 type UserWithoutPassword = Omit<User, 'password'>;

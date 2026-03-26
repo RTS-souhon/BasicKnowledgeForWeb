@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { IHealthRepository } from '@/infrastructure/repositories/health/IHealthRepository';
+import type { IHealthRepository } from '@backend/src/infrastructure/repositories/health/IHealthRepository';
 import { createTestAppWithHealth } from '../helpers/createTestApp';
 
 function createMockHealthRepository(

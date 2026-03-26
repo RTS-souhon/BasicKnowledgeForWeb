@@ -1,5 +1,5 @@
+import type { createDatabaseClient } from '@backend/src/db/connection';
 import { sql } from 'drizzle-orm';
-import type { createDatabaseClient } from '@/db/connection';
 import type { IHealthRepository } from './IHealthRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;

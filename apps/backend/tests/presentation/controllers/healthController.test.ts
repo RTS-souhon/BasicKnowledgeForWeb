@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { describe, expect, it } from '@jest/globals';
-import { checkHealth } from '@/presentation/controllers/healthController';
-import type { ICheckDatabaseHealthUseCase } from '@/use-cases/health/ICheckDatabaseHealthUseCase';
+import { checkHealth } from '@backend/src/presentation/controllers/healthController';
+import type { ICheckDatabaseHealthUseCase } from '@backend/src/use-cases/health/ICheckDatabaseHealthUseCase';
 
 function createMockUseCase(success: boolean): ICheckDatabaseHealthUseCase {
     return { execute: async () => ({ success }) };

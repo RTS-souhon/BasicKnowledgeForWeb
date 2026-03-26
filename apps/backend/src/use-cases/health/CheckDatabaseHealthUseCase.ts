@@ -1,4 +1,4 @@
-import type { IHealthRepository } from '@/infrastructure/repositories/health/IHealthRepository';
+import type { IHealthRepository } from '@backend/src/infrastructure/repositories/health/IHealthRepository';
 import type { ICheckDatabaseHealthUseCase } from './ICheckDatabaseHealthUseCase';
 
 export class CheckDatabaseHealthUseCase implements ICheckDatabaseHealthUseCase {

@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type {
     IUserRepository,
     User,
-} from '@/infrastructure/repositories/user/IUserRepository';
+} from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import { createTestAppWithUsers } from '../helpers/createTestApp';
 
 const mockUser: User = {

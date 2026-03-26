@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import type { IHealthRepository } from '@/infrastructure/repositories/health/IHealthRepository';
-import { CheckDatabaseHealthUseCase } from '@/use-cases/health/CheckDatabaseHealthUseCase';
+import type { IHealthRepository } from '@backend/src/infrastructure/repositories/health/IHealthRepository';
+import { CheckDatabaseHealthUseCase } from '@backend/src/use-cases/health/CheckDatabaseHealthUseCase';
 
 describe('CheckDatabaseHealthUseCase', () => {
     it('DB接続成功時にsuccess: trueを返す', async () => {

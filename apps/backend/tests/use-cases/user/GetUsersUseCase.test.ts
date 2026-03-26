@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import type { IUserRepository, User } from '@/infrastructure/repositories/user/IUserRepository';
-import { GetUsersUseCase } from '@/use-cases/user/GetUsersUseCase';
+import type { IUserRepository, User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import { GetUsersUseCase } from '@backend/src/use-cases/user/GetUsersUseCase';
 
 const mockUser: User = {
     id: 'uuid-1',
