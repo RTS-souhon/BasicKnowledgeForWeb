@@ -1,6 +1,6 @@
 'use client';
 
-import { client } from '@/app/utils/client';
+import { client } from '@frontend/app/utils/client';
 
 export default function Home() {
     const handleClick = async () => {
