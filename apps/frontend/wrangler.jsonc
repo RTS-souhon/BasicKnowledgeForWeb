@@ -13,20 +13,14 @@
     "env": {
         "dev": {
             "name": "basic-knowledge-for-web-frontend-dev",
-            "routes": [
-                {
-                    "pattern": "dev.reitaisai.info/*",
-                    "zone_name": "reitaisai.info"
-                }
+            "custom_domains": [
+                { "pattern": "dev.reitaisai.info" }
             ]
         },
         "prod": {
             "name": "basic-knowledge-for-web-frontend",
-            "routes": [
-                {
-                    "pattern": "reitaisai.info/*",
-                    "zone_name": "reitaisai.info"
-                }
+            "custom_domains": [
+                { "pattern": "reitaisai.info" }
             ]
         }
     }
