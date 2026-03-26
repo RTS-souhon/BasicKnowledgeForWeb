@@ -15,8 +15,8 @@
             "name": "basic-knowledge-for-web-frontend-dev",
             "routes": [
                 {
-                    "pattern": "dev.reitaisai.info/*",
-                    "zone_name": "reitaisai.info"
+                    "pattern": "dev.reitaisai.info",
+                    "custom_domain": true
                 }
             ]
         },
@@ -24,8 +24,8 @@
             "name": "basic-knowledge-for-web-frontend",
             "routes": [
                 {
-                    "pattern": "reitaisai.info/*",
-                    "zone_name": "reitaisai.info"
+                    "pattern": "reitaisai.info",
+                    "custom_domain": true
                 }
             ]
         }
