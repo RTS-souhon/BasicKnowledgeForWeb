@@ -13,6 +13,8 @@ provider "cloudflare" {
 }
 
 data "cloudflare_zone" "reitaisai_info" {
-    account_id = var.cloudflare_account_id
+    account = {
+        id = var.cloudflare_account_id
+    }
     name       = var.cloudflare_zone_name
 }
