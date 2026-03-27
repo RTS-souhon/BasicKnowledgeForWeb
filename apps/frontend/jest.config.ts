@@ -40,9 +40,8 @@ const MSW_ESM_PACKAGES = [
     'is-node-process',
 ].join('|');
 
-// biome-ignore lint/suspicious/noExplicitAny: jest config async wrapper
-export default async (...args: any[]) => {
-    const config = await createJestConfig(customJestConfig)(...args);
+export default async () => {
+    const config = await createJestConfig(customJestConfig)();
     config.transformIgnorePatterns = [
         `node_modules/(?!(${MSW_ESM_PACKAGES})/)`,
         '^.+\\.module\\.(css|sass|scss)$',
