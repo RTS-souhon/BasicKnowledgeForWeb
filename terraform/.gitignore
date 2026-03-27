@@ -1,0 +1,19 @@
+# Terraform の状態ファイルと機密情報を除外する
+
+# ローカル変数（API トークン・DB パスワードを含む）
+terraform.tfvars
+*.auto.tfvars
+
+# Terraform の状態ファイル（リモートステートを使う場合はローカルに残らない）
+*.tfstate
+*.tfstate.backup
+
+# Terraform のワーキングディレクトリ
+.terraform/
+
+# クラッシュログ
+crash.log
+crash.*.log
+
+# プランファイル（機密情報が含まれる可能性がある）
+*.tfplan

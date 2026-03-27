@@ -1,0 +1,20 @@
+# このファイルを terraform.tfvars にコピーして実際の値を設定する。
+# terraform.tfvars は .gitignore で除外されているためリポジトリにコミットしない。
+
+cloudflare_api_token  = "your-cloudflare-api-token"
+cloudflare_account_id = "your-cloudflare-account-id"
+cloudflare_zone_name  = "reitaisai.info"
+
+# ── Hyperdrive: 本番 ──────────────────────────────────────────────────────
+db_host_prod     = "your-prod-db-host.example.com"
+db_port_prod     = 5432
+db_name_prod     = "basic-knowledge-for-web"
+db_user_prod     = "your-prod-db-user"
+db_password_prod = "your-prod-db-password"
+
+# ── Hyperdrive: 開発環境 ──────────────────────────────────────────────────
+db_host_dev     = "your-dev-db-host.example.com"
+db_port_dev     = 5432
+db_name_dev     = "basic-knowledge-for-web"
+db_user_dev     = "your-dev-db-user"
+db_password_dev = "your-dev-db-password"
