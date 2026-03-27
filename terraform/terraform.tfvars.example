@@ -2,19 +2,19 @@
 # terraform.tfvars は .gitignore で除外されているためリポジトリにコミットしない。
 
 cloudflare_api_token  = "your-cloudflare-api-token"
-cloudflare_account_id = "your-cloudflare-account-id"
+cloudflare_account_id = "d94e52a031721601047a2770f9b5fa4c"
 cloudflare_zone_name  = "reitaisai.info"
 
 # ── Hyperdrive: 本番 ──────────────────────────────────────────────────────
-db_host_prod     = "your-prod-db-host.example.com"
-db_port_prod     = 5432
-db_name_prod     = "basic-knowledge-for-web"
-db_user_prod     = "your-prod-db-user"
+db_host_prod     = "rts-basic-knowledge-23639.j77.aws-ap-southeast-1.cockroachlabs.cloud"
+db_port_prod     = 26257
+db_name_prod     = "BasicKnowledgeForWeb"
+db_user_prod     = "hyperdrive"
 db_password_prod = "your-prod-db-password"
 
 # ── Hyperdrive: 開発環境 ──────────────────────────────────────────────────
-db_host_dev     = "your-dev-db-host.example.com"
-db_port_dev     = 5432
-db_name_dev     = "basic-knowledge-for-web"
-db_user_dev     = "your-dev-db-user"
+db_host_dev     = "rts-basic-knowledge-23639.j77.aws-ap-southeast-1.cockroachlabs.cloud"
+db_port_dev     = 26257
+db_name_dev     = "Dev-BasicKnowledgeForWeb"
+db_user_dev     = "hyperdrive"
 db_password_dev = "your-dev-db-password"

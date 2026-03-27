@@ -1,19 +1,6 @@
-# ── Hyperdrive ─────────────────────────────────────────────────────────────
-#
-# 既存リソースをインポートする場合は以下のコマンドを実行する:
-#
-#   terraform import cloudflare_hyperdrive_config.backend_prod \
-#     <ACCOUNT_ID>/5a36ae3ca5ed4a4697040c00685f213e
-#
-#   terraform import cloudflare_hyperdrive_config.backend_dev \
-#     <ACCOUNT_ID>/f7f0ede9c7464673ab6f5bdcf0753218
-#
-# インポート後、wrangler.jsonc の hyperdrive[].id が outputs の値と
-# 一致していることを確認する。
-
 resource "cloudflare_hyperdrive_config" "backend_prod" {
     account_id = var.cloudflare_account_id
-    name       = "basic-knowledge-for-web-backend"
+    name       = "basic-knowledge-for-web-database"
 
     origin = {
         scheme   = "postgresql"
@@ -31,7 +18,7 @@ resource "cloudflare_hyperdrive_config" "backend_prod" {
 
 resource "cloudflare_hyperdrive_config" "backend_dev" {
     account_id = var.cloudflare_account_id
-    name       = "basic-knowledge-for-web-backend-dev"
+    name       = "basic-knowledge-for-web-database-dev"
 
     origin = {
         scheme   = "postgresql"

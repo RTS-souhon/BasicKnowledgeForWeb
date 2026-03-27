@@ -23,9 +23,9 @@ variable "db_host_prod" {
 }
 
 variable "db_port_prod" {
-    description = "本番 PostgreSQL ポート"
+    description = "本番 DB ポート（CockroachDB: 26257）"
     type        = number
-    default     = 5432
+    default     = 26257
 }
 
 variable "db_name_prod" {
@@ -52,9 +52,9 @@ variable "db_host_dev" {
 }
 
 variable "db_port_dev" {
-    description = "開発環境 PostgreSQL ポート"
+    description = "開発環境 DB ポート（CockroachDB: 26257）"
     type        = number
-    default     = 5432
+    default     = 26257
 }
 
 variable "db_name_dev" {
