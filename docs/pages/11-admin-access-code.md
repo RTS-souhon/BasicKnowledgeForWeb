@@ -1,0 +1,143 @@
+# アクセスコード設定画面 `/admin/access-code`
+
+## 概要
+
+Admin/Developer がイベント会期ごとのアクセスコードを管理する。
+コードの一覧表示・新規生成・削除が可能。
+
+---
+
+## アクセス制御
+
+| 条件 | 挙動 |
+|---|---|
+| auth_token 有効 + admin/developer ロール | 表示 |
+| auth_token 有効 + user ロール | `/dashboard` へリダイレクト（403） |
+| auth_token なし | `/login` へリダイレクト |
+
+---
+
+## 画面構成
+
+```
+┌────────────────────────────────────────────────┐
+│  アクセスコード管理                               │
+│                                                │
+│  ── 新規コード生成 ──                            │
+│  イベント名  [                    ]             │
+│  コード      [                    ]  ← 手動入力 or 自動生成ボタン
+│  有効開始日  [日付ピッカー]                      │
+│  有効終了日  [日付ピッカー]                      │
+│  [生成する]                                     │
+│                                                │
+│  ── 現在のコード一覧 ──                          │
+│                                                │
+│  イベント名     コード      有効期間       操作  │
+│  ──────────────────────────────────────────    │
+│  2025夏イベント  SUMMER25  7/1〜7/31    [削除]  │
+│  2025春イベント  SPRING25  3/1〜3/31    [削除]  │
+│  ...                                           │
+└────────────────────────────────────────────────┘
+```
+
+### ステータス表示
+
+| 状態 | バッジ |
+|---|---|
+| 現在有効（valid_from ≦ now ≦ valid_to） | 緑「有効中」 |
+| 有効期限切れ（valid_to < now） | グレー「終了」 |
+| 開始前（valid_from > now） | 黄「準備中」 |
+
+---
+
+## データ構造
+
+```typescript
+type AccessCode = {
+    id: string
+    code: string
+    event_name: string
+    valid_from: string   // ISO 8601
+    valid_to: string
+    created_by: string
+    created_at: string
+}
+```
+
+---
+
+## API
+
+### GET `/api/access-codes`
+
+- レスポンス: `{ codes: AccessCode[] }`（`valid_from` 降順）
+
+### POST `/api/access-codes`
+
+```json
+{
+    "code": "SUMMER2025",
+    "event_name": "2025夏イベント",
+    "valid_from": "2025-07-01T00:00:00Z",
+    "valid_to": "2025-07-31T23:59:59Z"
+}
+```
+
+**レスポンス**
+```
+201 { "code": { AccessCode } }
+400 { "error": "このコードは既に使用されています" }
+400 { "error": "バリデーションエラー" }
+```
+
+### DELETE `/api/access-codes/:id`
+
+```
+200 { "message": "削除しました" }
+404 { "error": "コードが見つかりません" }
+```
+
+---
+
+## フロントエンド実装
+
+- `page.tsx`: Server Component でコード一覧を fetch
+- 生成フォーム: Client Component
+  - `react-hook-form` + `accessCodeSchema`
+  - 「自動生成」ボタン: ランダムな英数字 8 文字を `code` フィールドに入力
+  - 有効期間は日付ピッカー（HTML `<input type="date">`）
+  - `valid_from > valid_to` の場合はクライアントでエラー表示
+- 削除: 確認ダイアログ → `DELETE /api/access-codes/:id` → 一覧を更新
+
+---
+
+## バックエンド実装
+
+### バリデーション（`accessCodeValidator.ts`）
+
+```typescript
+const createAccessCodeSchema = z.object({
+    code: z.string().min(1).max(50),
+    event_name: z.string().min(1).max(255),
+    valid_from: z.string().datetime(),
+    valid_to: z.string().datetime(),
+}).refine(
+    (data) => new Date(data.valid_to) > new Date(data.valid_from),
+    { message: '有効終了日は開始日より後にしてください', path: ['valid_to'] }
+)
+```
+
+---
+
+## テスト項目
+
+| # | テスト内容 |
+|---|---|
+| 1 | コード一覧が表示されること |
+| 2 | ステータスバッジ（有効中・終了・準備中）が正しく表示されること |
+| 3 | 新規コード生成フォームで正常に登録できること |
+| 4 | コード重複時にエラーが表示されること |
+| 5 | 終了日が開始日より前の場合バリデーションエラーが表示されること |
+| 6 | 自動生成ボタンでコードフィールドが埋まること |
+| 7 | 削除ボタンで確認後にコードが削除されること |
+| 8 | user ロールでアクセスしたときに 403 またはリダイレクトされること |
