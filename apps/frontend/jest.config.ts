@@ -5,6 +5,11 @@ const createJestConfig = nextJest({ dir: './' });
 
 const customJestConfig: Config = {
     testEnvironment: 'jsdom',
+    globals: {
+        'ts-jest': {
+            tsconfig: '<rootDir>/tsconfig.test.json',
+        },
+    },
     testEnvironmentOptions: {
         // @mswjs/interceptors は "browser" export condition で ESM (.mjs) を返す。
         // jest の jsdom はデフォルトで browser 条件を有効にするため無効化し、
