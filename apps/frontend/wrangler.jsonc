@@ -18,6 +18,12 @@
                     "pattern": "dev.reitaisai.info",
                     "custom_domain": true
                 }
+            ],
+            "r2_buckets": [
+                {
+                    "binding": "NEXT_INC_CACHE_R2_BUCKET",
+                    "bucket_name": "basic-knowledge-for-web-next-cache-dev"
+                }
             ]
         },
         "prod": {
@@ -26,6 +32,12 @@
                 {
                     "pattern": "reitaisai.info",
                     "custom_domain": true
+                }
+            ],
+            "r2_buckets": [
+                {
+                    "binding": "NEXT_INC_CACHE_R2_BUCKET",
+                    "bucket_name": "basic-knowledge-for-web-next-cache"
                 }
             ]
         }
