@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/cockroach';
-import { users } from './schema';
+import { accessCodes, users } from './schema';
 
 // Cloudflare WorkersのHyperdrive型をインポート
 interface Hyperdrive {
@@ -8,6 +8,7 @@ interface Hyperdrive {
 
 export interface Env {
     HYPERDRIVE: Hyperdrive;
+    JWT_SECRET: string;
 }
 
 export function createDatabaseClient(env: Env) {
@@ -18,5 +19,5 @@ export function createDatabaseClient(env: Env) {
     });
 }
 
-// Export the users table for use in other files
-export { users };
+// Export tables for use in other files
+export { accessCodes, users };

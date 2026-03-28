@@ -6,6 +6,9 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"JWT_SECRET": "dev-secret-please-change-in-production"
+	},
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
