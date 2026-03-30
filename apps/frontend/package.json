@@ -35,23 +35,17 @@
         "zod": "^4.3.6"
     },
     "devDependencies": {
-        "@cloudflare/workers-types": "^4.20260317.1",
         "@tailwindcss/postcss": "^4.1.14",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.2",
         "@testing-library/user-event": "^14.6.1",
-        "@types/jest": "^30.0.0",
-        "@types/node": "^24.12.0",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "cross-fetch": "^4.1.0",
-        "jest": "^30.3.0",
         "jest-environment-jsdom": "^30.3.0",
         "msw": "^2.12.14",
         "postcss": "^8",
         "tailwindcss": "^4.2.2",
-        "tsx": "^4.20.6",
-        "typescript": "^5",
-        "wrangler": "^4.76.0"
+        "typescript": "^5"
     }
 }
