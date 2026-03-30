@@ -19,7 +19,7 @@
         "db:drop": "drizzle-kit drop"
     },
     "dependencies": {
-        "@hono/zod-validator": "^0.7.4",
+        "@hono/zod-validator": "^0.7.6",
         "@types/bcryptjs": "^3.0.0",
         "bcryptjs": "^3.0.2",
         "dotenv": "^17.3.1",
