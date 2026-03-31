@@ -140,9 +140,6 @@ jobs:
     timeout-minutes: 5
     needs: ["lint-and-test-backend", "verify-migration-backend", "lint-and-test-frontend"]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
       - name: Dependabot metadata
         uses: Dependabot/fetch-metadata@v2
         with:
@@ -152,11 +149,11 @@ jobs:
         if: ${{ steps.metadata.output.update-type != 'version-update:semver-major'}}
         run: gh pr review --approve "$PR_URL"
         env:
-          PR_URL: ${{ steps.event.pull_request.html_url }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Merge Pull Request
         run: gh pr merge --auto --merge "$PR_URL"
         env:
-          PR_URL: ${{ steps.event.pull_request.html_url }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
