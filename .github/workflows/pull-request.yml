@@ -51,6 +51,50 @@ jobs:
           cd apps/backend
           bun run test
 
+  verify-migration-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          bun install
+
+      - name: Start CockroachDB
+        run: |
+          docker run -d \
+            --name cockroachdb \
+            -p 26257:26257 \
+            cockroachdb/cockroach:latest \
+            start-single-node --insecure
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health?ready=1 > /dev/null 2>&1; then
+              echo "CockroachDB is ready"
+              break
+            fi
+            echo "Waiting for CockroachDB... ($i/30)"
+            sleep 2
+          done
+
+      - name: Create database
+        run: |
+          docker exec cockroachdb cockroach sql --insecure \
+            -e 'CREATE DATABASE IF NOT EXISTS "basic-knowledge-for-web";'
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable
+        run: |
+          cd apps/backend
+          bun run db:migrate
+
   lint-and-test-frontend:
     runs-on: ubuntu-latest
     steps:
