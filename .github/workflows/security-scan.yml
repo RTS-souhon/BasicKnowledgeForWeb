@@ -9,12 +9,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-npm-packages-by-aikidosec-safe-chain:
+  Security-scan-for-dependencies:
     runs-on: ubuntu-slim
 
     steps:
       # リポジトリをチェックアウト
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: "refs/pull/${{ github.event.number }}/merge"
 
