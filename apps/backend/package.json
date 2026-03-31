@@ -12,8 +12,8 @@
         "lint:fix": "biome check --write --unsafe ./src",
         "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
         "test": "jest",
-        "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate",
+        "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+        "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
         "db:check": "drizzle-kit check",
         "db:up": "drizzle-kit up",
         "db:drop": "drizzle-kit drop"
