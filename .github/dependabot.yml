@@ -23,6 +23,11 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    groups:
+      drizzle:
+        patterns:
+          - "drizzle-orm"
+          - "drizzle-kit"
 
   - package-ecosystem: "bun"
     directory: "/apps/frontend"
@@ -35,6 +40,13 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
 
   - package-ecosystem: "github-actions"
     directory: "/"
