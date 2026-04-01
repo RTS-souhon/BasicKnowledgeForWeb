@@ -75,7 +75,9 @@ DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=d
 
 ## Code Modification Checklist
 
-**After every code change, all of the following must pass before committing.**
+**After every code change, follow this workflow before pushing.**
+
+### 1. Verify all checks pass
 
 ```bash
 # When changing backend
@@ -92,6 +94,32 @@ bun run test         # All tests PASS
 ```
 
 Lint errors can often be auto-fixed with `bun run lint:fix`. Type errors and test failures must be fixed manually. The CI pipeline (`pull-request.yml`) runs the same checks — code that fails locally will fail in CI.
+
+### 2. Split commits into meaningful units
+
+Do **not** bundle unrelated changes into a single commit. Each commit should represent one logical change that can be reviewed and reverted independently.
+
+**Good examples:**
+- `feat(users): add GET /api/users endpoint` — new route only
+- `test(users): add feature tests for GET /api/users` — tests only
+- `feat(register): add registration form UI` — frontend only
+
+**Bad examples:**
+- One commit mixing schema changes, business logic, and UI updates
+- "WIP" or "fix" commits with unrelated changes lumped together
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`.
+
+### 3. Push and open a Pull Request
+
+After committing, push the branch and open a PR targeting `develop`:
+
+```bash
+git push -u origin <branch-name>
+gh pr create --base develop
+```
+
+Every change must go through a PR — do not push directly to `develop` or `main`.
 
 ## Architecture
 
