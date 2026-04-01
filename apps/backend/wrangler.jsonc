@@ -6,8 +6,10 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
-	"vars": {
-		"JWT_SECRET": "dev-secret-please-change-in-production"
+	"secrets": {
+		"required": [
+			"JWT_SECRET"
+		]
 	},
 	"hyperdrive": [
 		{
