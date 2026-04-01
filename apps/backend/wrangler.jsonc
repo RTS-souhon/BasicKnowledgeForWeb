@@ -32,7 +32,21 @@
 					"binding": "HYPERDRIVE",
 					"id": "f7f0ede9c7464673ab6f5bdcf0753218"
 				}
-			]
+			],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
 		},
 		"prod": {
 			"name": "basic-knowledge-for-web-backend",
@@ -47,7 +61,21 @@
 					"binding": "HYPERDRIVE",
 					"id": "5a36ae3ca5ed4a4697040c00685f213e"
 				}
-			]
+			],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
 		}
 	}
 }
