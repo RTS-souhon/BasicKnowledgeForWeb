@@ -1,0 +1,42 @@
+model = "gpt-5-codex"
+model_reasoning_effort = "high"
+hide_agent_reasoning = true
+network_access = true
+
+[tools]
+web_search = true
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+
+[mcp_servers.cloudflare-docs]
+command = "npx"
+args = ["mcp-remote", "https://docs.mcp.cloudflare.com/mcp"]
+
+[mcp_servers.cloudflare-bindings]
+command = "npx"
+args = ["mcp-remote", "https://bindings.mcp.cloudflare.com/mcp"]
+
+[mcp_servers.cloudflare-observability]
+command = "npx"
+args = ["mcp-remote", "https://observability.mcp.cloudflare.com/mcp"]
+
+[mcp_servers.cloudflare-auditlogs]
+command = "npx"
+args = ["mcp-remote", "https://auditlogs.mcp.cloudflare.com/mcp"]
+
+[mcp_servers.cloudflare-dns-analytics]
+command = "npx"
+args = ["mcp-remote", "https://dns-analytics.mcp.cloudflare.com/mcp"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
+
+[mcp_servers.chrome-devtools.env]
+CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
