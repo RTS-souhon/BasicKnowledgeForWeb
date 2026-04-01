@@ -29,7 +29,21 @@
                     "binding": "NEXT_INC_CACHE_R2_BUCKET",
                     "bucket_name": "basic-knowledge-for-web-next-cache-dev"
                 }
-            ]
+            ],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
         },
         "prod": {
             "name": "basic-knowledge-for-web-frontend",
@@ -44,7 +58,21 @@
                     "binding": "NEXT_INC_CACHE_R2_BUCKET",
                     "bucket_name": "basic-knowledge-for-web-next-cache"
                 }
-            ]
+            ],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
         }
     }
 }
