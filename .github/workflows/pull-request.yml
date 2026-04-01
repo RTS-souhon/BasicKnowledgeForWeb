@@ -1,0 +1,159 @@
+name: Pull Request Build & Test
+
+env:
+  NEXT_PUBLIC_API_URL: http://localhost:8080
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          bun install
+
+      - name: Build backend
+        run: |
+          cd apps/backend
+          bun run build
+
+      - name: Lint backend code
+        run: |
+          cd apps/backend
+          bun run lint
+
+      - name: Type check backend
+        run: |
+          cd apps/backend
+          bun run type-check
+
+      - name: Test backend
+        run: |
+          cd apps/backend
+          bun run test
+
+  verify-migration-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          bun install
+
+      - name: Start CockroachDB
+        run: |
+          docker run -d \
+            --name cockroachdb \
+            -p 26257:26257 \
+            cockroachdb/cockroach:latest \
+            start-single-node --insecure
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health?ready=1 > /dev/null 2>&1; then
+              echo "CockroachDB is ready"
+              break
+            fi
+            echo "Waiting for CockroachDB... ($i/30)"
+            sleep 2
+          done
+
+      - name: Create database
+        run: |
+          docker exec cockroachdb cockroach sql --insecure \
+            -e 'CREATE DATABASE IF NOT EXISTS "basic-knowledge-for-web";'
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable
+        run: |
+          cd apps/backend
+          bun run db:migrate
+
+  lint-and-test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/frontend
+          bun install
+
+      - name: Build for Cloudflare
+        run: |
+          cd apps/frontend
+          bun run build:cloudflare
+
+      - name: Lint frontend code
+        run: |
+          cd apps/frontend
+          bun run lint
+
+      - name: Type check frontend
+        run: |
+          cd apps/frontend
+          bun run type-check
+
+      - name: Test frontend
+        run: |
+          cd apps/frontend
+          bun run test
+
+  dependabot-auto-merge:
+    runs-on: ubuntu-slim
+    if: "github.actor == 'dependabot[bot]'"
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 5
+    needs: ["lint-and-test-backend", "verify-migration-backend", "lint-and-test-frontend"]
+    steps:
+      - name: Dependabot metadata
+        uses: Dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve Pull Request
+        if: ${{ steps.metadata.outputs.update-type != 'version-update:semver-major'}}
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge Pull Request
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

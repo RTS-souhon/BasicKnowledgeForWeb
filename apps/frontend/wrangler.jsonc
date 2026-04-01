@@ -1,0 +1,50 @@
+{
+    "$schema": "https://unpkg.com/wrangler/config-schema.json",
+    "name": "basic-knowledge-for-web-frontend",
+    "main": ".open-next/worker.js",
+    "compatibility_date": "2025-02-24",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "secrets": {
+        "required": [
+            "JWT_SECRET"
+        ]
+    },
+    "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+    },
+    "env": {
+        "dev": {
+            "name": "basic-knowledge-for-web-frontend-dev",
+            "routes": [
+                {
+                    "pattern": "dev.reitaisai.info",
+                    "custom_domain": true
+                }
+            ],
+            "r2_buckets": [
+                {
+                    "binding": "NEXT_INC_CACHE_R2_BUCKET",
+                    "bucket_name": "basic-knowledge-for-web-next-cache-dev"
+                }
+            ]
+        },
+        "prod": {
+            "name": "basic-knowledge-for-web-frontend",
+            "routes": [
+                {
+                    "pattern": "reitaisai.info",
+                    "custom_domain": true
+                }
+            ],
+            "r2_buckets": [
+                {
+                    "binding": "NEXT_INC_CACHE_R2_BUCKET",
+                    "bucket_name": "basic-knowledge-for-web-next-cache"
+                }
+            ]
+        }
+    }
+}
