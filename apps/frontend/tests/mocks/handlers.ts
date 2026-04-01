@@ -36,4 +36,49 @@ export const handlers = [
             { status: 201 },
         );
     }),
+    http.post('http://localhost:8080/api/auth/login', async ({ request }) => {
+        const body = (await request.json()) as {
+            email: string;
+            password: string;
+        };
+
+        if (
+            body.email === 'admin@example.com' &&
+            body.password === 'password123'
+        ) {
+            return HttpResponse.json({ message: 'ログインしました' }, { status: 200 });
+        }
+
+        return HttpResponse.json(
+            { error: 'メールアドレスまたはパスワードが正しくありません' },
+            { status: 401 },
+        );
+    }),
+    http.post(
+        'http://localhost:8080/api/access-codes/verify',
+        async ({ request }) => {
+            const body = (await request.json()) as {
+                code: string;
+            };
+
+            if (body.code === 'SUMMER2025') {
+                return HttpResponse.json(
+                    { message: 'アクセスコードを確認しました' },
+                    { status: 200 },
+                );
+            }
+
+            if (body.code === 'EXPIRED2025') {
+                return HttpResponse.json(
+                    { error: 'アクセスコードの有効期限が切れています' },
+                    { status: 401 },
+                );
+            }
+
+            return HttpResponse.json(
+                { error: 'アクセスコードが正しくありません' },
+                { status: 401 },
+            );
+        },
+    ),
 ];

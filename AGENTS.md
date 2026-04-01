@@ -77,6 +77,15 @@ DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=d
 
 **After every code change, follow this workflow before pushing.**
 
+**Implementation order rule:** For features that span both backend and frontend, always implement in this order:
+
+1. Backend implementation
+2. Backend tests
+3. Frontend implementation
+4. Frontend tests
+
+Do not start frontend implementation before the backend behavior and its tests are in place.
+
 ### 1. Verify all checks pass
 
 ```bash

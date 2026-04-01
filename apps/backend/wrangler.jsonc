@@ -6,6 +6,11 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"secrets": {
+		"required": [
+			"JWT_SECRET"
+		]
+	},
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",

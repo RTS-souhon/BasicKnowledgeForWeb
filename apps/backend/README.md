@@ -48,6 +48,9 @@ src/
    cp .env.example .env
    ```
 
+   `JWT_SECRET` は Cloudflare Workers では `wrangler secret put JWT_SECRET` で設定し、
+   ローカル開発では `.env` または `.dev.vars` に同じ値を設定してください。
+
 3. **CockroachDBデータベースを起動**
    ```bash
    docker-compose up -d
@@ -140,6 +143,38 @@ CREATE TABLE users (
 - **接続**: Cloudflare Hyperdrive for production
 - **ローカル開発**: Docker Compose with CockroachDB
 
+## 🔑 JWT_SECRET のセットアップ
+
+**backend と frontend の両 Worker に同じ `JWT_SECRET` を設定する必要があります。**  
+frontend の middleware と backend の authMiddleware が同じ秘密鍵でトークンを検証するためです。
+
+### ローカル開発
+
+`.dev.vars`（または `.env`）に設定します。Wrangler は `.dev.vars` を優先的に読み込みます。
+
+```bash
+# apps/backend/.dev.vars
+JWT_SECRET=your-local-secret-value
+```
+
+### デプロイ前チェック（Cloudflare Workers）
+
+```bash
+# backend Worker に設定
+wrangler secret put JWT_SECRET --name basic-knowledge-for-web-backend
+
+# dev 環境の場合
+wrangler secret put JWT_SECRET --name basic-knowledge-for-web-backend-dev
+
+# 設定済み secrets を確認
+wrangler secret list --name basic-knowledge-for-web-backend
+```
+
+> **注意**: frontend Worker にも同じ値で設定が必要です。  
+> 詳細は `apps/frontend/README.md` の「JWT_SECRET のセットアップ」を参照してください。
+
+---
+
 ## 🔐 認証・セキュリティ
 
 ### セキュリティ機能
@@ -213,6 +248,7 @@ bun run deploy
 CLOUDFLARE_API_TOKEN=your_api_token
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 DATABASE_URL=your_database_url
+JWT_SECRET=shared_jwt_secret
 ```
 
 ## 🔧 開発ガイドライン
