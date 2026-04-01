@@ -110,6 +110,19 @@ Do **not** bundle unrelated changes into a single commit. Each commit should rep
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`.
 
+**Commit messages must be written in Japanese.** The subject line follows the format `<prefix>(<scope>): <Japanese description>`.
+
+```
+# Good
+feat(users): GET /api/users エンドポイントを追加
+fix(auth): JWTトークン検証のバグを修正
+test(users): GET /api/users のフィーチャーテストを追加
+
+# Bad
+feat(users): add GET /api/users endpoint
+fix: fixed bug
+```
+
 ### 3. Push and open a Pull Request
 
 After committing, push the branch and open a PR targeting `develop`:
