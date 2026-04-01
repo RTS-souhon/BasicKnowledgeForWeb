@@ -134,6 +134,47 @@ gh pr create --base develop
 
 Every change must go through a PR — do not push directly to `develop` or `main`.
 
+**PR title and description must be written in Japanese** and must follow the project template (`.github/pull_request_template.md`):
+
+```markdown
+# Pull Request
+
+## What's changed
+このプルリクは何をしたのかを記入してください。画像とテキストを使って説明するのがおすすめです。
+
+## Todo List
+今回のプルリクはまだやっていないことや、将来やる予定の事項を記入してください
+
+- [ ] テストケースを書きます
+
+## Remark
+補足事項があれば記入してください
+```
+
+Example `gh pr create` command:
+
+```bash
+gh pr create --base develop --title "feat(users): GET /api/users エンドポイントを追加" --body "$(cat <<'EOF'
+# Pull Request
+
+## What's changed
+
+`GET /api/users` エンドポイントを追加しました。
+
+- ユーザー一覧を返すAPIを実装
+- フィーチャーテストを追加
+
+## Todo List
+
+- [ ] 認証ミドルウェアの追加
+
+## Remark
+
+なし
+EOF
+)"
+```
+
 ## Architecture
 
 ### System Architecture
