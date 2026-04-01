@@ -44,6 +44,7 @@
             "dorny",
             "drizzle",
             "hyperdrive",
+            "sslmode"
         ],
         "editor.defaultFormatter": "biomejs.biome",
         "editor.fontFamily": "Monaspace Neon, PlemolJPHS",

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to OpenAI Codex when working with code in this repository.
 
 ## Overview
 
@@ -510,96 +510,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 - `noNonNullAssertion` is disabled
 - Strict TypeScript in both apps
 - Path aliases: `@backend/*` → `src/` (backend), `@frontend/*` / `@backend/*` (frontend)
-
-## MCP & Plugin Usage Policy
-
-**IMPORTANT: Always use MCP tools and Plugins proactively for every request.**
-
-### Available MCP Tools
-
-#### Serena MCP — Code Exploration & Editing
-
-Explore and edit code at the symbol level. Always prefer symbol tools over reading entire files.
-
-| Tool | Purpose |
-|---|---|
-| `get_symbols_overview` | List all symbols in a file |
-| `find_symbol` | Search for a symbol by name path and read its body |
-| `find_referencing_symbols` | Find all references to a symbol |
-| `replace_symbol_body` | Replace an entire symbol definition |
-| `insert_after_symbol` / `insert_before_symbol` | Insert code before or after a symbol |
-| `replace_content` | Regex-based in-file replacement |
-| `search_for_pattern` | Search across the entire codebase by pattern |
-
-**Principle**: Reading an entire file is a last resort. Start with `get_symbols_overview` to understand the file structure, then use `find_symbol` to read only the symbols you need.
-
-#### Context7 MCP — Library Documentation
-
-Always use this for any question or implementation involving a library or framework. Prefer up-to-date docs over pre-trained knowledge.
-
-```
-1. resolve-library-id  — get the library ID
-2. query-docs          — fetch the documentation
-```
-
-Applicable to: Hono, Drizzle ORM, Next.js, Tailwind CSS v4, Cloudflare Workers, OpenNext, MSW, react-hook-form, shadcn/ui, etc.
-
-#### Chrome DevTools MCP — Browser Automation & Debugging
-
-Use when browser automation, performance profiling, or debugging is required.
-
-| Tool | Purpose |
-|---|---|
-| `take_screenshot` | Capture the current page |
-| `navigate_page` | Navigate to a URL |
-| `click` / `fill` / `type_text` | Interact with UI elements |
-| `evaluate_script` | Run a script in the browser console |
-| `list_network_requests` | Inspect network traffic |
-| `lighthouse_audit` | Run a Lighthouse performance audit |
-| `performance_start_trace` / `performance_stop_trace` | Record a performance trace |
-
-#### Cloudflare MCP — Cloudflare Resource Management
-
-| Plugin | Purpose |
-|---|---|
-| `cloudflare-bindings` | CRUD operations for KV / D1 / R2 / Hyperdrive |
-| `cloudflare-builds` | Inspect Workers build logs and debug failures |
-| `cloudflare-observability` | Query production Workers logs and metrics |
-| `cloudflare-docs` | Search official Cloudflare documentation |
-| `cloudflare-api` | General-purpose Cloudflare API execution |
-
-**Common workflow**: On deploy failure → check build logs with `cloudflare-builds` → inspect production logs with `cloudflare-observability`.
-
-#### CockroachDB Cloud MCP — Direct Database Access
-
-Run queries directly against the CockroachDB Cloud cluster.
-
-| Tool | Purpose |
-|---|---|
-| `list_clusters` / `get_cluster` | Inspect cluster state |
-| `list_databases` / `list_tables` | List databases and tables |
-| `get_table_schema` | Inspect a table schema |
-| `select_query` | Execute a SELECT query |
-| `insert_rows` | Insert rows |
-| `explain_query` | View query execution plan |
-
-#### Playwright MCP — Browser Automation (fallback)
-
-Use Playwright for browser automation when Chrome DevTools MCP is unavailable.
-
-### Plugins (Skills)
-
-| Scenario | Skill to invoke |
-|---|---|
-| Create a commit | `commit` |
-| Frontend implementation | `frontend-design` |
-| Feature development | `feature-dev` |
-| Code review | `code-review` |
-| Commit + push + open PR | `commit-push-pr` |
-| Cloudflare Workers implementation | `cloudflare:workers-best-practices` |
-| Build an MCP server | `cloudflare:building-mcp-server-on-cloudflare` |
-
-When a matching skill exists, always invoke it via the `Skill` tool before starting the task.
 
 ## Implementation Considerations
 
