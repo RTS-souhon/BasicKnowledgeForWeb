@@ -14,5 +14,5 @@ export interface IAccessCodeRepository {
     findAll(): Promise<AccessCode[]>;
     findByCode(code: string): Promise<AccessCode | null>;
     create(input: NewAccessCode): Promise<AccessCode>;
-    deleteById(id: string): Promise<void>;
+    deleteById(id: string): Promise<boolean>;
 }

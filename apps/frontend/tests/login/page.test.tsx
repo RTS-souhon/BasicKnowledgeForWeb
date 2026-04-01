@@ -34,7 +34,7 @@ describe('LoginPage', () => {
         });
     });
 
-    it('正常な入力で送信するとトップページへ遷移すること', async () => {
+    it('正常な入力で送信するとダッシュボードへ遷移すること', async () => {
         const user = userEvent.setup();
         render(<LoginPage />);
 
@@ -46,7 +46,7 @@ describe('LoginPage', () => {
         await user.click(screen.getByRole('button', { name: 'ログイン' }));
 
         await waitFor(() => {
-            expect(push).toHaveBeenCalledWith('/');
+            expect(push).toHaveBeenCalledWith('/dashboard');
         });
     });
 

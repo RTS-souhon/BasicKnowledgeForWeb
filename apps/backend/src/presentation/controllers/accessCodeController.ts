@@ -54,7 +54,7 @@ export async function getAccessCodes(
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
-    return c.json({ accessCodes: result.data }, 200);
+    return c.json({ codes: result.data }, 200);
 }
 
 export async function createAccessCode(
@@ -79,7 +79,7 @@ export async function createAccessCode(
     if (!result.success) {
         return c.json({ error: result.error }, 400);
     }
-    return c.json({ accessCode: result.data }, 201);
+    return c.json({ code: result.data }, 201);
 }
 
 export async function deleteAccessCode(
@@ -89,7 +89,7 @@ export async function deleteAccessCode(
     const id = c.req.param('id') ?? '';
     const result = await useCase.execute(id);
     if (!result.success) {
-        return c.json({ error: result.error }, 500);
+        return c.json({ error: result.error }, result.status ?? 500);
     }
     return c.json({ message: '削除しました' }, 200);
 }

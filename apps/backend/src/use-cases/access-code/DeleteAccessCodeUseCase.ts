@@ -9,7 +9,14 @@ export class DeleteAccessCodeUseCase implements IDeleteAccessCodeUseCase {
 
     async execute(id: string): Promise<DeleteAccessCodeResult> {
         try {
-            await this.accessCodeRepository.deleteById(id);
+            const deleted = await this.accessCodeRepository.deleteById(id);
+            if (!deleted) {
+                return {
+                    success: false,
+                    error: 'コードが見つかりません',
+                    status: 404,
+                };
+            }
             return { success: true };
         } catch {
             return {

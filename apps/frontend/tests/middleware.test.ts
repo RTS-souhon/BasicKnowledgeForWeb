@@ -45,13 +45,47 @@ beforeEach(() => {
 // ─── 公開ページ ───────────────────────────────────────────────────────────────
 
 describe('公開ページ', () => {
-    it.each(['/login', '/register', '/access'])(
-        '%s は認証なしで通過できること',
-        async (path) => {
-            const res = await middleware(createRequest(path));
-            expect(res.headers.get('location')).toBeNull();
-        },
-    );
+    it('/login は認証なしで通過できること', async () => {
+        const res = await middleware(createRequest('/login'));
+        expect(res.headers.get('location')).toBeNull();
+    });
+
+    it('/register は認証なしで通過できること', async () => {
+        const res = await middleware(createRequest('/register'));
+        expect(res.headers.get('location')).toBeNull();
+    });
+
+    it('/access は認証なしで通過できること', async () => {
+        const res = await middleware(createRequest('/access'));
+        expect(res.headers.get('location')).toBeNull();
+    });
+
+    it('有効な auth_token がある場合 /login から /dashboard にリダイレクトされること', async () => {
+        mockVerify.mockResolvedValue(adminPayload);
+        const res = await middleware(
+            createRequest('/login', { auth_token: 'valid.admin.token' }),
+        );
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toContain('/dashboard');
+    });
+
+    it('有効な access_token がある場合 /access から / にリダイレクトされること', async () => {
+        mockVerify.mockResolvedValue(accessPayload);
+        const res = await middleware(
+            createRequest('/access', { access_token: 'valid.access.token' }),
+        );
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toContain('/');
+    });
+
+    it('admin/developer の auth_token がある場合 /access から / にリダイレクトされること', async () => {
+        mockVerify.mockResolvedValue(adminPayload);
+        const res = await middleware(
+            createRequest('/access', { auth_token: 'valid.admin.token' }),
+        );
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toContain('/');
+    });
 });
 
 // ─── /admin/* 保護 ────────────────────────────────────────────────────────────

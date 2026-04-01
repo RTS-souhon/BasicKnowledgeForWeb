@@ -42,7 +42,7 @@ export default function LoginPage() {
         const res = await client.api.auth.login.$post({ json: data });
 
         if (res.ok) {
-            router.push('/');
+            router.push('/dashboard');
             return;
         }
 

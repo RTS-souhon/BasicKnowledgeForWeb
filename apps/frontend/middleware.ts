@@ -30,13 +30,38 @@ const PUBLIC_PATHS = ['/login', '/register', '/access'];
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const authToken = request.cookies.get('auth_token')?.value;
+    const accessToken = request.cookies.get('access_token')?.value;
+
+    if (pathname.startsWith('/login')) {
+        if (authToken) {
+            const auth = await verifyToken<AuthPayload>(authToken);
+            if (auth) {
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            }
+        }
+        return NextResponse.next();
+    }
+
+    if (pathname.startsWith('/access')) {
+        if (authToken) {
+            const auth = await verifyToken<AuthPayload>(authToken);
+            if (auth && ['admin', 'developer'].includes(auth.role)) {
+                return NextResponse.redirect(new URL('/', request.url));
+            }
+        }
+        if (accessToken) {
+            const access = await verifyToken<AccessPayload>(accessToken);
+            if (access) {
+                return NextResponse.redirect(new URL('/', request.url));
+            }
+        }
+        return NextResponse.next();
+    }
 
     if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
         return NextResponse.next();
     }
-
-    const authToken = request.cookies.get('auth_token')?.value;
-    const accessToken = request.cookies.get('access_token')?.value;
 
     // --- admin/* 保護 ---
     if (ADMIN_PATHS.some((p) => pathname.startsWith(p))) {

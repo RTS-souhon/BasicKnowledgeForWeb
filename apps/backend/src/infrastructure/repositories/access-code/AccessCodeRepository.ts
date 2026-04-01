@@ -1,6 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { accessCodes } from '@backend/src/db/schema';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import type {
     AccessCode,
     IAccessCodeRepository,
@@ -13,7 +13,10 @@ export class AccessCodeRepository implements IAccessCodeRepository {
     constructor(private readonly db: DatabaseClient) {}
 
     async findAll(): Promise<AccessCode[]> {
-        return this.db.select().from(accessCodes);
+        return this.db
+            .select()
+            .from(accessCodes)
+            .orderBy(desc(accessCodes.validFrom));
     }
 
     async findByCode(code: string): Promise<AccessCode | null> {
@@ -33,7 +36,11 @@ export class AccessCodeRepository implements IAccessCodeRepository {
         return row;
     }
 
-    async deleteById(id: string): Promise<void> {
-        await this.db.delete(accessCodes).where(eq(accessCodes.id, id));
+    async deleteById(id: string): Promise<boolean> {
+        const rows = await this.db
+            .delete(accessCodes)
+            .where(eq(accessCodes.id, id))
+            .returning({ id: accessCodes.id });
+        return rows.length > 0;
     }
 }

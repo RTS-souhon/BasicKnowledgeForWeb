@@ -22,6 +22,15 @@ const validAccessCode: AccessCode = {
     createdAt: new Date('2024-01-01'),
 };
 
+const newerAccessCode: AccessCode = {
+    ...validAccessCode,
+    id: '00000000-0000-0000-0000-000000000003',
+    code: 'WINTER2025',
+    eventName: 'Winter Event',
+    validFrom: new Date('2025-01-01'),
+    validTo: new Date('2099-12-31'),
+};
+
 // テスト用アクセスコード (有効期間: 過去 = 期限切れ)
 const expiredAccessCode: AccessCode = {
     ...validAccessCode,
@@ -67,8 +76,8 @@ function createMockAccessCodeRepository(
             .fn<(input: NewAccessCode) => Promise<AccessCode>>()
             .mockImplementation(() => Promise.resolve(validAccessCode)),
         deleteById: jest
-            .fn<(id: string) => Promise<void>>()
-            .mockImplementation(() => Promise.resolve()),
+            .fn<(id: string) => Promise<boolean>>()
+            .mockImplementation(() => Promise.resolve(true)),
         ...overrides,
     };
 }
@@ -168,7 +177,7 @@ describe('GET /api/access-codes', () => {
         const repo = createMockAccessCodeRepository({
             findAll: jest
                 .fn<() => Promise<AccessCode[]>>()
-                .mockResolvedValue([validAccessCode]),
+                .mockResolvedValue([newerAccessCode, validAccessCode]),
         });
         const app = createTestAppWithAccessCodes(repo);
 
@@ -178,7 +187,12 @@ describe('GET /api/access-codes', () => {
             mockEnv,
         );
 
+        const body = (await res.json()) as { codes: AccessCode[] };
+
         expect(res.status).toBe(200);
+        expect(body.codes).toHaveLength(2);
+        expect(body.codes[0]?.id).toBe(newerAccessCode.id);
+        expect(body.codes[1]?.id).toBe(validAccessCode.id);
     });
 
     it('developer トークンがあれば 200 が返ること', async () => {
@@ -224,7 +238,7 @@ describe('POST /api/access-codes', () => {
         validTo: '2025-12-31T23:59:59.000Z',
     };
 
-    it('admin トークンがあれば 201 とアクセスコードが返ること', async () => {
+    it('admin トークンがあれば 201 と code キーでアクセスコードが返ること', async () => {
         const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
 
         const res = await app.request(
@@ -240,7 +254,10 @@ describe('POST /api/access-codes', () => {
             mockEnv,
         );
 
+        const body = (await res.json()) as { code: AccessCode };
+
         expect(res.status).toBe(201);
+        expect(body.code.id).toBe(validAccessCode.id);
     });
 
     it('Cookie なしで 401 が返ること', async () => {
@@ -319,6 +336,29 @@ describe('DELETE /api/access-codes/:id', () => {
         );
 
         expect(res.status).toBe(200);
+    });
+
+    it('対象が存在しない場合は 404 が返ること', async () => {
+        const app = createTestAppWithAccessCodes(
+            createMockAccessCodeRepository({
+                deleteById: jest
+                    .fn<(id: string) => Promise<boolean>>()
+                    .mockResolvedValue(false),
+            }),
+        );
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            {
+                method: 'DELETE',
+                headers: { Cookie: `auth_token=${adminToken}` },
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { error: string };
+
+        expect(res.status).toBe(404);
+        expect(body.error).toBe('コードが見つかりません');
     });
 
     it('developer トークンでも 200 が返ること', async () => {
