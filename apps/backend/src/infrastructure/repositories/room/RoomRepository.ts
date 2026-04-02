@@ -13,6 +13,10 @@ export class RoomRepository implements IRoomRepository {
             .select()
             .from(rooms)
             .where(eq(rooms.eventId, eventId))
-            .orderBy(asc(rooms.roomName));
+            .orderBy(
+                asc(rooms.buildingName),
+                asc(rooms.floor),
+                asc(rooms.roomName),
+            );
     }
 }
