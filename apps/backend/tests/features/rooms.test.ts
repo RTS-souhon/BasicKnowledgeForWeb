@@ -46,10 +46,22 @@ const room2: RoomWithDepartments = {
 };
 
 let accessToken: string;
+let adminToken: string;
+let userToken: string;
 
 beforeAll(async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
     accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+    adminToken = await sign(
+        { id: 'admin-id', name: 'Admin', email: 'admin@test.com', role: 'admin', exp },
+        JWT_SECRET,
+        'HS256',
+    );
+    userToken = await sign(
+        { id: 'user-id', name: 'User', email: 'user@test.com', role: 'user', exp },
+        JWT_SECRET,
+        'HS256',
+    );
 });
 
 function createMockRoomRepository(
@@ -66,7 +78,7 @@ function createMockRoomRepository(
 // ─── GET /api/rooms ───────────────────────────────────────────────────────────
 
 describe('GET /api/rooms', () => {
-    it('有効な x-event-id で 200 と rooms 配列が返ること', async () => {
+    it('有効な access_token と一致する x-event-id で 200 と rooms 配列が返ること', async () => {
         const repo = createMockRoomRepository({
             findByEventId: jest
                 .fn<(eventId: string) => Promise<RoomWithDepartments[]>>()
@@ -130,7 +142,7 @@ describe('GET /api/rooms', () => {
             {
                 headers: {
                     'x-event-id': OTHER_EVENT_ID,
-                    Cookie: `access_token=${accessToken}`,
+                    Cookie: `auth_token=${adminToken}`,
                 },
             },
             mockEnv,
@@ -152,12 +164,46 @@ describe('GET /api/rooms', () => {
         expect(res.status).toBe(401);
     });
 
+    it('role=user の auth_token では 401 が返ること', async () => {
+        const app = createTestAppWithRooms(createMockRoomRepository());
+
+        const res = await app.request(
+            '/api/rooms',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `auth_token=${userToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('access_token の event_id と x-event-id が不一致のとき 401 が返ること', async () => {
+        const app = createTestAppWithRooms(createMockRoomRepository());
+
+        const res = await app.request(
+            '/api/rooms',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
     it('x-event-id ヘッダーが未指定のとき 400 が返ること', async () => {
         const app = createTestAppWithRooms(createMockRoomRepository());
 
         const res = await app.request(
             '/api/rooms',
-            { headers: { Cookie: `access_token=${accessToken}` } },
+            { headers: { Cookie: `auth_token=${adminToken}` } },
             mockEnv,
         );
 
@@ -172,7 +218,7 @@ describe('GET /api/rooms', () => {
             {
                 headers: {
                     'x-event-id': 'not-a-uuid',
-                    Cookie: `access_token=${accessToken}`,
+                    Cookie: `auth_token=${adminToken}`,
                 },
             },
             mockEnv,
