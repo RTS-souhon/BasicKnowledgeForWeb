@@ -1,9 +1,14 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import type { Env } from '@backend/src/db/connection';
 import type {
     IShopItemRepository,
     ShopItem,
 } from '@backend/src/infrastructure/repositories/shop-item/IShopItemRepository';
+import { sign } from 'hono/jwt';
 import { createTestAppWithShopItems } from '../helpers/createTestApp';
+
+const JWT_SECRET = 'test-secret';
+const mockEnv = { JWT_SECRET } as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
@@ -27,6 +32,13 @@ const shopItem2: ShopItem = {
     stockStatus: 'low',
 };
 
+let accessToken: string;
+
+beforeAll(async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+});
+
 function createMockShopItemRepository(
     overrides: Partial<IShopItemRepository> = {},
 ): IShopItemRepository {
@@ -49,9 +61,16 @@ describe('GET /api/shop-items', () => {
         });
         const app = createTestAppWithShopItems(repo);
 
-        const res = await app.request('/api/shop-items', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: ShopItem[] };
 
         expect(res.status).toBe(200);
@@ -70,9 +89,16 @@ describe('GET /api/shop-items', () => {
             createMockShopItemRepository({ findByEventId }),
         );
 
-        const res = await app.request('/api/shop-items', {
-            headers: { 'x-event-id': OTHER_EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: ShopItem[] };
 
         expect(res.status).toBe(200);
@@ -80,10 +106,24 @@ describe('GET /api/shop-items', () => {
         expect(findByEventId).toHaveBeenCalledWith(OTHER_EVENT_ID);
     });
 
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request('/api/shop-items', {
+            headers: { 'x-event-id': EVENT_ID },
+        });
+
+        expect(res.status).toBe(401);
+    });
+
     it('x-event-id ヘッダーが未指定のとき 400 が返ること', async () => {
         const app = createTestAppWithShopItems(createMockShopItemRepository());
 
-        const res = await app.request('/api/shop-items');
+        const res = await app.request(
+            '/api/shop-items',
+            { headers: { Cookie: `access_token=${accessToken}` } },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -91,9 +131,16 @@ describe('GET /api/shop-items', () => {
     it('x-event-id が UUID でないとき 400 が返ること', async () => {
         const app = createTestAppWithShopItems(createMockShopItemRepository());
 
-        const res = await app.request('/api/shop-items', {
-            headers: { 'x-event-id': 'not-a-uuid' },
-        });
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                headers: {
+                    'x-event-id': 'not-a-uuid',
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -106,9 +153,16 @@ describe('GET /api/shop-items', () => {
         });
         const app = createTestAppWithShopItems(repo);
 
-        const res = await app.request('/api/shop-items', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: ShopItem[] };
 
         expect(body.items[0]?.stockStatus).toBe('available');

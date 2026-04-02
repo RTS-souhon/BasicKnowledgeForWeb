@@ -1,17 +1,38 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
-import { rooms } from '@backend/src/db/schema';
+import { departments, rooms } from '@backend/src/db/schema';
 import { asc, eq } from 'drizzle-orm';
-import type { IRoomRepository, Room } from './IRoomRepository';
+import { alias } from 'drizzle-orm/cockroach-core';
+import type { IRoomRepository, RoomWithDepartments } from './IRoomRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;
+
+const preDayDept = alias(departments, 'pre_day_dept');
+const dayDept = alias(departments, 'day_dept');
 
 export class RoomRepository implements IRoomRepository {
     constructor(private readonly db: DatabaseClient) {}
 
-    async findByEventId(eventId: string): Promise<Room[]> {
+    async findByEventId(eventId: string): Promise<RoomWithDepartments[]> {
         return this.db
-            .select()
+            .select({
+                id: rooms.id,
+                eventId: rooms.eventId,
+                buildingName: rooms.buildingName,
+                floor: rooms.floor,
+                roomName: rooms.roomName,
+                preDayManagerId: rooms.preDayManagerId,
+                preDayManagerName: preDayDept.name,
+                preDayPurpose: rooms.preDayPurpose,
+                dayManagerId: rooms.dayManagerId,
+                dayManagerName: dayDept.name,
+                dayPurpose: rooms.dayPurpose,
+                notes: rooms.notes,
+                createdAt: rooms.createdAt,
+                updatedAt: rooms.updatedAt,
+            })
             .from(rooms)
+            .leftJoin(preDayDept, eq(rooms.preDayManagerId, preDayDept.id))
+            .innerJoin(dayDept, eq(rooms.dayManagerId, dayDept.id))
             .where(eq(rooms.eventId, eventId))
             .orderBy(
                 asc(rooms.buildingName),

@@ -1,9 +1,14 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import type { Env } from '@backend/src/db/connection';
 import type {
     IOtherItemRepository,
     OtherItem,
 } from '@backend/src/infrastructure/repositories/other-item/IOtherItemRepository';
+import { sign } from 'hono/jwt';
 import { createTestAppWithOtherItems } from '../helpers/createTestApp';
+
+const JWT_SECRET = 'test-secret';
+const mockEnv = { JWT_SECRET } as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
@@ -27,6 +32,13 @@ const otherItem2: OtherItem = {
     displayOrder: 2,
 };
 
+let accessToken: string;
+
+beforeAll(async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+});
+
 function createMockOtherItemRepository(
     overrides: Partial<IOtherItemRepository> = {},
 ): IOtherItemRepository {
@@ -49,9 +61,16 @@ describe('GET /api/others', () => {
         });
         const app = createTestAppWithOtherItems(repo);
 
-        const res = await app.request('/api/others', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/others',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: OtherItem[] };
 
         expect(res.status).toBe(200);
@@ -70,9 +89,16 @@ describe('GET /api/others', () => {
             createMockOtherItemRepository({ findByEventId }),
         );
 
-        const res = await app.request('/api/others', {
-            headers: { 'x-event-id': OTHER_EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/others',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: OtherItem[] };
 
         expect(res.status).toBe(200);
@@ -88,19 +114,40 @@ describe('GET /api/others', () => {
         });
         const app = createTestAppWithOtherItems(repo);
 
-        const res = await app.request('/api/others', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/others',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: OtherItem[] };
 
         expect(body.items[0]?.displayOrder).toBe(1);
         expect(body.items[1]?.displayOrder).toBe(2);
     });
 
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithOtherItems(createMockOtherItemRepository());
+
+        const res = await app.request('/api/others', {
+            headers: { 'x-event-id': EVENT_ID },
+        });
+
+        expect(res.status).toBe(401);
+    });
+
     it('x-event-id ヘッダーが未指定のとき 400 が返ること', async () => {
         const app = createTestAppWithOtherItems(createMockOtherItemRepository());
 
-        const res = await app.request('/api/others');
+        const res = await app.request(
+            '/api/others',
+            { headers: { Cookie: `access_token=${accessToken}` } },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -108,9 +155,16 @@ describe('GET /api/others', () => {
     it('x-event-id が UUID でないとき 400 が返ること', async () => {
         const app = createTestAppWithOtherItems(createMockOtherItemRepository());
 
-        const res = await app.request('/api/others', {
-            headers: { 'x-event-id': 'not-a-uuid' },
-        });
+        const res = await app.request(
+            '/api/others',
+            {
+                headers: {
+                    'x-event-id': 'not-a-uuid',
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -118,9 +172,16 @@ describe('GET /api/others', () => {
     it('0 件のとき空配列が返ること', async () => {
         const app = createTestAppWithOtherItems(createMockOtherItemRepository());
 
-        const res = await app.request('/api/others', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/others',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: OtherItem[] };
 
         expect(res.status).toBe(200);

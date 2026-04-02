@@ -7,12 +7,14 @@ type DatabaseClient = ReturnType<typeof createDatabaseClient>;
 const EVENT_ID = '00000000-0000-0000-0000-000000000001';
 
 describe('RoomRepository', () => {
-    it('findByEventId が room_name 昇順で select クエリを実行すること', async () => {
+    it('findByEventId が departments を JOIN して building_name/floor/room_name 昇順で select クエリを実行すること', async () => {
         const orderBy = jest
             .fn()
             .mockImplementation(() => Promise.resolve([]));
         const where = jest.fn().mockReturnValue({ orderBy });
-        const from = jest.fn().mockReturnValue({ where });
+        const innerJoin = jest.fn().mockReturnValue({ where });
+        const leftJoin = jest.fn().mockReturnValue({ innerJoin });
+        const from = jest.fn().mockReturnValue({ leftJoin });
         const db = {
             select: jest.fn().mockReturnValue({ from }),
         } as unknown as DatabaseClient;
@@ -22,6 +24,8 @@ describe('RoomRepository', () => {
 
         expect(db.select).toHaveBeenCalled();
         expect(from).toHaveBeenCalled();
+        expect(leftJoin).toHaveBeenCalled();
+        expect(innerJoin).toHaveBeenCalled();
         expect(where).toHaveBeenCalled();
         expect(orderBy).toHaveBeenCalled();
     });

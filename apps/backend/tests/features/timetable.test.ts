@@ -1,9 +1,14 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import type { Env } from '@backend/src/db/connection';
 import type {
     ITimetableRepository,
     TimetableItem,
 } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
+import { sign } from 'hono/jwt';
 import { createTestAppWithTimetable } from '../helpers/createTestApp';
+
+const JWT_SECRET = 'test-secret';
+const mockEnv = { JWT_SECRET } as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
@@ -29,6 +34,13 @@ const item2: TimetableItem = {
     location: '会場 B',
 };
 
+let accessToken: string;
+
+beforeAll(async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+});
+
 function createMockTimetableRepository(
     overrides: Partial<ITimetableRepository> = {},
 ): ITimetableRepository {
@@ -51,9 +63,16 @@ describe('GET /api/timetable', () => {
         });
         const app = createTestAppWithTimetable(repo);
 
-        const res = await app.request('/api/timetable', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/timetable',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: TimetableItem[] };
 
         expect(res.status).toBe(200);
@@ -72,9 +91,16 @@ describe('GET /api/timetable', () => {
             createMockTimetableRepository({ findByEventId }),
         );
 
-        const res = await app.request('/api/timetable', {
-            headers: { 'x-event-id': OTHER_EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/timetable',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: TimetableItem[] };
 
         expect(res.status).toBe(200);
@@ -90,19 +116,40 @@ describe('GET /api/timetable', () => {
         });
         const app = createTestAppWithTimetable(repo);
 
-        const res = await app.request('/api/timetable', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/timetable',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: TimetableItem[] };
 
         expect(body.items[0]?.id).toBe(item1.id);
         expect(body.items[1]?.id).toBe(item2.id);
     });
 
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithTimetable(createMockTimetableRepository());
+
+        const res = await app.request('/api/timetable', {
+            headers: { 'x-event-id': EVENT_ID },
+        });
+
+        expect(res.status).toBe(401);
+    });
+
     it('x-event-id ヘッダーが未指定のとき 400 が返ること', async () => {
         const app = createTestAppWithTimetable(createMockTimetableRepository());
 
-        const res = await app.request('/api/timetable');
+        const res = await app.request(
+            '/api/timetable',
+            { headers: { Cookie: `access_token=${accessToken}` } },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -110,9 +157,16 @@ describe('GET /api/timetable', () => {
     it('x-event-id が UUID でないとき 400 が返ること', async () => {
         const app = createTestAppWithTimetable(createMockTimetableRepository());
 
-        const res = await app.request('/api/timetable', {
-            headers: { 'x-event-id': 'not-a-uuid' },
-        });
+        const res = await app.request(
+            '/api/timetable',
+            {
+                headers: {
+                    'x-event-id': 'not-a-uuid',
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -120,9 +174,16 @@ describe('GET /api/timetable', () => {
     it('0 件のとき空配列が返ること', async () => {
         const app = createTestAppWithTimetable(createMockTimetableRepository());
 
-        const res = await app.request('/api/timetable', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/timetable',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { items: TimetableItem[] };
 
         expect(res.status).toBe(200);

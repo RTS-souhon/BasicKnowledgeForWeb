@@ -1,9 +1,14 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import type { Env } from '@backend/src/db/connection';
 import type {
     IProgramRepository,
     Program,
 } from '@backend/src/infrastructure/repositories/program/IProgramRepository';
+import { sign } from 'hono/jwt';
 import { createTestAppWithPrograms } from '../helpers/createTestApp';
+
+const JWT_SECRET = 'test-secret';
+const mockEnv = { JWT_SECRET } as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
@@ -28,6 +33,13 @@ const program2: Program = {
     endTime: new Date('2025-08-01T15:00:00Z'),
 };
 
+let accessToken: string;
+
+beforeAll(async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+});
+
 function createMockProgramRepository(
     overrides: Partial<IProgramRepository> = {},
 ): IProgramRepository {
@@ -50,9 +62,16 @@ describe('GET /api/programs', () => {
         });
         const app = createTestAppWithPrograms(repo);
 
-        const res = await app.request('/api/programs', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/programs',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { programs: Program[] };
 
         expect(res.status).toBe(200);
@@ -71,9 +90,16 @@ describe('GET /api/programs', () => {
             createMockProgramRepository({ findByEventId }),
         );
 
-        const res = await app.request('/api/programs', {
-            headers: { 'x-event-id': OTHER_EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/programs',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { programs: Program[] };
 
         expect(res.status).toBe(200);
@@ -89,19 +115,40 @@ describe('GET /api/programs', () => {
         });
         const app = createTestAppWithPrograms(repo);
 
-        const res = await app.request('/api/programs', {
-            headers: { 'x-event-id': EVENT_ID },
-        });
+        const res = await app.request(
+            '/api/programs',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
         const body = (await res.json()) as { programs: Program[] };
 
         expect(body.programs[0]?.id).toBe(program1.id);
         expect(body.programs[1]?.id).toBe(program2.id);
     });
 
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithPrograms(createMockProgramRepository());
+
+        const res = await app.request('/api/programs', {
+            headers: { 'x-event-id': EVENT_ID },
+        });
+
+        expect(res.status).toBe(401);
+    });
+
     it('x-event-id ヘッダーが未指定のとき 400 が返ること', async () => {
         const app = createTestAppWithPrograms(createMockProgramRepository());
 
-        const res = await app.request('/api/programs');
+        const res = await app.request(
+            '/api/programs',
+            { headers: { Cookie: `access_token=${accessToken}` } },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
@@ -109,9 +156,16 @@ describe('GET /api/programs', () => {
     it('x-event-id が UUID でないとき 400 が返ること', async () => {
         const app = createTestAppWithPrograms(createMockProgramRepository());
 
-        const res = await app.request('/api/programs', {
-            headers: { 'x-event-id': 'not-a-uuid' },
-        });
+        const res = await app.request(
+            '/api/programs',
+            {
+                headers: {
+                    'x-event-id': 'not-a-uuid',
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
 
         expect(res.status).toBe(400);
     });
