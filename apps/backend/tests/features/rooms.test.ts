@@ -8,12 +8,19 @@ import { createTestAppWithRooms } from '../helpers/createTestApp';
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
 
+const DEPT_ID_1 = '60000000-0000-4000-8000-000000000001';
+const DEPT_ID_2 = '60000000-0000-4000-8000-000000000002';
+
 const room1: Room = {
     id: '20000000-0000-0000-0000-000000000001',
     eventId: EVENT_ID,
+    buildingName: 'A棟',
+    floor: '1階',
     roomName: '会場 A',
-    assignee: 'スタッフ1',
-    purpose: '受付',
+    preDayManagerId: DEPT_ID_1,
+    preDayPurpose: '搬入受付',
+    dayManagerId: DEPT_ID_1,
+    dayPurpose: '本部受付',
     notes: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
@@ -23,8 +30,10 @@ const room2: Room = {
     ...room1,
     id: '20000000-0000-0000-0000-000000000002',
     roomName: '会場 B',
-    assignee: 'スタッフ2',
-    purpose: 'メイン企画',
+    preDayManagerId: null,
+    preDayPurpose: null,
+    dayManagerId: DEPT_ID_2,
+    dayPurpose: 'メイン企画',
 };
 
 function createMockRoomRepository(

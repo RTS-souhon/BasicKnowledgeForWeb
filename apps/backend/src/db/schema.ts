@@ -2,6 +2,7 @@
 import {
     cockroachTable,
     int4,
+    primaryKey,
     text,
     timestamp,
     uuid,
@@ -29,9 +30,37 @@ export const accessCodes = cockroachTable('access_codes', {
     createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const departments = cockroachTable('departments', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const userDepartments = cockroachTable(
+    'user_departments',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'restrict' }),
+        eventId: uuid('event_id')
+            .notNull()
+            .references(() => accessCodes.id, { onDelete: 'restrict' }),
+        departmentId: uuid('department_id')
+            .notNull()
+            .references(() => departments.id, { onDelete: 'restrict' }),
+    },
+    (table) => [primaryKey({ columns: [table.userId, table.eventId] })],
+);
+
 export const timetableItems = cockroachTable('timetable_items', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').notNull(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
     title: varchar('title', { length: 255 }).notNull(),
     startTime: timestamp('start_time').notNull(),
     endTime: timestamp('end_time').notNull(),
@@ -43,10 +72,21 @@ export const timetableItems = cockroachTable('timetable_items', {
 
 export const rooms = cockroachTable('rooms', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').notNull(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
+    buildingName: varchar('building_name', { length: 255 }).notNull(),
+    floor: varchar('floor', { length: 50 }).notNull(),
     roomName: varchar('room_name', { length: 255 }).notNull(),
-    assignee: varchar('assignee', { length: 255 }).notNull(),
-    purpose: varchar('purpose', { length: 255 }).notNull(),
+    preDayManagerId: uuid('pre_day_manager_id').references(
+        () => departments.id,
+        { onDelete: 'restrict' },
+    ),
+    preDayPurpose: varchar('pre_day_purpose', { length: 255 }),
+    dayManagerId: uuid('day_manager_id')
+        .notNull()
+        .references(() => departments.id, { onDelete: 'restrict' }),
+    dayPurpose: varchar('day_purpose', { length: 255 }).notNull(),
     notes: text('notes'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
@@ -54,7 +94,9 @@ export const rooms = cockroachTable('rooms', {
 
 export const programs = cockroachTable('programs', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').notNull(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     location: varchar('location', { length: 255 }).notNull(),
     startTime: timestamp('start_time').notNull(),
@@ -66,7 +108,9 @@ export const programs = cockroachTable('programs', {
 
 export const shopItems = cockroachTable('shop_items', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').notNull(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     price: int4('price').notNull(),
     stockStatus: varchar('stock_status', { length: 50 })
@@ -79,7 +123,9 @@ export const shopItems = cockroachTable('shop_items', {
 
 export const otherItems = cockroachTable('other_items', {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('event_id').notNull(),
+    eventId: uuid('event_id')
+        .notNull()
+        .references(() => accessCodes.id, { onDelete: 'restrict' }),
     title: varchar('title', { length: 255 }).notNull(),
     content: text('content').notNull(),
     displayOrder: int4('display_order').notNull(),
