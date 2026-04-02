@@ -43,9 +43,11 @@ jobs:
           workingDirectory: apps/backend
           secrets: |
             DATABASE_URL
+            JWT_SECRET
           environment: dev
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Notify deployment
         run: |
@@ -85,9 +87,12 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env dev
           workingDirectory: apps/frontend
+          secrets: |
+            JWT_SECRET
           environment: dev
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Notify deployment
         run: |
