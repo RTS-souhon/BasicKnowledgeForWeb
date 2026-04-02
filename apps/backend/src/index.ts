@@ -4,6 +4,11 @@ import type { Env } from './db/connection';
 import { createAccessCodeRoutes } from './presentation/routes/accessCodeRoutes';
 import { createAuthRoutes } from './presentation/routes/authRoutes';
 import { createHealthRoutes } from './presentation/routes/healthRoutes';
+import { createOtherItemRoutes } from './presentation/routes/otherItemRoutes';
+import { createProgramRoutes } from './presentation/routes/programRoutes';
+import { createRoomRoutes } from './presentation/routes/roomRoutes';
+import { createShopItemRoutes } from './presentation/routes/shopItemRoutes';
+import { createTimetableRoutes } from './presentation/routes/timetableRoutes';
 import { createUserRoutes } from './presentation/routes/userRoutes';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -23,7 +28,12 @@ const appWithRoutes = app
     .route('/api', createHealthRoutes())
     .route('/api', createUserRoutes())
     .route('/api', createAuthRoutes())
-    .route('/api', createAccessCodeRoutes());
+    .route('/api', createAccessCodeRoutes())
+    .route('/api', createTimetableRoutes())
+    .route('/api', createRoomRoutes())
+    .route('/api', createProgramRoutes())
+    .route('/api', createShopItemRoutes())
+    .route('/api', createOtherItemRoutes());
 
 export type AppType = typeof appWithRoutes;
 
