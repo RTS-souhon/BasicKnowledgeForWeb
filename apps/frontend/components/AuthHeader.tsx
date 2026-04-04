@@ -12,6 +12,7 @@ type Props = {
     role: string;
     userName: string | null;
     userEventId: string | null;
+    userEventName: string | null;
     accessCodes: AccessCode[];
     logoutAction: () => Promise<void>;
 };
@@ -28,6 +29,7 @@ export function AuthHeader({
     role,
     userName,
     userEventId,
+    userEventName,
     accessCodes,
     logoutAction,
 }: Props) {
@@ -95,10 +97,15 @@ export function AuthHeader({
                     ))}
                 </nav>
 
-                {/* Right: event selector (admin/dev) + logout */}
+                {/* Right: event selector (admin/dev) or event name (user) + logout */}
                 <div className='hidden items-center gap-3 md:flex'>
                     {isPrivileged && (
                         <EventSelector accessCodes={accessCodes} />
+                    )}
+                    {!isPrivileged && userEventName && (
+                        <span className='text-sm opacity-60'>
+                            {userEventName}
+                        </span>
                     )}
                     <form action={logoutAction}>
                         <button
@@ -191,6 +198,11 @@ export function AuthHeader({
                                 variant='drawer'
                             />
                         </div>
+                    )}
+                    {!isPrivileged && userEventName && (
+                        <p className='px-1 text-sm opacity-60'>
+                            {userEventName}
+                        </p>
                     )}
                     <form action={logoutAction}>
                         <button

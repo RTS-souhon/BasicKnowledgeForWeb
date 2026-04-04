@@ -35,6 +35,27 @@ async function fetchAccessCodes(authToken: string): Promise<AccessCode[]> {
     }
 }
 
+async function fetchAccessCode(
+    accessToken: string,
+    eventId: string,
+): Promise<string | null> {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+    try {
+        const res = await fetch(`${apiUrl}/api/access-codes/${eventId}`, {
+            headers: {
+                Cookie: `access_token=${accessToken}`,
+                'x-event-id': eventId,
+            },
+            cache: 'no-store',
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as { code: AccessCode };
+        return data.code?.eventName ?? null;
+    } catch {
+        return null;
+    }
+}
+
 export default async function AuthenticatedLayout({
     children,
 }: {
@@ -58,6 +79,10 @@ export default async function AuthenticatedLayout({
     const isPrivileged = role === 'admin' || role === 'developer';
     const accessCodes: AccessCode[] =
         isPrivileged && authToken ? await fetchAccessCodes(authToken) : [];
+    const userEventName: string | null =
+        !isPrivileged && accessToken && userEventId
+            ? await fetchAccessCode(accessToken, userEventId)
+            : null;
 
     return (
         <div className='min-h-screen bg-background'>
@@ -65,6 +90,7 @@ export default async function AuthenticatedLayout({
                 role={role}
                 userName={userName}
                 userEventId={userEventId}
+                userEventName={userEventName}
                 accessCodes={accessCodes}
                 logoutAction={logoutAction}
             />

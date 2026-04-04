@@ -36,6 +36,7 @@ const defaultProps = {
     role: 'user',
     userName: 'テストユーザー',
     userEventId: 'event-1',
+    userEventName: null,
     accessCodes: [],
     logoutAction: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
 };
@@ -118,6 +119,25 @@ describe('AuthHeader', () => {
             expect(
                 screen.getByRole('link', { name: 'スタッフポータル' }),
             ).toBeInTheDocument();
+        });
+    });
+
+    describe('イベント名表示 — user ロール', () => {
+        it('userEventName が渡された場合にイベント名が表示されること', () => {
+            renderHeader({
+                ...defaultProps,
+                role: 'user',
+                userEventName: '第1回テストイベント',
+            });
+            const names = screen.getAllByText('第1回テストイベント');
+            expect(names.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('userEventName が null の場合にイベント名が表示されないこと', () => {
+            renderHeader({ ...defaultProps, role: 'user', userEventName: null });
+            expect(
+                screen.queryByText('第1回テストイベント'),
+            ).not.toBeInTheDocument();
         });
     });
 
