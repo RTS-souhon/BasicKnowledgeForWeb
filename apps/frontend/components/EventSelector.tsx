@@ -25,8 +25,15 @@ export function EventSelector({ accessCodes, variant = 'header' }: Props) {
     // ヒント:
     //   - `new URLSearchParams(searchParams.toString())` で現在のパラメータをコピー
     //   - 空値('') が選ばれた場合は event_id パラメータを削除する
-    function handleChange(_eventId: string): void {
-        // ここに実装してください
+    function handleChange(eventId: string): void {
+        const params = new URLSearchParams(searchParams?.toString() ?? '');
+        if (eventId) {
+            params.set('event_id', eventId);
+        } else {
+            params.delete('event_id');
+        }
+        const query = params.toString();
+        router.replace(`${pathname}${query ? `?${query}` : ''}`);
     }
 
     const baseClass =
