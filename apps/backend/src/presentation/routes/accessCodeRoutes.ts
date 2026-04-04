@@ -4,18 +4,21 @@ import type { IAccessCodeRepository } from '@backend/src/infrastructure/reposito
 import {
     createAccessCode,
     deleteAccessCode,
+    getAccessCode,
     getAccessCodes,
     verifyAccessCode,
 } from '@backend/src/presentation/controllers/accessCodeController';
 import { CreateAccessCodeUseCase } from '@backend/src/use-cases/access-code/CreateAccessCodeUseCase';
 import { DeleteAccessCodeUseCase } from '@backend/src/use-cases/access-code/DeleteAccessCodeUseCase';
 import { GetAccessCodesUseCase } from '@backend/src/use-cases/access-code/GetAccessCodesUseCase';
+import { GetAccessCodeUseCase } from '@backend/src/use-cases/access-code/GetAccessCodeUseCase';
 import { VerifyAccessCodeUseCase } from '@backend/src/use-cases/access-code/VerifyAccessCodeUseCase';
 import { Hono } from 'hono';
 import {
     type AuthVariables,
     authMiddleware,
 } from '../middleware/authMiddleware';
+import { contentAccessMiddleware } from '../middleware/contentAccessMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
 
 type AccessCodeRepositoryFactory = (env: Env) => IAccessCodeRepository;
@@ -28,6 +31,12 @@ export function createAccessCodeRoutes(
 ) {
     return (
         new Hono<{ Bindings: Env; Variables: AuthVariables }>()
+            // GET /api/access-codes/:id — contentAccessMiddleware（user: access_token、admin/dev: auth_token）
+            .get('/access-codes/:id', contentAccessMiddleware, async (c) => {
+                const repository = repositoryFactory(c.env);
+                const useCase = new GetAccessCodeUseCase(repository);
+                return getAccessCode(c, useCase);
+            })
             // POST /api/access-codes/verify — 誰でも可
             .post('/access-codes/verify', async (c) => {
                 const repository = repositoryFactory(c.env);

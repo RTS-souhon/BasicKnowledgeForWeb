@@ -12,6 +12,7 @@ export type NewAccessCode = {
 
 export interface IAccessCodeRepository {
     findAll(): Promise<AccessCode[]>;
+    findById(id: string): Promise<AccessCode | null>;
     findByCode(code: string): Promise<AccessCode | null>;
     create(input: NewAccessCode): Promise<AccessCode>;
     deleteById(id: string): Promise<boolean>;
