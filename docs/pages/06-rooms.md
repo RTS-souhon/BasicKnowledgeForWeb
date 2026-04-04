@@ -87,14 +87,24 @@ Admin/Developer はインライン編集・追加・削除が可能。
 
 ## データ構造
 
+GET API は部署名を JOIN 解決した `RoomWithDepartments` を返す。
+
 ```typescript
-type Room = {
+type RoomWithDepartments = {
     id: string
-    event_id: string
-    room_name: string
-    assignee: string
-    purpose: string
+    eventId: string
+    buildingName: string
+    floor: string
+    roomName: string
+    preDayManagerId: string | null   // 前日担当部署 UUID（nullable）
+    preDayManagerName: string | null // 前日担当部署名（JOIN 解決済み）
+    preDayPurpose: string | null     // 前日用途
+    dayManagerId: string             // 当日担当部署 UUID
+    dayManagerName: string           // 当日担当部署名（JOIN 解決済み）
+    dayPurpose: string               // 当日用途
     notes: string | null
+    createdAt: Date
+    updatedAt: Date
 }
 ```
 
@@ -107,12 +117,22 @@ type Room = {
 - `event_id` の解決:
   - User: `access_token` Cookie の `event_id` を自動付与
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
-- レスポンス: `{ rooms: Room[] }`（`room_name` 昇順）
+- レスポンス: `{ rooms: RoomWithDepartments[] }`（`building_name`, `floor`, `room_name` 昇順）
 
 ### POST `/api/rooms` （admin/developer）
 
 ```json
-{ "event_id": "...", "room_name": "...", "assignee": "...", "purpose": "...", "notes": "..." }
+{
+    "event_id": "...",
+    "building_name": "...",
+    "floor": "...",
+    "room_name": "...",
+    "pre_day_manager_id": "...",
+    "pre_day_purpose": "...",
+    "day_manager_id": "...",
+    "day_purpose": "...",
+    "notes": "..."
+}
 ```
 
 ### PUT `/api/rooms/:id` （admin/developer）
