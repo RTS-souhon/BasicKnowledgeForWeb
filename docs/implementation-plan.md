@@ -90,14 +90,18 @@ timetable_items
   created_at, updated_at timestamp
 
 rooms
-  id uuid PK
-  event_id    uuid FK→access_codes.id
-  room_name   varchar(255)
-  assignee    varchar(255)
-  purpose     varchar(255)
-  notes       text
-  created_by  uuid FK→users.id
+  id                  uuid PK
+  event_id            uuid FK→access_codes.id
+  building_name       varchar(255)
+  floor               varchar(50)
+  room_name           varchar(255)
+  pre_day_manager_id  uuid composite FK→departments(event_id, id)  nullable
+  pre_day_purpose     varchar(255)  nullable
+  day_manager_id      uuid composite FK→departments(event_id, id)  not null
+  day_purpose         varchar(255)
+  notes               text          nullable
   created_at, updated_at timestamp
+  ※ GET /api/rooms は departments を JOIN し preDayManagerName / dayManagerName を返す (RoomWithDepartments)
 
 programs（企画）
   id uuid PK
