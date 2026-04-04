@@ -41,6 +41,7 @@ const expiredAccessCode: AccessCode = {
 let adminToken: string;
 let developerToken: string;
 let userToken: string;
+let userAccessToken: string; // access_token（event_id = validAccessCode.id）
 
 beforeAll(async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -60,6 +61,11 @@ beforeAll(async () => {
         JWT_SECRET,
         'HS256',
     );
+    userAccessToken = await sign(
+        { event_id: validAccessCode.id, exp },
+        JWT_SECRET,
+        'HS256',
+    );
 });
 
 function createMockAccessCodeRepository(
@@ -69,6 +75,9 @@ function createMockAccessCodeRepository(
         findAll: jest
             .fn<() => Promise<AccessCode[]>>()
             .mockResolvedValue([]),
+        findById: jest
+            .fn<(id: string) => Promise<AccessCode | null>>()
+            .mockResolvedValue(null),
         findByCode: jest
             .fn<(code: string) => Promise<AccessCode | null>>()
             .mockResolvedValue(null),
@@ -401,5 +410,130 @@ describe('DELETE /api/access-codes/:id', () => {
         );
 
         expect(res.status).toBe(403);
+    });
+});
+
+// ─── GET /api/access-codes/:id ────────────────────────────────────────────────
+
+describe('GET /api/access-codes/:id', () => {
+    const targetId = validAccessCode.id;
+
+    it('有効な access_token（event_id 一致）と x-event-id ヘッダーで 200 と code が返ること', async () => {
+        const repo = createMockAccessCodeRepository({
+            findById: jest
+                .fn<(id: string) => Promise<AccessCode | null>>()
+                .mockImplementation(() => Promise.resolve(validAccessCode)),
+        });
+        const app = createTestAppWithAccessCodes(repo);
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            {
+                headers: {
+                    Cookie: `access_token=${userAccessToken}`,
+                    'x-event-id': targetId,
+                },
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { code: AccessCode };
+
+        expect(res.status).toBe(200);
+        expect(body.code.id).toBe(targetId);
+        expect(body.code.eventName).toBe(validAccessCode.eventName);
+    });
+
+    it('admin の auth_token で 200 が返ること', async () => {
+        const repo = createMockAccessCodeRepository({
+            findById: jest
+                .fn<(id: string) => Promise<AccessCode | null>>()
+                .mockImplementation(() => Promise.resolve(validAccessCode)),
+        });
+        const app = createTestAppWithAccessCodes(repo);
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            { headers: { Cookie: `auth_token=${adminToken}` } },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+    });
+
+    it('developer の auth_token で 200 が返ること', async () => {
+        const repo = createMockAccessCodeRepository({
+            findById: jest
+                .fn<(id: string) => Promise<AccessCode | null>>()
+                .mockImplementation(() => Promise.resolve(validAccessCode)),
+        });
+        const app = createTestAppWithAccessCodes(repo);
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            { headers: { Cookie: `auth_token=${developerToken}` } },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+    });
+
+    it('x-event-id が access_token の event_id と不一致なら 401 が返ること', async () => {
+        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            {
+                headers: {
+                    Cookie: `access_token=${userAccessToken}`,
+                    'x-event-id': '00000000-0000-0000-0000-000000000099', // 別のID
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('Cookie なしで 401 が返ること', async () => {
+        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            {},
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('user ロールの auth_token（access_token なし）では 401 が返ること', async () => {
+        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            { headers: { Cookie: `auth_token=${userToken}` } },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('存在しない ID で 404 が返ること', async () => {
+        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
+
+        const res = await app.request(
+            `/api/access-codes/${targetId}`,
+            {
+                headers: {
+                    Cookie: `access_token=${userAccessToken}`,
+                    'x-event-id': targetId,
+                },
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { error: string };
+
+        expect(res.status).toBe(404);
+        expect(body.error).toBe('アクセスコードが見つかりません');
     });
 });
