@@ -3,6 +3,8 @@ import {
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
 
+const DISPLAY_TIMEZONE = 'Asia/Tokyo';
+
 type Program = {
     id: string;
     name: string;
@@ -44,6 +46,7 @@ function formatDateTime(iso: string): string {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
     });
 }
 

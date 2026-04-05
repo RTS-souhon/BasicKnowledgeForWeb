@@ -3,6 +3,8 @@ import {
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
 
+const DISPLAY_TIMEZONE = 'Asia/Tokyo';
+
 type TimetableItem = {
     id: string;
     title: string;
@@ -42,6 +44,7 @@ function formatTime(iso: string): string {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
     });
 }
 
@@ -50,6 +53,7 @@ function formatDate(iso: string): string {
         month: 'long',
         day: 'numeric',
         weekday: 'short',
+        timeZone: DISPLAY_TIMEZONE,
     });
 }
 

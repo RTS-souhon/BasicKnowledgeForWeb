@@ -1,18 +1,41 @@
 import { cookies } from 'next/headers';
 
-type AuthPayload = { id: string; name: string; role: string; exp: number };
-type AccessPayload = { event_id: string; exp: number };
+export type AuthPayload = {
+    id: string;
+    name: string;
+    role: string;
+    exp?: number;
+};
+export type AccessPayload = { event_id: string; exp?: number };
+
+const textDecoder = new TextDecoder();
+
+function normalizeBase64(input: string): string {
+    const normalized = input.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = (4 - (normalized.length % 4)) % 4;
+    return normalized.padEnd(normalized.length + padding, '=');
+}
 
 export function decodeJwtPayload<T>(token: string): T | null {
     try {
-        const base64 = token
-            .split('.')[1]
-            .replace(/-/g, '+')
-            .replace(/_/g, '/');
-        return JSON.parse(atob(base64)) as T;
+        const segment = token.split('.')[1];
+        if (!segment) return null;
+        const base64 = normalizeBase64(segment);
+        const binary = atob(base64);
+        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        const json = textDecoder.decode(bytes);
+        return JSON.parse(json) as T;
     } catch {
         return null;
     }
+}
+
+function isTokenExpired(payload: { exp?: number } | null): boolean {
+    if (!payload?.exp) {
+        return false;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    return payload.exp <= now;
 }
 
 export type ResolvedAuth = {
@@ -26,22 +49,33 @@ export async function resolveAuth(
     searchParamEventId?: string,
 ): Promise<ResolvedAuth> {
     const cookieStore = await cookies();
-    const authToken = cookieStore.get('auth_token')?.value ?? null;
-    const accessToken = cookieStore.get('access_token')?.value ?? null;
+    const rawAuthToken = cookieStore.get('auth_token')?.value ?? null;
+    const rawAccessToken = cookieStore.get('access_token')?.value ?? null;
 
-    const authPayload = authToken
-        ? decodeJwtPayload<AuthPayload>(authToken)
+    const authPayload = rawAuthToken
+        ? decodeJwtPayload<AuthPayload>(rawAuthToken)
         : null;
-    const accessPayload = accessToken
-        ? decodeJwtPayload<AccessPayload>(accessToken)
+    const accessPayload = rawAccessToken
+        ? decodeJwtPayload<AccessPayload>(rawAccessToken)
         : null;
 
-    const role = authPayload?.role ?? 'user';
+    const validAuthPayload = authPayload && !isTokenExpired(authPayload)
+        ? authPayload
+        : null;
+    const validAccessPayload =
+        accessPayload && !isTokenExpired(accessPayload)
+            ? accessPayload
+            : null;
+
+    const authToken = validAuthPayload ? rawAuthToken : null;
+    const accessToken = validAccessPayload ? rawAccessToken : null;
+
+    const role = validAuthPayload?.role ?? 'user';
     const isPrivileged = role === 'admin' || role === 'developer';
 
     const eventId = isPrivileged
         ? (searchParamEventId ?? null)
-        : (accessPayload?.event_id ?? null);
+        : validAccessPayload?.event_id ?? null;
 
     return { eventId, authToken, accessToken, role };
 }
@@ -53,11 +87,17 @@ export function buildContentFetchHeaders(
     role: string,
 ): HeadersInit {
     const isPrivileged = role === 'admin' || role === 'developer';
-    const cookieHeader = isPrivileged
-        ? `auth_token=${authToken}`
-        : `access_token=${accessToken}`;
-    return {
-        Cookie: cookieHeader,
+    const headers: HeadersInit = {
         'x-event-id': eventId,
     };
+
+    if (isPrivileged) {
+        if (authToken) {
+            headers.Cookie = `auth_token=${authToken}`;
+        }
+    } else if (accessToken) {
+        headers.Cookie = `access_token=${accessToken}`;
+    }
+
+    return headers;
 }
