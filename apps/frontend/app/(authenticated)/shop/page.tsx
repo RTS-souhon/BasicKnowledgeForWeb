@@ -3,11 +3,13 @@ import {
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
 
+type StockStatus = 'available' | 'low' | 'sold_out';
+
 type ShopItem = {
     id: string;
     name: string;
     price: number;
-    stockStatus: string;
+    stockStatus: StockStatus;
     description: string | null;
 };
 
@@ -36,18 +38,33 @@ async function fetchShopItems(
     }
 }
 
-const STOCK_LABELS: Record<string, string> = {
-    available: '在庫あり',
-    low: '残りわずか',
-    sold_out: '売り切れ',
+const STOCK_VARIANTS: Record<StockStatus, { label: string; badgeClass: string }> = {
+    available: {
+        label: '在庫あり',
+        badgeClass:
+            'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
+    },
+    low: {
+        label: '残りわずか',
+        badgeClass:
+            'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
+    },
+    sold_out: {
+        label: '完売',
+        badgeClass:
+            'bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-400',
+    },
 };
 
-const STOCK_STYLES: Record<string, string> = {
-    available:
-        'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-    low: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
-    sold_out: 'bg-muted text-muted-foreground',
+const DEFAULT_STOCK = {
+    label: '在庫状況不明',
+    badgeClass: 'bg-muted text-muted-foreground',
 };
+
+const priceFormatter = new Intl.NumberFormat('ja-JP');
+
+const sortByName = (items: ShopItem[]) =>
+    [...items].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
 export default async function ShopPage({
     searchParams,
@@ -71,7 +88,23 @@ export default async function ShopPage({
         );
     }
 
-    const items = await fetchShopItems(eventId, authToken, accessToken, role);
+    const items = sortByName(
+        await fetchShopItems(eventId, authToken, accessToken, role),
+    );
+
+    const renderStock = (status: StockStatus | string) => {
+        const variant = STOCK_VARIANTS[status as StockStatus] ?? DEFAULT_STOCK;
+        return (
+            <span
+                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 font-medium text-xs ${variant.badgeClass}`}
+            >
+                {variant.label}
+            </span>
+        );
+    };
+
+    const renderPrice = (price: number) =>
+        `¥${priceFormatter.format(price)}`;
 
     return (
         <div>
@@ -83,33 +116,72 @@ export default async function ShopPage({
                     登録されている販売物はありません
                 </p>
             ) : (
-                <div className='grid gap-3 sm:grid-cols-2'>
-                    {items.map((item) => (
-                        <div
-                            key={item.id}
-                            className='rounded-lg border border-border bg-card p-4'
+                <div className='space-y-6'>
+                    <div className='hidden overflow-x-auto rounded-xl border border-border md:block'>
+                        <table
+                            className='min-w-full divide-y divide-border text-sm'
+                            aria-label='販売物一覧'
                         >
-                            <div className='flex items-start justify-between gap-2'>
-                                <p className='font-medium text-foreground text-sm'>
-                                    {item.name}
+                            <thead className='bg-muted/40 text-left text-muted-foreground text-xs uppercase tracking-wide'>
+                                <tr>
+                                    <th className='px-4 py-3 font-medium'>
+                                        商品名
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        価格
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        在庫
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        説明
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className='divide-y divide-border bg-card text-foreground'>
+                                {items.map((item) => (
+                                    <tr key={item.id}>
+                                        <td className='px-4 py-3 align-top font-medium'>
+                                            {item.name}
+                                        </td>
+                                        <td className='px-4 py-3 align-top tabular-nums'>
+                                            {renderPrice(item.price)}
+                                        </td>
+                                        <td className='px-4 py-3 align-top'>
+                                            {renderStock(item.stockStatus)}
+                                        </td>
+                                        <td className='px-4 py-3 align-top text-muted-foreground text-xs'>
+                                            {item.description ?? '—'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className='space-y-3 md:hidden'>
+                        {items.map((item) => (
+                            <article
+                                key={item.id}
+                                className='rounded-xl border border-border bg-card p-4'
+                            >
+                                <div className='flex items-center justify-between gap-2'>
+                                    <p className='font-medium text-base text-foreground'>
+                                        {item.name}
+                                    </p>
+                                    {renderStock(item.stockStatus)}
+                                </div>
+                                <p className='mt-2 font-semibold text-foreground tabular-nums'>
+                                    {renderPrice(item.price)}
                                 </p>
-                                <span
-                                    className={`shrink-0 rounded-full px-2 py-0.5 font-medium text-xs ${STOCK_STYLES[item.stockStatus] ?? STOCK_STYLES.available}`}
-                                >
-                                    {STOCK_LABELS[item.stockStatus] ??
-                                        item.stockStatus}
-                                </span>
-                            </div>
-                            <p className='mt-1 font-medium text-base text-foreground tabular-nums'>
-                                ¥{item.price.toLocaleString('ja-JP')}
-                            </p>
-                            {item.description && (
-                                <p className='mt-2 border-border border-t pt-2 text-muted-foreground text-xs'>
-                                    {item.description}
-                                </p>
-                            )}
-                        </div>
-                    ))}
+                                {item.description && (
+                                    <p className='mt-3 text-muted-foreground text-sm'>
+                                        {item.description}
+                                    </p>
+                                )}
+                            </article>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

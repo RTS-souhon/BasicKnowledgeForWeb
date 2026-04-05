@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
@@ -99,9 +99,9 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('公式パンフレット')).toBeInTheDocument();
-        expect(screen.getByText('限定Tシャツ')).toBeInTheDocument();
-        expect(screen.getByText('缶バッジセット')).toBeInTheDocument();
+        expect(screen.getAllByText('公式パンフレット')).toHaveLength(2);
+        expect(screen.getAllByText('限定Tシャツ')).toHaveLength(2);
+        expect(screen.getAllByText('缶バッジセット')).toHaveLength(2);
     });
 
     it('価格を正しくフォーマットして表示する', async () => {
@@ -117,7 +117,7 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('¥2,500')).toBeInTheDocument();
+        expect(screen.getAllByText('¥2,500')).toHaveLength(2);
     });
 
     it('在庫ステータスラベルを表示する', async () => {
@@ -133,9 +133,9 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('在庫あり')).toBeInTheDocument();
-        expect(screen.getByText('残りわずか')).toBeInTheDocument();
-        expect(screen.getByText('売り切れ')).toBeInTheDocument();
+        expect(screen.getAllByText('在庫あり')).toHaveLength(2);
+        expect(screen.getAllByText('残りわずか')).toHaveLength(2);
+        expect(screen.getAllByText('完売')).toHaveLength(2);
     });
 
     it('descriptionがある場合に表示する', async () => {
@@ -151,6 +151,44 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('サイズはS・M・Lのみ')).toBeInTheDocument();
+        expect(screen.getAllByText('サイズはS・M・Lのみ')).toHaveLength(2);
+    });
+
+    it('テーブル表示で列ごとの情報を確認できる', async () => {
+        mockResolveAuth.mockResolvedValue(WITH_AUTH);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await ShopPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        const table = screen.getByRole('table', { name: '販売物一覧' });
+        expect(table).toBeInTheDocument();
+        expect(within(table).getByText('公式パンフレット')).toBeInTheDocument();
+        expect(within(table).getByText('¥500')).toBeInTheDocument();
+    });
+
+    it('モバイルカードでもバッジと説明を表示する', async () => {
+        mockResolveAuth.mockResolvedValue(WITH_AUTH);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await ShopPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        const { container } = render(element);
+
+        const articles = within(container).getAllByRole('article');
+        expect(articles).toHaveLength(3);
+        expect(articles[1]).toHaveTextContent('限定Tシャツ');
+        expect(articles[1]).toHaveTextContent('残りわずか');
     });
 });
