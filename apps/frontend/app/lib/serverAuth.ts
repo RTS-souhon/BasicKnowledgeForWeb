@@ -59,13 +59,10 @@ export async function resolveAuth(
         ? decodeJwtPayload<AccessPayload>(rawAccessToken)
         : null;
 
-    const validAuthPayload = authPayload && !isTokenExpired(authPayload)
-        ? authPayload
-        : null;
+    const validAuthPayload =
+        authPayload && !isTokenExpired(authPayload) ? authPayload : null;
     const validAccessPayload =
-        accessPayload && !isTokenExpired(accessPayload)
-            ? accessPayload
-            : null;
+        accessPayload && !isTokenExpired(accessPayload) ? accessPayload : null;
 
     const authToken = validAuthPayload ? rawAuthToken : null;
     const accessToken = validAccessPayload ? rawAccessToken : null;
@@ -75,7 +72,7 @@ export async function resolveAuth(
 
     const eventId = isPrivileged
         ? (searchParamEventId ?? null)
-        : validAccessPayload?.event_id ?? null;
+        : (validAccessPayload?.event_id ?? null);
 
     return { eventId, authToken, accessToken, role };
 }
