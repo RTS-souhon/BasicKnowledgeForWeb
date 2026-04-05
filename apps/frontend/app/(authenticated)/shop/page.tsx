@@ -38,7 +38,10 @@ async function fetchShopItems(
     }
 }
 
-const STOCK_VARIANTS: Record<StockStatus, { label: string; badgeClass: string }> = {
+const STOCK_VARIANTS: Record<
+    StockStatus,
+    { label: string; badgeClass: string }
+> = {
     available: {
         label: '在庫あり',
         badgeClass:
@@ -103,8 +106,7 @@ export default async function ShopPage({
         );
     };
 
-    const renderPrice = (price: number) =>
-        `¥${priceFormatter.format(price)}`;
+    const renderPrice = (price: number) => `¥${priceFormatter.format(price)}`;
 
     return (
         <div>
