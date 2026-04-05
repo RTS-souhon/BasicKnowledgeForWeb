@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { render, screen } from '@testing-library/react';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
@@ -8,11 +8,32 @@ jest.mock('@frontend/app/lib/serverAuth', () => ({
 
 const serverAuth =
     require('@frontend/app/lib/serverAuth') as typeof import('@frontend/app/lib/serverAuth');
-const TimetablePage =
-    require('@frontend/app/(authenticated)/timetable/page').default as typeof import('@frontend/app/(authenticated)/timetable/page').default;
+const TimetablePage = require('@frontend/app/(authenticated)/timetable/page')
+    .default as typeof import('@frontend/app/(authenticated)/timetable/page').default;
 
 const mockResolveAuth = jest.mocked(serverAuth.resolveAuth);
 const mockBuildHeaders = jest.mocked(serverAuth.buildContentFetchHeaders);
+
+const TIME_ZONE = 'Asia/Tokyo';
+const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+    timeZone: TIME_ZONE,
+});
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: TIME_ZONE,
+});
+
+const formatDateLabel = (iso: string) => dateFormatter.format(new Date(iso));
+const formatRange = (start: string, end: string, separator: string) => {
+    const startLabel = timeFormatter.format(new Date(start));
+    const endLabel = timeFormatter.format(new Date(end));
+    return `${startLabel}${separator}${endLabel}`;
+};
 
 const NO_AUTH: serverAuth.ResolvedAuth = {
     eventId: null,
@@ -68,9 +89,11 @@ describe('TimetablePage', () => {
 
     it('アイテムがないとき空メッセージを表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
-        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
-            new Response(JSON.stringify({ items: [] }), { status: 200 }),
-        );
+        global.fetch = jest
+            .fn<typeof fetch>()
+            .mockResolvedValue(
+                new Response(JSON.stringify({ items: [] }), { status: 200 }),
+            );
 
         const element = await TimetablePage({
             searchParams: Promise.resolve({}),
@@ -82,7 +105,7 @@ describe('TimetablePage', () => {
         ).toBeInTheDocument();
     });
 
-    it('アイテムを開始時刻順に表示する', async () => {
+    it('アイテムを開始時刻順に日付ごとで表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ items: MOCK_ITEMS }), {
@@ -103,6 +126,24 @@ describe('TimetablePage', () => {
             .map((el) => el.textContent);
         expect(titles[0]).toBe('スタッフ集合');
         expect(titles[1]).toBe('開会式');
+
+        const dateLabel = formatDateLabel(MOCK_ITEMS[0].startTime);
+        expect(screen.getByText(dateLabel)).toBeInTheDocument();
+
+        const mobileRange = formatRange(
+            MOCK_ITEMS[1].startTime,
+            MOCK_ITEMS[1].endTime,
+            ' 〜 ',
+        );
+        const desktopRange = formatRange(
+            MOCK_ITEMS[0].startTime,
+            MOCK_ITEMS[0].endTime,
+            ' - ',
+        );
+        expect(screen.getByText(mobileRange)).toBeInTheDocument();
+        expect(screen.getByText(desktopRange)).toBeInTheDocument();
+
+        expect(screen.getByText('ロビー')).toBeInTheDocument();
     });
 
     it('descriptionがある場合に表示する', async () => {
@@ -123,9 +164,9 @@ describe('TimetablePage', () => {
 
     it('fetchが失敗したとき空メッセージを表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
-        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
-            new Response(null, { status: 401 }),
-        );
+        global.fetch = jest
+            .fn<typeof fetch>()
+            .mockResolvedValue(new Response(null, { status: 401 }));
 
         const element = await TimetablePage({
             searchParams: Promise.resolve({}),

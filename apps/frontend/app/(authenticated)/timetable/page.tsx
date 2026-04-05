@@ -14,6 +14,17 @@ type TimetableItem = {
     description: string | null;
 };
 
+type TimetableViewItem = TimetableItem & {
+    dateLabel: string;
+    desktopRange: string;
+    mobileRange: string;
+};
+
+type TimetableGroup = {
+    date: string;
+    entries: TimetableViewItem[];
+};
+
 async function fetchTimetable(
     eventId: string,
     authToken: string | null,
@@ -39,22 +50,59 @@ async function fetchTimetable(
     }
 }
 
-function formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('ja-JP', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: DISPLAY_TIMEZONE,
-    });
-}
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('ja-JP', {
+function formatDateLabel(date: Date): string {
+    return date.toLocaleDateString('ja-JP', {
         month: 'long',
         day: 'numeric',
         weekday: 'short',
         timeZone: DISPLAY_TIMEZONE,
     });
+}
+
+function formatDesktopRange(start: Date, end: Date): string {
+    const format = new Intl.DateTimeFormat('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
+    });
+    return `${format.format(start)} - ${format.format(end)}`;
+}
+
+function formatMobileRange(start: Date, end: Date): string {
+    const format = new Intl.DateTimeFormat('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: DISPLAY_TIMEZONE,
+    });
+    return `${format.format(start)} 〜 ${format.format(end)}`;
+}
+
+function buildViewItems(items: TimetableItem[]): TimetableViewItem[] {
+    return items.map((item) => {
+        const start = new Date(item.startTime);
+        const end = new Date(item.endTime);
+        return {
+            ...item,
+            dateLabel: formatDateLabel(start),
+            desktopRange: formatDesktopRange(start, end),
+            mobileRange: formatMobileRange(start, end),
+        };
+    });
+}
+
+function groupByDate(items: TimetableViewItem[]): TimetableGroup[] {
+    const map = new Map<string, TimetableViewItem[]>();
+    for (const item of items) {
+        const next = map.get(item.dateLabel) ?? [];
+        next.push(item);
+        map.set(item.dateLabel, next);
+    }
+    return Array.from(map.entries()).map(([date, entries]) => ({
+        date,
+        entries,
+    }));
 }
 
 export default async function TimetablePage({
@@ -84,52 +132,62 @@ export default async function TimetablePage({
         (a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
     );
+    const viewItems = buildViewItems(sorted);
+    const grouped = groupByDate(viewItems);
 
     return (
         <div>
             <h1 className='mb-6 font-semibold text-foreground text-xl tracking-tight'>
                 タイムテーブル
             </h1>
-            {sorted.length === 0 ? (
+            {viewItems.length === 0 ? (
                 <p className='text-muted-foreground text-sm'>
                     登録されているタイムテーブルはありません
                 </p>
             ) : (
-                <div className='space-y-2'>
-                    {sorted.map((item, i) => {
-                        const sameDay =
-                            i > 0 &&
-                            formatDate(item.startTime) ===
-                                formatDate(sorted[i - 1].startTime);
-                        return (
-                            <div key={item.id}>
-                                {!sameDay && (
-                                    <p className='mt-6 mb-2 font-medium text-muted-foreground text-xs first:mt-0'>
-                                        {formatDate(item.startTime)}
-                                    </p>
-                                )}
-                                <div className='flex gap-4 rounded-lg border border-border bg-card p-4'>
-                                    <div className='w-28 shrink-0 text-muted-foreground text-sm tabular-nums'>
-                                        {formatTime(item.startTime)}〜
-                                        {formatTime(item.endTime)}
-                                    </div>
-                                    <div className='min-w-0 flex-1'>
-                                        <p className='font-medium text-foreground text-sm'>
-                                            {item.title}
-                                        </p>
-                                        <p className='mt-0.5 text-muted-foreground text-xs'>
-                                            {item.location}
-                                        </p>
-                                        {item.description && (
-                                            <p className='mt-1 text-muted-foreground text-xs'>
-                                                {item.description}
+                <div className='space-y-6'>
+                    {grouped.map(({ date, entries }) => (
+                        <section key={date}>
+                            <p className='mb-2 font-medium text-muted-foreground text-xs'>
+                                {date}
+                            </p>
+                            <div className='space-y-2'>
+                                {entries.map((item) => (
+                                    <article
+                                        key={item.id}
+                                        className='rounded-lg border border-border bg-card p-4'
+                                    >
+                                        <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4'>
+                                            <p className='font-medium text-muted-foreground text-xs tabular-nums sm:w-36 sm:flex-none sm:text-sm'>
+                                                <span className='sm:hidden'>
+                                                    {item.mobileRange}
+                                                </span>
+                                                <span className='hidden sm:inline'>
+                                                    {item.desktopRange}
+                                                </span>
                                             </p>
-                                        )}
-                                    </div>
-                                </div>
+                                            <div className='flex-1 space-y-1'>
+                                                <p className='font-semibold text-base text-foreground leading-tight sm:font-medium sm:text-sm'>
+                                                    {item.title}
+                                                </p>
+                                                <p className='flex items-center gap-1 text-muted-foreground text-xs'>
+                                                    <span aria-hidden='true'>
+                                                        {'📍'}
+                                                    </span>
+                                                    <span>{item.location}</span>
+                                                </p>
+                                                {item.description && (
+                                                    <p className='text-muted-foreground text-xs'>
+                                                        {item.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
                             </div>
-                        );
-                    })}
+                        </section>
+                    ))}
                 </div>
             )}
         </div>
