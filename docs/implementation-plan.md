@@ -371,7 +371,7 @@ hooks/
 - [ ] Frontend: `/` TOPページ + テスト
 - [ ] Frontend: `/timetable` + テスト
 - [ ] Frontend: `/rooms` + テスト
-- [ ] Frontend: `/events` + テスト
+- [x] Frontend: `/events` + テスト
 - [ ] Frontend: `/shop` + テスト
 - [ ] Frontend: `/others` + テスト
 
