@@ -32,6 +32,7 @@ const ACCESS_CODES = [
     { id: 'event-2', eventName: '第2回イベント' },
 ];
 
+
 const defaultProps = {
     role: 'user',
     userName: 'テストユーザー',
@@ -81,6 +82,7 @@ describe('AuthHeader', () => {
                 screen.getByRole('link', { name: 'スタッフポータル' }),
             ).toBeInTheDocument();
         });
+
     });
 
     describe('会期セレクター — 権限制御', () => {

@@ -1,22 +1,13 @@
 import { logoutAction } from '@frontend/app/actions/auth';
+import {
+    type AccessPayload,
+    type AuthPayload,
+    decodeJwtPayload,
+    resolveAuth,
+} from '@frontend/app/lib/serverAuth';
 import { AuthHeader } from '@frontend/components/AuthHeader';
-import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
-
-type AuthPayload = { id: string; name: string; role: string; exp: number };
-type AccessPayload = { event_id: string; exp: number };
-
-function decodeJwtPayload<T>(token: string): T | null {
-    try {
-        const base64 = token
-            .split('.')[1]
-            .replace(/-/g, '+')
-            .replace(/_/g, '/');
-        return JSON.parse(atob(base64)) as T;
-    } catch {
-        return null;
-    }
-}
+import { Suspense } from 'react';
 
 type AccessCode = { id: string; eventName: string };
 
@@ -61,9 +52,7 @@ export default async function AuthenticatedLayout({
 }: {
     children: ReactNode;
 }) {
-    const cookieStore = await cookies();
-    const authToken = cookieStore.get('auth_token')?.value;
-    const accessToken = cookieStore.get('access_token')?.value;
+    const { authToken, accessToken, role } = await resolveAuth();
 
     const authPayload = authToken
         ? decodeJwtPayload<AuthPayload>(authToken)
@@ -72,7 +61,6 @@ export default async function AuthenticatedLayout({
         ? decodeJwtPayload<AccessPayload>(accessToken)
         : null;
 
-    const role = authPayload?.role ?? 'user';
     const userName = authPayload?.name ?? null;
     const userEventId = accessPayload?.event_id ?? null;
 
@@ -86,14 +74,16 @@ export default async function AuthenticatedLayout({
 
     return (
         <div className='min-h-screen bg-background'>
-            <AuthHeader
-                role={role}
-                userName={userName}
-                userEventId={userEventId}
-                userEventName={userEventName}
-                accessCodes={accessCodes}
-                logoutAction={logoutAction}
-            />
+            <Suspense fallback={null}>
+                <AuthHeader
+                    role={role}
+                    userName={userName}
+                    userEventId={userEventId}
+                    userEventName={userEventName}
+                    accessCodes={accessCodes}
+                    logoutAction={logoutAction}
+                />
+            </Suspense>
             <main className='mx-auto max-w-5xl px-4 py-8 sm:px-6'>
                 {children}
             </main>
