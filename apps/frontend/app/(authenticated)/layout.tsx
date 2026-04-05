@@ -1,13 +1,13 @@
+import { logoutAction } from '@frontend/app/actions/auth';
 import {
-    decodeJwtPayload,
-    resolveAuth,
     type AccessPayload,
     type AuthPayload,
+    decodeJwtPayload,
+    resolveAuth,
 } from '@frontend/app/lib/serverAuth';
-import { logoutAction } from '@frontend/app/actions/auth';
 import { AuthHeader } from '@frontend/components/AuthHeader';
-import { Suspense } from 'react';
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 
 type AccessCode = { id: string; eventName: string };
 
