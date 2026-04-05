@@ -99,6 +99,23 @@ describe('EventsPage', () => {
         expect(screen.getByText('大ホール')).toBeInTheDocument();
     });
 
+    it('日時をフォーマットして表示する', async () => {
+        mockResolveAuth.mockResolvedValue(WITH_AUTH);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ programs: [MOCK_PROGRAMS[0]] }), {
+                status: 200,
+            }),
+        );
+
+        const element = await EventsPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(screen.getByText('8/1(金)')).toBeInTheDocument();
+        expect(screen.getByText('19:00 〜 20:00')).toBeInTheDocument();
+    });
+
     it('descriptionがある場合に表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
@@ -113,5 +130,34 @@ describe('EventsPage', () => {
         render(element);
 
         expect(screen.getByText('参加費無料')).toBeInTheDocument();
+    });
+
+    it('日時が不正な場合は日時未定を表示する', async () => {
+        mockResolveAuth.mockResolvedValue(WITH_AUTH);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    programs: [
+                        {
+                            id: '3',
+                            name: '時間未定の企画',
+                            location: '会場A',
+                            startTime: 'invalid',
+                            endTime: 'invalid',
+                            description: null,
+                        },
+                    ],
+                }),
+                { status: 200 },
+            ),
+        );
+
+        const element = await EventsPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(screen.getByText('時間未定の企画')).toBeInTheDocument();
+        expect(screen.getByText('日時未定')).toBeInTheDocument();
     });
 });
