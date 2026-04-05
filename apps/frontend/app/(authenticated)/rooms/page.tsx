@@ -17,6 +17,226 @@ type RoomWithDepartments = {
     notes: string | null;
 };
 
+type RoomFloorGroup = {
+    name: string;
+    rooms: RoomWithDepartments[];
+};
+
+type RoomGroup = {
+    building: string;
+    floors: RoomFloorGroup[];
+};
+
+function formatValue(value: string | null): string {
+    if (!value) return '—';
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? '—' : trimmed;
+}
+
+function groupRooms(rooms: RoomWithDepartments[]): RoomGroup[] {
+    const buildingMap = new Map<string, Map<string, RoomWithDepartments[]>>();
+
+    for (const room of rooms) {
+        if (!buildingMap.has(room.buildingName)) {
+            buildingMap.set(room.buildingName, new Map());
+        }
+        const floors = buildingMap.get(room.buildingName)!;
+        if (!floors.has(room.floor)) {
+            floors.set(room.floor, []);
+        }
+        floors.get(room.floor)!.push(room);
+    }
+
+    return Array.from(buildingMap.entries()).map(([building, floors]) => ({
+        building,
+        floors: Array.from(floors.entries()).map(([name, entries]) => ({
+            name,
+            rooms: entries,
+        })),
+    }));
+}
+
+function DesktopRoomsTable({ groups }: { groups: RoomGroup[] }) {
+    return (
+        <div className='hidden flex-col gap-8 md:flex'>
+            {groups.map(({ building, floors }) => (
+                <section key={`desktop-${building}`} className='space-y-3'>
+                    <h2 className='font-medium text-base text-foreground'>
+                        {building}
+                    </h2>
+                    {floors.map(({ name, rooms }) => (
+                        <div
+                            key={`desktop-${building}-${name}`}
+                            className='space-y-2'
+                        >
+                            <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+                                {name}
+                            </p>
+                            <div className='overflow-x-auto rounded-xl border border-border bg-card shadow-sm'>
+                                <table
+                                    aria-label={`${building} ${name} 部屋割り`}
+                                    className='w-full border-collapse text-sm'
+                                >
+                                    <thead>
+                                        <tr className='bg-muted/40 text-left font-medium text-[13px] text-muted-foreground'>
+                                            <th className='px-4 py-3'>
+                                                部屋名
+                                            </th>
+                                            <th className='px-4 py-3'>担当</th>
+                                            <th className='px-4 py-3'>用途</th>
+                                            <th className='px-4 py-3'>備考</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {rooms.map((room) => (
+                                            <tr
+                                                key={room.id}
+                                                className='border-border/60 border-t text-sm first:border-t-0'
+                                            >
+                                                <td className='px-4 py-3 font-medium text-foreground'>
+                                                    {room.roomName}
+                                                </td>
+                                                <td className='px-4 py-3 align-top'>
+                                                    <div className='space-y-1 text-foreground'>
+                                                        <p className='flex items-baseline gap-2 text-muted-foreground text-xs uppercase tracking-wide'>
+                                                            <span>前日</span>
+                                                            <span className='text-foreground text-sm'>
+                                                                {formatValue(
+                                                                    room.preDayManagerName,
+                                                                )}
+                                                            </span>
+                                                        </p>
+                                                        <p className='flex items-baseline gap-2 text-muted-foreground text-xs uppercase tracking-wide'>
+                                                            <span>当日</span>
+                                                            <span className='text-foreground text-sm'>
+                                                                {formatValue(
+                                                                    room.dayManagerName,
+                                                                )}
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className='px-4 py-3 align-top'>
+                                                    <div className='space-y-1 text-foreground'>
+                                                        <p className='flex items-baseline gap-2 text-muted-foreground text-xs uppercase tracking-wide'>
+                                                            <span>前日</span>
+                                                            <span className='text-foreground text-sm'>
+                                                                {formatValue(
+                                                                    room.preDayPurpose,
+                                                                )}
+                                                            </span>
+                                                        </p>
+                                                        <p className='flex items-baseline gap-2 text-muted-foreground text-xs uppercase tracking-wide'>
+                                                            <span>当日</span>
+                                                            <span className='text-foreground text-sm'>
+                                                                {formatValue(
+                                                                    room.dayPurpose,
+                                                                )}
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className='px-4 py-3 align-top text-foreground text-sm'>
+                                                    <span className='text-muted-foreground text-sm'>
+                                                        {formatValue(
+                                                            room.notes,
+                                                        )}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ))}
+                </section>
+            ))}
+        </div>
+    );
+}
+
+function buildAssignmentLine(
+    manager: string | null,
+    purpose: string | null,
+): string {
+    const namePart = formatValue(manager);
+    const purposePart = formatValue(purpose);
+    if (purposePart === '—') return namePart;
+    if (namePart === '—') return purposePart;
+    return `${namePart} — ${purposePart}`;
+}
+
+function MobileRoomsList({ groups }: { groups: RoomGroup[] }) {
+    return (
+        <div className='space-y-6 md:hidden'>
+            {groups.map(({ building, floors }) => (
+                <section key={`mobile-${building}`} className='space-y-3'>
+                    <h2 className='font-medium text-base text-foreground'>
+                        {building}
+                    </h2>
+                    {floors.map(({ name, rooms }) => (
+                        <div
+                            key={`mobile-${building}-${name}`}
+                            className='space-y-3'
+                        >
+                            <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+                                {name}
+                            </p>
+                            <div className='space-y-3'>
+                                {rooms.map((room) => (
+                                    <article
+                                        key={`mobile-${room.id}`}
+                                        className='rounded-xl border border-border bg-card p-4 shadow-sm'
+                                    >
+                                        <p className='font-semibold text-base text-foreground'>
+                                            {room.roomName}
+                                        </p>
+                                        <div className='mt-3 space-y-2 text-sm'>
+                                            <div>
+                                                <p className='font-semibold text-[11px] text-muted-foreground uppercase tracking-wide'>
+                                                    前日
+                                                </p>
+                                                <p className='text-foreground'>
+                                                    {buildAssignmentLine(
+                                                        room.preDayManagerName,
+                                                        room.preDayPurpose,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className='font-semibold text-[11px] text-muted-foreground uppercase tracking-wide'>
+                                                    当日
+                                                </p>
+                                                <p className='text-foreground'>
+                                                    {buildAssignmentLine(
+                                                        room.dayManagerName,
+                                                        room.dayPurpose,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            {room.notes && (
+                                                <div>
+                                                    <p className='font-semibold text-[11px] text-muted-foreground uppercase tracking-wide'>
+                                                        備考
+                                                    </p>
+                                                    <p className='text-muted-foreground'>
+                                                        {room.notes}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </section>
+            ))}
+        </div>
+    );
+}
+
 async function fetchRooms(
     eventId: string,
     authToken: string | null,
@@ -65,17 +285,16 @@ export default async function RoomsPage({
     }
 
     const rooms = await fetchRooms(eventId, authToken, accessToken, role);
-
-    // Building → Floor → Room の順でグループ化
-    const grouped = rooms.reduce<
-        Record<string, Record<string, RoomWithDepartments[]>>
-    >((acc, room) => {
-        if (!acc[room.buildingName]) acc[room.buildingName] = {};
-        if (!acc[room.buildingName][room.floor])
-            acc[room.buildingName][room.floor] = [];
-        acc[room.buildingName][room.floor].push(room);
-        return acc;
-    }, {});
+    const sorted = [...rooms].sort((a, b) => {
+        if (a.buildingName !== b.buildingName) {
+            return a.buildingName.localeCompare(b.buildingName, 'ja');
+        }
+        if (a.floor !== b.floor) {
+            return a.floor.localeCompare(b.floor, 'ja');
+        }
+        return a.roomName.localeCompare(b.roomName, 'ja');
+    });
+    const groups = groupRooms(sorted);
 
     return (
         <div>
@@ -88,78 +307,8 @@ export default async function RoomsPage({
                 </p>
             ) : (
                 <div className='space-y-8'>
-                    {Object.entries(grouped).map(([building, floors]) => (
-                        <section key={building}>
-                            <h2 className='mb-3 font-medium text-base text-foreground'>
-                                {building}
-                            </h2>
-                            <div className='space-y-4'>
-                                {Object.entries(floors).map(
-                                    ([floor, roomList]) => (
-                                        <div key={floor}>
-                                            <p className='mb-2 font-medium text-muted-foreground text-xs'>
-                                                {floor}
-                                            </p>
-                                            <div className='space-y-2'>
-                                                {roomList.map((room) => (
-                                                    <div
-                                                        key={room.id}
-                                                        className='rounded-lg border border-border bg-card p-4'
-                                                    >
-                                                        <p className='font-medium text-foreground text-sm'>
-                                                            {room.roomName}
-                                                        </p>
-                                                        <div className='mt-2 space-y-1'>
-                                                            {room.preDayManagerName && (
-                                                                <div className='flex gap-2 text-xs'>
-                                                                    <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                        前日
-                                                                    </span>
-                                                                    <span className='text-foreground'>
-                                                                        {
-                                                                            room.preDayManagerName
-                                                                        }
-                                                                        {room.preDayPurpose &&
-                                                                            ` — ${room.preDayPurpose}`}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <div className='flex gap-2 text-xs'>
-                                                                <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                    当日
-                                                                </span>
-                                                                <span className='text-foreground'>
-                                                                    {
-                                                                        room.dayManagerName
-                                                                    }{' '}
-                                                                    —{' '}
-                                                                    {
-                                                                        room.dayPurpose
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                            {room.notes && (
-                                                                <div className='flex gap-2 text-xs'>
-                                                                    <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                        備考
-                                                                    </span>
-                                                                    <span className='text-muted-foreground'>
-                                                                        {
-                                                                            room.notes
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ),
-                                )}
-                            </div>
-                        </section>
-                    ))}
+                    <DesktopRoomsTable groups={groups} />
+                    <MobileRoomsList groups={groups} />
                 </div>
             )}
         </div>

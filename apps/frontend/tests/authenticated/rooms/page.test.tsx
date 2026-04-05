@@ -91,7 +91,7 @@ describe('RoomsPage', () => {
         ).toBeInTheDocument();
     });
 
-    it('部屋一覧を棟・フロア別に表示する', async () => {
+    it('部屋一覧を棟・フロア別に表示しテーブル構造を持つ', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
@@ -104,14 +104,19 @@ describe('RoomsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('A棟')).toBeInTheDocument();
-        expect(screen.getByText('2F')).toBeInTheDocument();
-        expect(screen.getByText('第1会議室')).toBeInTheDocument();
-        expect(screen.getByText('第2会議室')).toBeInTheDocument();
+        expect(screen.getAllByText('A棟').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('2F').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('第1会議室').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('第2会議室').length).toBeGreaterThan(0);
+        const table = screen.getByRole('table', { name: 'A棟 2F 部屋割り' });
+        expect(table).toBeInTheDocument();
+        expect(screen.getAllByText('担当').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('用途').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('備考').length).toBeGreaterThan(0);
         expect(screen.getAllByText(/運営部/).length).toBeGreaterThanOrEqual(1);
     });
 
-    it('前日担当がある場合に表示する', async () => {
+    it('前日担当がない場合はダッシュを表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
@@ -124,7 +129,8 @@ describe('RoomsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText(/企画部/)).toBeInTheDocument();
+        expect(screen.getAllByText(/企画部/).length).toBeGreaterThan(0);
+        expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     });
 
     it('notesがある場合に表示する', async () => {
@@ -140,6 +146,6 @@ describe('RoomsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('追加机あり')).toBeInTheDocument();
+        expect(screen.getAllByText('追加机あり').length).toBeGreaterThan(0);
     });
 });
