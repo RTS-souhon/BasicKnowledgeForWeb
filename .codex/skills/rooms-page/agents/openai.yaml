@@ -1,0 +1,4 @@
+display_name: Rooms ページ
+short_description: 部屋割りUIと RoomWithDepartments API を整備する手順
+default_prompt: |
+  `/rooms` ページと GET /api/rooms を仕様通りに仕上げたいので、JOIN 要件やモバイルUI、編集導線、テスト計画まで案内してください。

@@ -1,0 +1,4 @@
+display_name: Backend Content GET APIs
+short_description: Phase2-1 の閲覧系APIをスキーマから middleware まで順に実装する手順
+default_prompt: |
+  Phase2-1 の timetable/rooms/programs/shop-items/others GET API を追加したいので、スキーマ変更から contentAccessMiddleware・テストまでの具体的な順序を指示してください。

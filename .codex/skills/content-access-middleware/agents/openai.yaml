@@ -1,0 +1,4 @@
+display_name: Content Access Middleware
+short_description: access_token/auth_token の検証とテストを行うミドルウェア手順
+default_prompt: |
+  閲覧系 API 向けの `contentAccessMiddleware` を実装・テストしたいので、トークン検証条件と 401 ケース、feature/unit テストの書き方まで指示してください。

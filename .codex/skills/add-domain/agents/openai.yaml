@@ -1,0 +1,4 @@
+display_name: Add Domain ガイド
+short_description: Clean Architecture順に新ドメインを追加する手順をナビゲート
+default_prompt: |
+  新しいバックエンドリソースを追加したいので、スキーマ定義からルート/テストまでの具体的な実装順序を案内してください。
