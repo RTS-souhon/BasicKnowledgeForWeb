@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
@@ -91,7 +91,7 @@ describe('RoomsPage', () => {
         ).toBeInTheDocument();
     });
 
-    it('部屋一覧を棟・フロア別に表示する', async () => {
+    it('部屋一覧をテーブル形式で表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
@@ -104,14 +104,17 @@ describe('RoomsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('A棟')).toBeInTheDocument();
-        expect(screen.getByText('2F')).toBeInTheDocument();
-        expect(screen.getByText('第1会議室')).toBeInTheDocument();
-        expect(screen.getByText('第2会議室')).toBeInTheDocument();
-        expect(screen.getAllByText(/運営部/).length).toBeGreaterThanOrEqual(1);
+        const table = screen.getByRole('table', { name: '部屋割り一覧' });
+        expect(table).toBeInTheDocument();
+        expect(within(table).getByText('第1会議室')).toBeInTheDocument();
+        expect(within(table).getByText('第2会議室')).toBeInTheDocument();
+        expect(within(table).getAllByText('A棟・2F').length).toBeGreaterThan(0);
+        expect(
+            within(table).getByText('運営部 — 受付'),
+        ).toBeInTheDocument();
     });
 
-    it('前日担当がある場合に表示する', async () => {
+    it('モバイルカードで前日担当と備考を表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
@@ -124,22 +127,11 @@ describe('RoomsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText(/企画部/)).toBeInTheDocument();
-    });
-
-    it('notesがある場合に表示する', async () => {
-        mockResolveAuth.mockResolvedValue(WITH_AUTH);
-        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
-            new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
-                status: 200,
-            }),
-        );
-
-        const element = await RoomsPage({
-            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        const card = screen.getByRole('article', {
+            name: '第2会議室の割当情報',
         });
-        render(element);
-
-        expect(screen.getByText('追加机あり')).toBeInTheDocument();
+        expect(card).toHaveTextContent('A棟・2F');
+        expect(card).toHaveTextContent('企画部 — 準備');
+        expect(card).toHaveTextContent('備考: 追加机あり');
     });
 });

@@ -65,101 +65,136 @@ export default async function RoomsPage({
     }
 
     const rooms = await fetchRooms(eventId, authToken, accessToken, role);
+    const sorted = [...rooms].sort((a, b) => {
+        const buildingDiff = a.buildingName.localeCompare(b.buildingName);
+        if (buildingDiff !== 0) return buildingDiff;
+        const floorDiff = a.floor.localeCompare(b.floor);
+        if (floorDiff !== 0) return floorDiff;
+        return a.roomName.localeCompare(b.roomName);
+    });
 
-    // Building → Floor → Room の順でグループ化
-    const grouped = rooms.reduce<
-        Record<string, Record<string, RoomWithDepartments[]>>
-    >((acc, room) => {
-        if (!acc[room.buildingName]) acc[room.buildingName] = {};
-        if (!acc[room.buildingName][room.floor])
-            acc[room.buildingName][room.floor] = [];
-        acc[room.buildingName][room.floor].push(room);
-        return acc;
-    }, {});
+    const renderAssignment = (
+        name: string | null,
+        purpose: string | null,
+        placeholder = '—',
+    ) => {
+        if (!name) return placeholder;
+        return purpose ? `${name} — ${purpose}` : name;
+    };
 
     return (
         <div>
             <h1 className='mb-6 font-semibold text-foreground text-xl tracking-tight'>
                 部屋割り
             </h1>
-            {rooms.length === 0 ? (
+            {sorted.length === 0 ? (
                 <p className='text-muted-foreground text-sm'>
                     登録されている部屋割りはありません
                 </p>
             ) : (
-                <div className='space-y-8'>
-                    {Object.entries(grouped).map(([building, floors]) => (
-                        <section key={building}>
-                            <h2 className='mb-3 font-medium text-base text-foreground'>
-                                {building}
-                            </h2>
-                            <div className='space-y-4'>
-                                {Object.entries(floors).map(
-                                    ([floor, roomList]) => (
-                                        <div key={floor}>
-                                            <p className='mb-2 font-medium text-muted-foreground text-xs'>
-                                                {floor}
-                                            </p>
-                                            <div className='space-y-2'>
-                                                {roomList.map((room) => (
-                                                    <div
-                                                        key={room.id}
-                                                        className='rounded-lg border border-border bg-card p-4'
-                                                    >
-                                                        <p className='font-medium text-foreground text-sm'>
-                                                            {room.roomName}
-                                                        </p>
-                                                        <div className='mt-2 space-y-1'>
-                                                            {room.preDayManagerName && (
-                                                                <div className='flex gap-2 text-xs'>
-                                                                    <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                        前日
-                                                                    </span>
-                                                                    <span className='text-foreground'>
-                                                                        {
-                                                                            room.preDayManagerName
-                                                                        }
-                                                                        {room.preDayPurpose &&
-                                                                            ` — ${room.preDayPurpose}`}
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                            <div className='flex gap-2 text-xs'>
-                                                                <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                    当日
-                                                                </span>
-                                                                <span className='text-foreground'>
-                                                                    {
-                                                                        room.dayManagerName
-                                                                    }{' '}
-                                                                    —{' '}
-                                                                    {
-                                                                        room.dayPurpose
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                            {room.notes && (
-                                                                <div className='flex gap-2 text-xs'>
-                                                                    <span className='w-16 shrink-0 text-muted-foreground'>
-                                                                        備考
-                                                                    </span>
-                                                                    <span className='text-muted-foreground'>
-                                                                        {
-                                                                            room.notes
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ),
-                                )}
-                            </div>
-                        </section>
-                    ))}
+                <div className='space-y-6'>
+                    <div className='hidden overflow-x-auto rounded-xl border border-border md:block'>
+                        <table
+                            className='min-w-full divide-y divide-border text-sm'
+                            aria-label='部屋割り一覧'
+                        >
+                            <thead className='bg-muted/40 text-left text-muted-foreground text-xs uppercase tracking-wide'>
+                                <tr>
+                                    <th className='px-4 py-3 font-medium'>
+                                        部屋
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        前日担当
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        当日担当
+                                    </th>
+                                    <th className='px-4 py-3 font-medium'>
+                                        備考
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className='divide-y divide-border bg-card'>
+                                {sorted.map((room) => {
+                                    const locationLabel = `${room.buildingName}・${room.floor}`;
+                                    return (
+                                        <tr key={room.id}>
+                                            <td className='px-4 py-3 align-top'>
+                                                <p className='font-medium text-foreground'>
+                                                    {room.roomName}
+                                                </p>
+                                                <p className='text-muted-foreground text-xs'>
+                                                    {locationLabel}
+                                                </p>
+                                            </td>
+                                            <td className='px-4 py-3 align-top text-foreground text-sm'>
+                                                {renderAssignment(
+                                                    room.preDayManagerName,
+                                                    room.preDayPurpose,
+                                                )}
+                                            </td>
+                                            <td className='px-4 py-3 align-top text-foreground text-sm'>
+                                                {renderAssignment(
+                                                    room.dayManagerName,
+                                                    room.dayPurpose,
+                                                )}
+                                            </td>
+                                            <td className='px-4 py-3 align-top text-muted-foreground text-sm'>
+                                                {room.notes ?? '—'}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className='space-y-3 md:hidden'>
+                        {sorted.map((room) => {
+                            const locationLabel = `${room.buildingName}・${room.floor}`;
+                            return (
+                                <article
+                                    key={room.id}
+                                    aria-label={`${room.roomName}の割当情報`}
+                                    className='rounded-xl border border-border bg-card p-4'
+                                >
+                                    <div className='flex items-baseline justify-between gap-2'>
+                                        <p className='font-medium text-base text-foreground'>
+                                            {room.roomName}
+                                        </p>
+                                        <span className='text-muted-foreground text-xs'>
+                                            {locationLabel}
+                                        </span>
+                                    </div>
+                                    {room.preDayManagerName && (
+                                        <p className='mt-3 text-foreground text-sm'>
+                                            <span className='text-muted-foreground'>
+                                                前日:{' '}
+                                            </span>
+                                            {renderAssignment(
+                                                room.preDayManagerName,
+                                                room.preDayPurpose,
+                                            )}
+                                        </p>
+                                    )}
+                                    <p className='mt-2 text-foreground text-sm'>
+                                        <span className='text-muted-foreground'>
+                                            当日:{' '}
+                                        </span>
+                                        {renderAssignment(
+                                            room.dayManagerName,
+                                            room.dayPurpose,
+                                        )}
+                                    </p>
+                                    {room.notes && (
+                                        <p className='mt-2 text-muted-foreground text-sm'>
+                                            備考: {room.notes}
+                                        </p>
+                                    )}
+                                </article>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>
