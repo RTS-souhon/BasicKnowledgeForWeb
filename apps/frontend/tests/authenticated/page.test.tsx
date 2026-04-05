@@ -112,6 +112,11 @@ describe('HomePage', () => {
             'access-token',
             'user',
         );
+
+        const timetableLink = screen.getByRole('link', {
+            name: /タイムテーブル/,
+        });
+        expect(timetableLink).toHaveAttribute('href', '/timetable');
     });
 
     it('admin ロールでは選択中会期の会期名を表示すること', async () => {
@@ -138,6 +143,14 @@ describe('HomePage', () => {
             'auth-token',
             null,
             'admin',
+        );
+
+        const timetableLink = screen.getByRole('link', {
+            name: /タイムテーブル/,
+        });
+        expect(timetableLink).toHaveAttribute(
+            'href',
+            '/timetable?event_id=event-2',
         );
     });
 

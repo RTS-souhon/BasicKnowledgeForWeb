@@ -3,8 +3,14 @@
 import { EventSelector } from '@frontend/components/EventSelector';
 import { AlignRight, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 
 type AccessCode = { id: string; eventName: string };
 
@@ -34,10 +40,22 @@ export function AuthHeader({
     logoutAction,
 }: Props) {
     const pathname = usePathname() ?? '';
+    const searchParams = useSearchParams();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const drawerRef = useRef<HTMLDivElement>(null);
 
     const isPrivileged = role === 'admin' || role === 'developer';
+
+    const paramsString = useMemo(
+        () => searchParams?.toString() ?? '',
+        [searchParams],
+    );
+
+    const buildHref = useCallback(
+        (href: string) =>
+            paramsString ? `${href}?${paramsString}` : href,
+        [paramsString],
+    );
 
     const isActive = (href: string) => {
         if (href === '/') return pathname === '/';
@@ -71,7 +89,7 @@ export function AuthHeader({
             <div className='mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6'>
                 {/* Left: logo / home link */}
                 <Link
-                    href='/'
+                    href={buildHref('/')}
                     className='text-sm font-semibold tracking-wide opacity-90 transition-opacity hover:opacity-100'
                 >
                     {isPrivileged ? 'イベント管理' : 'スタッフポータル'}
@@ -85,7 +103,7 @@ export function AuthHeader({
                     {NAV_ITEMS.map(({ href, label }) => (
                         <Link
                             key={href}
-                            href={href}
+                            href={buildHref(href)}
                             className={`relative rounded-sm px-3 py-1.5 text-sm transition-colors ${
                                 isActive(href)
                                     ? 'opacity-100 after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-background'
@@ -171,7 +189,7 @@ export function AuthHeader({
                     {NAV_ITEMS.map(({ href, label }) => (
                         <Link
                             key={href}
-                            href={href}
+                            href={buildHref(href)}
                             className={`flex items-center px-6 py-3 text-sm transition-colors ${
                                 isActive(href)
                                     ? 'opacity-100'

@@ -64,6 +64,12 @@ export default async function HomePage({
         : null;
     const isPrivileged = role === 'admin' || role === 'developer';
 
+    const eventQuery = event_id
+        ? new URLSearchParams({ event_id }).toString()
+        : '';
+    const buildHref = (href: string) =>
+        eventQuery ? `${href}?${eventQuery}` : href;
+
     return (
         <div className='space-y-8'>
             <section className='space-y-2'>
@@ -87,7 +93,7 @@ export default async function HomePage({
                 {NAV_CARDS.map(({ href, label, description }) => (
                     <Link
                         key={href}
-                        href={href}
+                        href={buildHref(href)}
                         className='group flex min-h-28 flex-col justify-between rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md'
                     >
                         <span className='font-medium text-base text-foreground'>
