@@ -46,14 +46,17 @@ export default async function OthersPage({
 
     if (!eventId) {
         return (
-            <div>
-                <h1 className='mb-6 font-semibold text-foreground text-xl tracking-tight'>
-                    情報
+            <section aria-labelledby='others-heading'>
+                <h1
+                    id='others-heading'
+                    className='mb-4 font-semibold text-foreground text-xl tracking-tight'
+                >
+                    その他の情報
                 </h1>
                 <p className='text-muted-foreground text-sm'>
                     会期が選択されていません
                 </p>
-            </div>
+            </section>
         );
     }
 
@@ -61,31 +64,47 @@ export default async function OthersPage({
     const sorted = [...items].sort((a, b) => a.displayOrder - b.displayOrder);
 
     return (
-        <div>
-            <h1 className='mb-6 font-semibold text-foreground text-xl tracking-tight'>
-                情報
-            </h1>
+        <section aria-labelledby='others-heading'>
+            <div className='mb-6'>
+                <h1
+                    id='others-heading'
+                    className='font-semibold text-foreground text-xl tracking-tight'
+                >
+                    その他の情報
+                </h1>
+                <p className='mt-2 text-muted-foreground text-sm'>
+                    注意事項や連絡先など、自由記述の共有事項を閲覧できます。
+                </p>
+            </div>
             {sorted.length === 0 ? (
                 <p className='text-muted-foreground text-sm'>
-                    登録されている情報はありません
+                    登録されているその他の情報はありません
                 </p>
             ) : (
                 <div className='space-y-4'>
                     {sorted.map((item) => (
-                        <div
+                        <article
                             key={item.id}
-                            className='rounded-lg border border-border bg-card p-4'
+                            className='rounded-xl border border-border bg-card p-4 shadow-sm'
+                            aria-labelledby={`other-item-${item.id}`}
                         >
-                            <p className='font-medium text-foreground text-sm'>
-                                {item.title}
-                            </p>
-                            <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
-                                {item.content}
-                            </p>
-                        </div>
+                            <div className='pb-3'>
+                                <h2
+                                    id={`other-item-${item.id}`}
+                                    className='font-semibold text-foreground text-sm'
+                                >
+                                    {item.title}
+                                </h2>
+                            </div>
+                            <div className='border-border/70 border-t pt-3'>
+                                <p className='whitespace-pre-wrap text-muted-foreground text-sm leading-relaxed'>
+                                    {item.content}
+                                </p>
+                            </div>
+                        </article>
                     ))}
                 </div>
             )}
-        </div>
+        </section>
     );
 }

@@ -62,6 +62,7 @@ describe('OthersPage', () => {
         });
         render(element);
 
+        expect(screen.getByText('その他の情報')).toBeInTheDocument();
         expect(
             screen.getByText('会期が選択されていません'),
         ).toBeInTheDocument();
@@ -79,7 +80,7 @@ describe('OthersPage', () => {
         render(element);
 
         expect(
-            screen.getByText('登録されている情報はありません'),
+            screen.getByText('登録されているその他の情報はありません'),
         ).toBeInTheDocument();
     });
 
