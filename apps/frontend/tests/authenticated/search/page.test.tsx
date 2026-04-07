@@ -79,13 +79,15 @@ describe('SearchPage', () => {
 
         render(<SearchPage />);
 
-        await waitFor(() =>
-            expect(global.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('/api/search?q=room'),
-                expect.objectContaining({
-                    headers: expect.objectContaining({ 'x-event-id': 'event-1' }),
-                }),
-            ),
+        await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+        const [requestUrl, requestInit] = (
+            global.fetch as jest.Mock
+        ).mock.calls.at(-1)!;
+
+        expect(requestUrl).toContain('/api/search?q=room');
+        expect((requestInit?.headers as Headers).get('x-event-id')).toBe(
+            'event-1',
         );
 
         expect(await screen.findByText('タイムテーブル')).toBeInTheDocument();

@@ -71,13 +71,13 @@ describe('AuthHeader', () => {
             expect(
                 screen.getAllByRole('link', { name: '販売物' }).length,
             ).toBeGreaterThanOrEqual(1);
-        expect(
-            screen.getAllByRole('link', { name: '情報' }).length,
-        ).toBeGreaterThanOrEqual(1);
-        expect(
-            screen.getAllByRole('link', { name: '情報検索' }).length,
-        ).toBeGreaterThanOrEqual(1);
-    });
+            expect(
+                screen.getAllByRole('link', { name: '情報' }).length,
+            ).toBeGreaterThanOrEqual(1);
+            expect(
+                screen.getAllByRole('link', { name: '情報検索' }).length,
+            ).toBeGreaterThanOrEqual(1);
+        });
 
         it('ホームリンクが表示されること', () => {
             renderHeader();

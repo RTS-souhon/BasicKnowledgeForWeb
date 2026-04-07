@@ -1,60 +1,26 @@
 'use client';
 
+import type { SearchResultData } from '@backend/src/use-cases/search/ISearchUseCase';
 import { useAuthContext } from '@frontend/app/(authenticated)/auth-context';
+import { client } from '@frontend/app/utils/client';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-type TimetableResult = {
-    id: string;
-    title: string;
-    startTime: string;
-    endTime: string;
-    location: string;
-    description: string | null;
-};
+type Serialize<T> = T extends Date
+    ? string
+    : T extends (infer U)[]
+      ? Serialize<U>[]
+      : T extends object
+        ? { [K in keyof T]: Serialize<T[K]> }
+        : T;
 
-type RoomResult = {
-    id: string;
-    buildingName: string;
-    floor: string;
-    roomName: string;
-    preDayManagerName: string | null;
-    preDayPurpose: string | null;
-    dayManagerName: string;
-    dayPurpose: string;
-    notes: string | null;
-};
+type SearchResponse = Serialize<SearchResultData>;
 
-type ProgramResult = {
-    id: string;
-    name: string;
-    location: string;
-    startTime: string;
-    endTime: string;
-    description: string | null;
-};
-
-type ShopItemResult = {
-    id: string;
-    name: string;
-    price: number;
-    stockStatus: string;
-    description: string | null;
-};
-
-type OtherItemResult = {
-    id: string;
-    title: string;
-    content: string;
-};
-
-type SearchResponse = {
-    timetable: TimetableResult[];
-    rooms: RoomResult[];
-    programs: ProgramResult[];
-    shopItems: ShopItemResult[];
-    otherItems: OtherItemResult[];
-};
+type TimetableResult = SearchResponse['timetable'][number];
+type RoomResult = SearchResponse['rooms'][number];
+type ProgramResult = SearchResponse['programs'][number];
+type ShopItemResult = SearchResponse['shopItems'][number];
+type OtherItemResult = SearchResponse['otherItems'][number];
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -111,26 +77,23 @@ export default function SearchPage() {
             return;
         }
 
-        const controller = new AbortController();
         let cancelled = false;
-        const apiUrl =
-            process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
         setStatus('loading');
         setErrorMessage(null);
 
-        fetch(`${apiUrl}/api/search?q=${encodeURIComponent(keyword)}`, {
-            headers: { 'x-event-id': resolvedEventId },
-            credentials: 'include',
-            signal: controller.signal,
-        })
-            .then((response) => {
+        client.api.search
+            .$get({
+                query: { q: keyword },
+                header: { 'x-event-id': resolvedEventId },
+            })
+            .then(async (response) => {
                 if (!response.ok) {
                     throw new Error('検索に失敗しました');
                 }
-                return response.json();
+                return (await response.json()) as SearchResponse;
             })
-            .then((data: SearchResponse) => {
+            .then((data) => {
                 if (!cancelled) {
                     setResults(data);
                     setStatus('idle');
@@ -145,7 +108,6 @@ export default function SearchPage() {
 
         return () => {
             cancelled = true;
-            controller.abort();
         };
     }, [queryParam, resolvedEventId]);
 
