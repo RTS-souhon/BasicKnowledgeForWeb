@@ -27,12 +27,25 @@ const JWT_SECRET = 'test-secret';
 const mockEnv = { JWT_SECRET } as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
+const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
 
 let accessToken: string;
+let adminToken: string;
+let userToken: string;
 
 beforeAll(async () => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
     accessToken = await sign({ event_id: EVENT_ID, exp }, JWT_SECRET);
+    adminToken = await sign(
+        { id: 'admin-id', name: 'Admin', email: 'admin@test.com', role: 'admin', exp },
+        JWT_SECRET,
+        'HS256',
+    );
+    userToken = await sign(
+        { id: 'user-id', name: 'User', email: 'user@test.com', role: 'user', exp },
+        JWT_SECRET,
+        'HS256',
+    );
 });
 
 function createRepositories() {
@@ -160,6 +173,64 @@ describe('GET /api/search', () => {
         };
         expect(body.timetable).toHaveLength(1);
         expect(body.rooms).toHaveLength(1);
+    });
+
+    it('admin ロールの auth_token では任意の会期を検索できる', async () => {
+        const repos = createRepositories();
+        const app = createTestAppWithSearch(repos);
+
+        const res = await app.request(
+            '/api/search?q=all',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `auth_token=${adminToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+        expect(repos.timetableRepository.search).toHaveBeenCalledWith(
+            'all',
+            OTHER_EVENT_ID,
+        );
+    });
+
+    it('role=user の auth_token では 401 を返す', async () => {
+        const repos = createRepositories();
+        const app = createTestAppWithSearch(repos);
+
+        const res = await app.request(
+            '/api/search?q=info',
+            {
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `auth_token=${userToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('access_token の event_id と x-event-id が一致しない場合 401 を返す', async () => {
+        const repos = createRepositories();
+        const app = createTestAppWithSearch(repos);
+
+        const res = await app.request(
+            '/api/search?q=info',
+            {
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    Cookie: `access_token=${accessToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
     });
 
     it('認証がない場合 401 を返す', async () => {

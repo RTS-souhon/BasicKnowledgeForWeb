@@ -1,5 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { programs } from '@backend/src/db/schema';
+import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import type { IProgramRepository, Program } from './IProgramRepository';
 
@@ -17,7 +18,7 @@ export class ProgramRepository implements IProgramRepository {
     }
 
     async search(keyword: string, eventId: string): Promise<Program[]> {
-        const pattern = `%${keyword}%`;
+        const pattern = createIlikePattern(keyword);
         return this.db
             .select()
             .from(programs)

@@ -1,5 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { otherItems } from '@backend/src/db/schema';
+import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import type { IOtherItemRepository, OtherItem } from './IOtherItemRepository';
 
@@ -17,7 +18,7 @@ export class OtherItemRepository implements IOtherItemRepository {
     }
 
     async search(keyword: string, eventId: string): Promise<OtherItem[]> {
-        const pattern = `%${keyword}%`;
+        const pattern = createIlikePattern(keyword);
         return this.db
             .select()
             .from(otherItems)

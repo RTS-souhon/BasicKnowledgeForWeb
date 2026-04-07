@@ -1,5 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { departments, rooms } from '@backend/src/db/schema';
+import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/cockroach-core';
 import type { IRoomRepository, RoomWithDepartments } from './IRoomRepository';
@@ -45,7 +46,7 @@ export class RoomRepository implements IRoomRepository {
         keyword: string,
         eventId: string,
     ): Promise<RoomWithDepartments[]> {
-        const pattern = `%${keyword}%`;
+        const pattern = createIlikePattern(keyword);
         return this.db
             .select({
                 id: rooms.id,

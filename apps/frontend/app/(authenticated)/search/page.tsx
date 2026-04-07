@@ -4,7 +4,7 @@ import type { SearchResultData } from '@backend/src/use-cases/search/ISearchUseC
 import { useAuthContext } from '@frontend/app/(authenticated)/auth-context';
 import { client } from '@frontend/app/utils/client';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
 type Serialize<T> = T extends Date
     ? string
@@ -48,7 +48,7 @@ function formatDateLabel(iso: string) {
     return dateFormatter.format(new Date(iso));
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname() ?? '/search';
@@ -371,5 +371,19 @@ export default function SearchPage() {
                     ))}
             </div>
         </div>
+    );
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense
+            fallback={
+                <p className='text-muted-foreground text-sm'>
+                    検索条件を読み込み中…
+                </p>
+            }
+        >
+            <SearchPageContent />
+        </Suspense>
     );
 }

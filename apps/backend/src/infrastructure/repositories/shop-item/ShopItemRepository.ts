@@ -1,5 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { shopItems } from '@backend/src/db/schema';
+import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import type { IShopItemRepository, ShopItem } from './IShopItemRepository';
 
@@ -17,7 +18,7 @@ export class ShopItemRepository implements IShopItemRepository {
     }
 
     async search(keyword: string, eventId: string): Promise<ShopItem[]> {
-        const pattern = `%${keyword}%`;
+        const pattern = createIlikePattern(keyword);
         return this.db
             .select()
             .from(shopItems)
