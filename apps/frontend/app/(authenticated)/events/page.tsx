@@ -2,6 +2,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import { Clock3, MapPin } from 'lucide-react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -12,6 +13,25 @@ type Program = {
     startTime: string;
     endTime: string;
     description: string | null;
+};
+
+const dayFormatter = new Intl.DateTimeFormat('ja-JP', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+    timeZone: DISPLAY_TIMEZONE,
+});
+
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: DISPLAY_TIMEZONE,
+});
+
+type ScheduleDescription = {
+    dateLabel: string;
+    rangeLabel: string;
 };
 
 async function fetchPrograms(
@@ -39,15 +59,24 @@ async function fetchPrograms(
     }
 }
 
-function formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleString('ja-JP', {
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: DISPLAY_TIMEZONE,
-    });
+function describeSchedule(
+    startIso: string,
+    endIso: string,
+): ScheduleDescription {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+
+    const isStartValid = !Number.isNaN(start.valueOf());
+    const isEndValid = !Number.isNaN(end.valueOf());
+
+    if (!isStartValid || !isEndValid) {
+        return { dateLabel: '日時未定', rangeLabel: '' };
+    }
+
+    const dateLabel = dayFormatter.format(start);
+    const rangeLabel = `${timeFormatter.format(start)} 〜 ${timeFormatter.format(end)}`;
+
+    return { dateLabel, rangeLabel };
 }
 
 export default async function EventsPage({
@@ -88,29 +117,45 @@ export default async function EventsPage({
                     登録されている企画はありません
                 </p>
             ) : (
-                <div className='grid gap-3 sm:grid-cols-2'>
-                    {sorted.map((program) => (
-                        <div
-                            key={program.id}
-                            className='rounded-lg border border-border bg-card p-4'
-                        >
-                            <p className='font-medium text-foreground text-sm'>
-                                {program.name}
-                            </p>
-                            <p className='mt-1 text-muted-foreground text-xs'>
-                                {program.location}
-                            </p>
-                            <p className='mt-1 text-muted-foreground text-xs tabular-nums'>
-                                {formatDateTime(program.startTime)}〜
-                                {formatDateTime(program.endTime)}
-                            </p>
-                            {program.description && (
-                                <p className='mt-2 border-border border-t pt-2 text-muted-foreground text-xs'>
-                                    {program.description}
+                <div className='grid gap-4 md:grid-cols-2'>
+                    {sorted.map((program) => {
+                        const schedule = describeSchedule(
+                            program.startTime,
+                            program.endTime,
+                        );
+                        return (
+                            <div
+                                key={program.id}
+                                className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
+                            >
+                                <p className='font-semibold text-foreground text-sm leading-tight'>
+                                    {program.name}
                                 </p>
-                            )}
-                        </div>
-                    ))}
+                                <p className='mt-3 flex items-center gap-2 text-muted-foreground text-xs'>
+                                    <MapPin aria-hidden size={14} />
+                                    <span>{program.location}</span>
+                                </p>
+                                <div className='mt-2 flex items-start gap-2 text-muted-foreground text-xs tabular-nums'>
+                                    <Clock3
+                                        aria-hidden
+                                        size={14}
+                                        className='mt-0.5 shrink-0'
+                                    />
+                                    <div>
+                                        <p className='text-foreground'>
+                                            {schedule.dateLabel}
+                                        </p>
+                                        <p>{schedule.rangeLabel}</p>
+                                    </div>
+                                </div>
+                                {program.description && (
+                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                        {program.description}
+                                    </p>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>
