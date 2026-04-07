@@ -1,6 +1,6 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
 import { timetableItems } from '@backend/src/db/schema';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, ilike, or } from 'drizzle-orm';
 import type {
     ITimetableRepository,
     TimetableItem,
@@ -16,6 +16,24 @@ export class TimetableRepository implements ITimetableRepository {
             .select()
             .from(timetableItems)
             .where(eq(timetableItems.eventId, eventId))
+            .orderBy(asc(timetableItems.startTime));
+    }
+
+    async search(keyword: string, eventId: string): Promise<TimetableItem[]> {
+        const pattern = `%${keyword}%`;
+        return this.db
+            .select()
+            .from(timetableItems)
+            .where(
+                and(
+                    eq(timetableItems.eventId, eventId),
+                    or(
+                        ilike(timetableItems.title, pattern),
+                        ilike(timetableItems.location, pattern),
+                        ilike(timetableItems.description, pattern),
+                    ),
+                ),
+            )
             .orderBy(asc(timetableItems.startTime));
     }
 }

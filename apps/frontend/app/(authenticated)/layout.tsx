@@ -1,3 +1,4 @@
+import { AuthProvider } from '@frontend/app/(authenticated)/auth-context';
 import { logoutAction } from '@frontend/app/actions/auth';
 import {
     type AccessPayload,
@@ -73,20 +74,22 @@ export default async function AuthenticatedLayout({
             : null;
 
     return (
-        <div className='min-h-screen bg-background'>
-            <Suspense fallback={null}>
-                <AuthHeader
-                    role={role}
-                    userName={userName}
-                    userEventId={userEventId}
-                    userEventName={userEventName}
-                    accessCodes={accessCodes}
-                    logoutAction={logoutAction}
-                />
-            </Suspense>
-            <main className='mx-auto max-w-5xl px-4 py-8 sm:px-6'>
-                {children}
-            </main>
-        </div>
+        <AuthProvider value={{ role, userEventId }}>
+            <div className='min-h-screen bg-background'>
+                <Suspense fallback={null}>
+                    <AuthHeader
+                        role={role}
+                        userName={userName}
+                        userEventId={userEventId}
+                        userEventName={userEventName}
+                        accessCodes={accessCodes}
+                        logoutAction={logoutAction}
+                    />
+                </Suspense>
+                <main className='mx-auto max-w-5xl px-4 py-8 sm:px-6'>
+                    {children}
+                </main>
+            </div>
+        </AuthProvider>
     );
 }

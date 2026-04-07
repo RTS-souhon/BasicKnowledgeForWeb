@@ -1,0 +1,413 @@
+'use client';
+
+import { useAuthContext } from '@frontend/app/(authenticated)/auth-context';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+type TimetableResult = {
+    id: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    description: string | null;
+};
+
+type RoomResult = {
+    id: string;
+    buildingName: string;
+    floor: string;
+    roomName: string;
+    preDayManagerName: string | null;
+    preDayPurpose: string | null;
+    dayManagerName: string;
+    dayPurpose: string;
+    notes: string | null;
+};
+
+type ProgramResult = {
+    id: string;
+    name: string;
+    location: string;
+    startTime: string;
+    endTime: string;
+    description: string | null;
+};
+
+type ShopItemResult = {
+    id: string;
+    name: string;
+    price: number;
+    stockStatus: string;
+    description: string | null;
+};
+
+type OtherItemResult = {
+    id: string;
+    title: string;
+    content: string;
+};
+
+type SearchResponse = {
+    timetable: TimetableResult[];
+    rooms: RoomResult[];
+    programs: ProgramResult[];
+    shopItems: ShopItemResult[];
+    otherItems: OtherItemResult[];
+};
+
+const DISPLAY_TIMEZONE = 'Asia/Tokyo';
+
+const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: DISPLAY_TIMEZONE,
+});
+
+const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+    timeZone: DISPLAY_TIMEZONE,
+});
+
+function formatRange(startIso: string, endIso: string) {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    return `${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
+}
+
+function formatDateLabel(iso: string) {
+    return dateFormatter.format(new Date(iso));
+}
+
+export default function SearchPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname() ?? '/search';
+    const { role, userEventId } = useAuthContext();
+
+    const isPrivileged = role === 'admin' || role === 'developer';
+    const queryParam = searchParams?.get('q') ?? '';
+    const adminEventId = searchParams?.get('event_id') ?? null;
+    const resolvedEventId = isPrivileged ? adminEventId : userEventId;
+
+    const [inputValue, setInputValue] = useState(queryParam);
+    const [results, setResults] = useState<SearchResponse | null>(null);
+    const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        setInputValue(queryParam);
+    }, [queryParam]);
+
+    useEffect(() => {
+        const keyword = queryParam.trim();
+        if (!keyword || !resolvedEventId) {
+            setResults(null);
+            setStatus('idle');
+            setErrorMessage(null);
+            return;
+        }
+
+        const controller = new AbortController();
+        let cancelled = false;
+        const apiUrl =
+            process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+
+        setStatus('loading');
+        setErrorMessage(null);
+
+        fetch(`${apiUrl}/api/search?q=${encodeURIComponent(keyword)}`, {
+            headers: { 'x-event-id': resolvedEventId },
+            credentials: 'include',
+            signal: controller.signal,
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('検索に失敗しました');
+                }
+                return response.json();
+            })
+            .then((data: SearchResponse) => {
+                if (!cancelled) {
+                    setResults(data);
+                    setStatus('idle');
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setStatus('error');
+                    setErrorMessage('検索に失敗しました');
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [queryParam, resolvedEventId]);
+
+    const canSubmit = Boolean(resolvedEventId && inputValue.trim().length >= 1);
+
+    const pathnameWithFallback = pathname || '/search';
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmed = inputValue.trim();
+        const params = new URLSearchParams(searchParams?.toString() ?? '');
+        if (trimmed) {
+            params.set('q', trimmed);
+        } else {
+            params.delete('q');
+        }
+        const queryString = params.toString();
+        router.replace(
+            `${pathnameWithFallback}${queryString ? `?${queryString}` : ''}`,
+        );
+    };
+
+    const sections = useMemo(
+        () => [
+            {
+                key: 'timetable',
+                label: 'タイムテーブル',
+                items: results?.timetable ?? [],
+                render: (item: TimetableResult) => (
+                    <article
+                        key={item.id}
+                        className='rounded-lg border border-border bg-card p-4'
+                    >
+                        <p className='font-semibold text-base text-foreground leading-tight'>
+                            {item.title}
+                        </p>
+                        <div className='mt-1 text-muted-foreground text-sm'>
+                            <span>{formatDateLabel(item.startTime)}</span>
+                            <span className='mx-2'>・</span>
+                            <span>
+                                {formatRange(item.startTime, item.endTime)}
+                            </span>
+                        </div>
+                        <p className='mt-1 text-muted-foreground text-sm'>
+                            📍 {item.location}
+                        </p>
+                        {item.description && (
+                            <p className='mt-2 text-muted-foreground text-sm'>
+                                {item.description}
+                            </p>
+                        )}
+                    </article>
+                ),
+            },
+            {
+                key: 'rooms',
+                label: '部屋割り',
+                items: results?.rooms ?? [],
+                render: (room: RoomResult) => (
+                    <article
+                        key={room.id}
+                        className='rounded-lg border border-border bg-card p-4'
+                    >
+                        <p className='font-semibold text-base text-foreground'>
+                            {room.buildingName}・{room.floor} {room.roomName}
+                        </p>
+                        <p className='mt-2 text-muted-foreground text-sm'>
+                            当日: {room.dayManagerName} — {room.dayPurpose}
+                        </p>
+                        {room.preDayManagerName && room.preDayPurpose && (
+                            <p className='text-muted-foreground text-sm'>
+                                前日: {room.preDayManagerName} —{' '}
+                                {room.preDayPurpose}
+                            </p>
+                        )}
+                        {room.notes && (
+                            <p className='mt-2 text-muted-foreground text-sm'>
+                                備考: {room.notes}
+                            </p>
+                        )}
+                    </article>
+                ),
+            },
+            {
+                key: 'programs',
+                label: '企画',
+                items: results?.programs ?? [],
+                render: (program: ProgramResult) => (
+                    <article
+                        key={program.id}
+                        className='rounded-lg border border-border bg-card p-4'
+                    >
+                        <p className='font-semibold text-base text-foreground'>
+                            {program.name}
+                        </p>
+                        <p className='mt-1 text-muted-foreground text-sm'>
+                            {formatDateLabel(program.startTime)} ・{' '}
+                            {formatRange(program.startTime, program.endTime)}
+                        </p>
+                        <p className='mt-1 text-muted-foreground text-sm'>
+                            📍 {program.location}
+                        </p>
+                        {program.description && (
+                            <p className='mt-2 text-muted-foreground text-sm'>
+                                {program.description}
+                            </p>
+                        )}
+                    </article>
+                ),
+            },
+            {
+                key: 'shopItems',
+                label: '販売物',
+                items: results?.shopItems ?? [],
+                render: (item: ShopItemResult) => (
+                    <article
+                        key={item.id}
+                        className='rounded-lg border border-border bg-card p-4'
+                    >
+                        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                            <p className='font-semibold text-base text-foreground'>
+                                {item.name}
+                            </p>
+                            <span className='rounded-full bg-muted px-3 py-1 text-muted-foreground text-xs'>
+                                {item.stockStatus === 'sold_out'
+                                    ? '完売'
+                                    : item.stockStatus === 'low'
+                                      ? '残りわずか'
+                                      : '在庫あり'}
+                            </span>
+                        </div>
+                        <p className='mt-2 font-semibold text-foreground tabular-nums'>
+                            ¥{item.price.toLocaleString('ja-JP')}
+                        </p>
+                        {item.description && (
+                            <p className='mt-2 text-muted-foreground text-sm'>
+                                {item.description}
+                            </p>
+                        )}
+                    </article>
+                ),
+            },
+            {
+                key: 'otherItems',
+                label: 'その他情報',
+                items: results?.otherItems ?? [],
+                render: (info: OtherItemResult) => (
+                    <article
+                        key={info.id}
+                        className='rounded-lg border border-border bg-card p-4'
+                    >
+                        <p className='font-semibold text-base text-foreground'>
+                            {info.title}
+                        </p>
+                        <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
+                            {info.content}
+                        </p>
+                    </article>
+                ),
+            },
+        ],
+        [results],
+    );
+
+    const hasResults = sections.some((section) => section.items.length > 0);
+
+    const eventNotice = !resolvedEventId
+        ? isPrivileged
+            ? '会期を選択すると検索できます'
+            : '会期が選択されていません'
+        : null;
+
+    const keywordNotice =
+        queryParam.trim().length === 0
+            ? 'キーワードを入力して検索してください'
+            : null;
+
+    return (
+        <div className='space-y-8'>
+            <div className='space-y-2'>
+                <p className='font-medium text-muted-foreground text-xs uppercase tracking-[0.18em]'>
+                    Search
+                </p>
+                <h1 className='font-semibold text-2xl text-foreground tracking-tight sm:text-3xl'>
+                    情報検索
+                </h1>
+                <p className='text-muted-foreground text-sm'>
+                    タイムテーブル・部屋割り・企画・販売物・その他の情報を横断検索できます。
+                </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className='space-y-4'>
+                <div className='flex flex-col gap-3 md:flex-row md:items-center'>
+                    <input
+                        type='text'
+                        name='q'
+                        placeholder='キーワードを入力'
+                        value={inputValue}
+                        onChange={(event) => setInputValue(event.target.value)}
+                        className='flex-1 rounded-lg border border-border bg-card px-4 py-3 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+                        aria-label='検索キーワード'
+                    />
+                    <button
+                        type='submit'
+                        className='rounded-lg bg-foreground px-6 py-3 font-semibold text-background text-base transition-opacity disabled:opacity-50'
+                        disabled={!canSubmit}
+                    >
+                        検索
+                    </button>
+                </div>
+                {eventNotice && (
+                    <p className='text-muted-foreground text-sm'>
+                        {eventNotice}
+                    </p>
+                )}
+            </form>
+
+            {status === 'loading' && (
+                <p className='text-muted-foreground text-sm'>検索中です…</p>
+            )}
+            {status === 'error' && errorMessage && (
+                <p className='text-destructive text-sm'>{errorMessage}</p>
+            )}
+            {!resolvedEventId && (
+                <p className='text-muted-foreground text-sm'>
+                    会期を選択してから検索を実行してください。
+                </p>
+            )}
+            {queryParam && resolvedEventId && keywordNotice && (
+                <p className='text-muted-foreground text-sm'>{keywordNotice}</p>
+            )}
+
+            {resolvedEventId &&
+                queryParam.trim() &&
+                !hasResults &&
+                status === 'idle' && (
+                    <p className='text-muted-foreground text-sm'>
+                        該当する情報が見つかりません
+                    </p>
+                )}
+
+            <div className='space-y-8'>
+                {sections
+                    .filter((section) => section.items.length > 0)
+                    .map((section) => (
+                        <section key={section.key} className='space-y-3'>
+                            <div className='flex items-center justify-between'>
+                                <h2 className='font-semibold text-foreground text-lg'>
+                                    {section.label}
+                                </h2>
+                                <span className='text-muted-foreground text-sm'>
+                                    {section.items.length}件
+                                </span>
+                            </div>
+                            <div className='space-y-3'>
+                                {section.items.map((item) =>
+                                    section.render(item as never),
+                                )}
+                            </div>
+                        </section>
+                    ))}
+            </div>
+        </div>
+    );
+}

@@ -25,3 +25,33 @@ Object.assign(global, { MessagePort, MessageChannel, BroadcastChannel });
 
 // 4. Fetch API — cross-fetch は ブラウザ / Node.js 両環境で動く自己完結型ポリフィル
 require('cross-fetch/polyfill');
+
+// 5. lru-cache は CJS / ESM 両対応だが、依存ライブラリが `new LRUCache()` を期待する。
+//    Jest の CJS 変換下でも必ずクラスを提供するようエクスポートを補強する。
+const lruCacheMock = require('./tests/mocks/lru-cache.js');
+const lruCachePath = require.resolve('lru-cache');
+require.cache[lruCachePath] = {
+    id: lruCachePath,
+    filename: lruCachePath,
+    loaded: true,
+    exports: lruCacheMock,
+};
+
+const cssColorMock = require('./tests/mocks/css-color.js');
+const cssColorTargets = [
+    '@asamuzakjp/css-color',
+    '@asamuzakjp/css-color/dist/cjs/index.cjs',
+];
+for (const target of cssColorTargets) {
+    try {
+        const resolved = require.resolve(target);
+        require.cache[resolved] = {
+            id: resolved,
+            filename: resolved,
+            loaded: true,
+            exports: cssColorMock,
+        };
+    } catch {
+        // ignore if module path cannot be resolved (should not happen)
+    }
+}

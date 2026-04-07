@@ -18,6 +18,11 @@ const NAV_CARDS = [
     { href: '/events', label: '企画一覧', description: '企画と詳細情報' },
     { href: '/shop', label: '販売物一覧', description: '頒布物・価格情報' },
     { href: '/others', label: '情報', description: 'その他のお知らせ' },
+    {
+        href: '/search',
+        label: '情報検索',
+        description: '全カテゴリからキーワード検索',
+    },
 ] as const;
 
 type AccessCode = {

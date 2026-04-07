@@ -13,6 +13,7 @@ import { createHealthRoutes } from '@backend/src/presentation/routes/healthRoute
 import { createOtherItemRoutes } from '@backend/src/presentation/routes/otherItemRoutes';
 import { createProgramRoutes } from '@backend/src/presentation/routes/programRoutes';
 import { createRoomRoutes } from '@backend/src/presentation/routes/roomRoutes';
+import { createSearchRoutes } from '@backend/src/presentation/routes/searchRoutes';
 import { createShopItemRoutes } from '@backend/src/presentation/routes/shopItemRoutes';
 import { createTimetableRoutes } from '@backend/src/presentation/routes/timetableRoutes';
 import { createUserRoutes } from '@backend/src/presentation/routes/userRoutes';
@@ -85,5 +86,28 @@ export function createTestAppWithOtherItems(
 ) {
     const app = new Hono<{ Bindings: Env }>();
     app.route('/api', createOtherItemRoutes(() => otherItemRepository));
+    return app;
+}
+
+type SearchRepositories = {
+    timetableRepository: ITimetableRepository;
+    roomRepository: IRoomRepository;
+    programRepository: IProgramRepository;
+    shopItemRepository: IShopItemRepository;
+    otherItemRepository: IOtherItemRepository;
+};
+
+export function createTestAppWithSearch(repositories: SearchRepositories) {
+    const app = new Hono<{ Bindings: Env }>();
+    app.route(
+        '/api',
+        createSearchRoutes(() => ({
+            timetableRepository: repositories.timetableRepository,
+            roomRepository: repositories.roomRepository,
+            programRepository: repositories.programRepository,
+            shopItemRepository: repositories.shopItemRepository,
+            otherItemRepository: repositories.otherItemRepository,
+        })),
+    );
     return app;
 }
