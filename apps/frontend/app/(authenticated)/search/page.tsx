@@ -58,6 +58,7 @@ function SearchPageContent() {
     const queryParam = searchParams?.get('q') ?? '';
     const adminEventId = searchParams?.get('event_id') ?? null;
     const resolvedEventId = isPrivileged ? adminEventId : userEventId;
+    const trimmedQuery = queryParam.trim();
 
     const [inputValue, setInputValue] = useState(queryParam);
     const [results, setResults] = useState<SearchResponse | null>(null);
@@ -69,8 +70,7 @@ function SearchPageContent() {
     }, [queryParam]);
 
     useEffect(() => {
-        const keyword = queryParam.trim();
-        if (!keyword || !resolvedEventId) {
+        if (!trimmedQuery || !resolvedEventId) {
             setResults(null);
             setStatus('idle');
             setErrorMessage(null);
@@ -84,7 +84,7 @@ function SearchPageContent() {
 
         client.api.search
             .$get({
-                query: { q: keyword },
+                query: { q: trimmedQuery },
                 header: { 'x-event-id': resolvedEventId },
             })
             .then(async (response) => {
@@ -109,7 +109,7 @@ function SearchPageContent() {
         return () => {
             cancelled = true;
         };
-    }, [queryParam, resolvedEventId]);
+    }, [trimmedQuery, resolvedEventId]);
 
     const canSubmit = Boolean(resolvedEventId && inputValue.trim().length >= 1);
 
@@ -281,7 +281,7 @@ function SearchPageContent() {
         : null;
 
     const keywordNotice =
-        queryParam.trim().length === 0
+        trimmedQuery.length === 0
             ? 'キーワードを入力して検索してください'
             : null;
 
@@ -336,7 +336,7 @@ function SearchPageContent() {
                     会期を選択してから検索を実行してください。
                 </p>
             )}
-            {queryParam && resolvedEventId && keywordNotice && (
+            {resolvedEventId && keywordNotice && (
                 <p className='text-muted-foreground text-sm'>{keywordNotice}</p>
             )}
 
