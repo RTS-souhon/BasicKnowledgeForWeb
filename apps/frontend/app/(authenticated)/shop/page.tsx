@@ -2,6 +2,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import Image from 'next/image';
 import type { CSSProperties } from 'react';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
@@ -90,17 +91,17 @@ function ShopItemImage({
 
     return (
         <div
-            className={`overflow-hidden rounded-lg bg-muted ${className}`}
+            className={`relative overflow-hidden rounded-lg bg-muted ${className}`}
             style={style}
         >
-            {/* biome-ignore lint/performance/noImgElement */}
-            {/* next/image でリモート CDN を許可する設定が未確定のため通常の img を使用 */}
             {hasImage ? (
-                <img
+                <Image
                     src={sanitizedUrl}
                     alt={item.name}
-                    loading='lazy'
-                    className='h-full w-full object-cover'
+                    fill
+                    sizes='(max-width: 768px) 100vw, 160px'
+                    className='object-cover'
+                    unoptimized
                 />
             ) : (
                 <div className='flex h-full w-full items-center justify-center text-[10px] text-muted-foreground uppercase tracking-wide'>
