@@ -59,6 +59,11 @@ function createMockProgramRepository(
         findByEventId: jest
             .fn<(eventId: string) => Promise<Program[]>>()
             .mockResolvedValue([]),
+        search: jest
+            .fn<
+                (keyword: string, eventId: string) => Promise<Program[]>
+            >()
+            .mockResolvedValue([]),
         ...overrides,
     };
 }

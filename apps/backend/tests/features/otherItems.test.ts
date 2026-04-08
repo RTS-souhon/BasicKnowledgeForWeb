@@ -58,6 +58,11 @@ function createMockOtherItemRepository(
         findByEventId: jest
             .fn<(eventId: string) => Promise<OtherItem[]>>()
             .mockResolvedValue([]),
+        search: jest
+            .fn<
+                (keyword: string, eventId: string) => Promise<OtherItem[]>
+            >()
+            .mockResolvedValue([]),
         ...overrides,
     };
 }

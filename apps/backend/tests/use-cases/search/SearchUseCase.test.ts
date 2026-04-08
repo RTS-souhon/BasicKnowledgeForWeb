@@ -133,7 +133,6 @@ describe('SearchUseCase', () => {
                 price: 1000,
                 stockStatus: 'available',
                 description: null,
-                imageKey: 'shop-items/event-1/item-1.webp',
                 imageUrl: 'https://assets.example.com/event-1/item-1.webp',
                 createdAt: new Date(),
                 updatedAt: new Date(),

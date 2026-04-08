@@ -71,6 +71,14 @@ function createMockRoomRepository(
         findByEventId: jest
             .fn<(eventId: string) => Promise<RoomWithDepartments[]>>()
             .mockResolvedValue([]),
+        search: jest
+            .fn<
+                (
+                    keyword: string,
+                    eventId: string,
+                ) => Promise<RoomWithDepartments[]>
+            >()
+            .mockResolvedValue([]),
         ...overrides,
     };
 }

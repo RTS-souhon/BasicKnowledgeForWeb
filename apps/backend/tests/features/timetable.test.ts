@@ -60,6 +60,11 @@ function createMockTimetableRepository(
         findByEventId: jest
             .fn<(eventId: string) => Promise<TimetableItem[]>>()
             .mockResolvedValue([]),
+        search: jest
+            .fn<
+                (keyword: string, eventId: string) => Promise<TimetableItem[]>
+            >()
+            .mockResolvedValue([]),
         ...overrides,
     };
 }
