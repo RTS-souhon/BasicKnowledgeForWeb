@@ -18,6 +18,12 @@
 			"localConnectionString": "postgresql://root:root@localhost:26257/basic-knowledge-for-web?sslmode=disable"
 		}
 	],
+	"r2_buckets": [
+		{
+			"binding": "SHOP_ITEM_ASSET_BUCKET",
+			"bucket_name": "basic-knowledge-for-web-shop-assets-dev"
+		}
+	],
 	"env": {
 		"dev": {
 			"name": "basic-knowledge-for-web-backend-dev",
@@ -31,6 +37,12 @@
 				{
 					"binding": "HYPERDRIVE",
 					"id": "f7f0ede9c7464673ab6f5bdcf0753218"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "SHOP_ITEM_ASSET_BUCKET",
+					"bucket_name": "basic-knowledge-for-web-shop-assets-dev"
 				}
 			],
             "secrets": {
@@ -60,6 +72,12 @@
 				{
 					"binding": "HYPERDRIVE",
 					"id": "5a36ae3ca5ed4a4697040c00685f213e"
+				}
+			],
+			"r2_buckets": [
+				{
+					"binding": "SHOP_ITEM_ASSET_BUCKET",
+					"bucket_name": "basic-knowledge-for-web-shop-assets"
 				}
 			],
             "secrets": {

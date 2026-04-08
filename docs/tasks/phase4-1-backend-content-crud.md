@@ -21,6 +21,14 @@
 4. contentAccessMiddleware とは別に編集専用 middleware で auth_token + role を検証し、`event_id` の整合性（アクセスコード or クエリ）を必ずチェックする
 5. すべてのミューテーション API は `{ success: true, data }` / `{ success: false, error }` の結果型を返す
 6. CockroachDB での更新/削除は `RETURNING *` を使って結果を返却し、ソフトデリートは未対応で OK（別タスクで導入予定）
+7. 販売物 (`shop_items`) ドメインでは商品画像を Cloudflare R2 に保存することを前提にし、`image_key`（R2 オブジェクトパス）と `image_url`（CDN 経由の参照 URL）を validator / repository / use-case / controller すべてで必須フィールドとして扱う
+
+### 画像/R2 連携の詳細
+
+- 環境変数で R2 バケット（例: `SHOP_ITEM_ASSET_BUCKET`）を受け取り、サーバーサイドで署名付き PUT URL を発行する `POST /api/shop-items/upload-url`（admin/developer 限定）を追加する
+- `CreateShopItemUseCase` / `UpdateShopItemUseCase` では、リクエストに含まれる `image_key` が自分のバケットプレフィックス（`shop-items/<event_id>/...` など）に一致するかをチェックし、許可されていないキーは拒否する
+- `GetShopItemsUseCase` / controller では `image_url` を API レスポンスに含め、フロントエンドが常に画像を表示できるようにする
+- バケット内の実体削除はこのフェーズでは任意（再アップロード時に同じキーを上書きする運用で可）だが、後続タスクでクリーンアップを検討する
 
 ## このフェーズでやらないこと
 
