@@ -10,7 +10,17 @@ export class ShopItemRepository implements IShopItemRepository {
 
     async findByEventId(eventId: string): Promise<ShopItem[]> {
         return this.db
-            .select()
+            .select({
+                id: shopItems.id,
+                eventId: shopItems.eventId,
+                name: shopItems.name,
+                price: shopItems.price,
+                stockStatus: shopItems.stockStatus,
+                description: shopItems.description,
+                imageUrl: shopItems.imageUrl,
+                createdAt: shopItems.createdAt,
+                updatedAt: shopItems.updatedAt,
+            })
             .from(shopItems)
             .where(eq(shopItems.eventId, eventId))
             .orderBy(asc(shopItems.name));
