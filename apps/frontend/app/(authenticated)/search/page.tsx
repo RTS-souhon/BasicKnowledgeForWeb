@@ -79,6 +79,7 @@ function SearchPageContent() {
 
         let cancelled = false;
 
+        setResults(null);
         setStatus('loading');
         setErrorMessage(null);
 
@@ -101,6 +102,7 @@ function SearchPageContent() {
             })
             .catch(() => {
                 if (!cancelled) {
+                    setResults(null);
                     setStatus('error');
                     setErrorMessage('検索に失敗しました');
                 }
