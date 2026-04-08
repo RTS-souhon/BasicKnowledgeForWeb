@@ -20,7 +20,6 @@ const shopItem1: ShopItem = {
     price: 500,
     stockStatus: 'available',
     description: null,
-    imageKey: 'shop-items/event-1/item-1.webp',
     imageUrl: 'https://assets.example.com/event-1/item-1.webp',
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
@@ -32,7 +31,6 @@ const shopItem2: ShopItem = {
     name: 'グッズ B',
     price: 1000,
     stockStatus: 'low',
-    imageKey: 'shop-items/event-1/item-2.webp',
     imageUrl: 'https://assets.example.com/event-1/item-2.webp',
 };
 
