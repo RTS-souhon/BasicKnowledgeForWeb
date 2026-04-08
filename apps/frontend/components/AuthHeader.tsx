@@ -29,6 +29,7 @@ const NAV_ITEMS = [
     { href: '/events', label: '企画一覧' },
     { href: '/shop', label: '販売物' },
     { href: '/others', label: '情報' },
+    { href: '/search', label: '情報検索' },
 ] as const;
 
 export function AuthHeader({

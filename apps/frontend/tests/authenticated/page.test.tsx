@@ -83,8 +83,8 @@ describe('HomePage', () => {
             screen.getByRole('link', { name: /その他のお知らせ/ }),
         ).toBeInTheDocument();
         expect(
-            screen.queryByRole('link', { name: /情報検索/ }),
-        ).not.toBeInTheDocument();
+            screen.getByRole('link', { name: /情報検索/ }),
+        ).toBeInTheDocument();
     });
 
     it('user ロールでは access_token 由来の会期名を表示すること', async () => {

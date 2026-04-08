@@ -14,4 +14,5 @@ export type RoomWithDepartments = Omit<
 
 export interface IRoomRepository {
     findByEventId(eventId: string): Promise<RoomWithDepartments[]>;
+    search(keyword: string, eventId: string): Promise<RoomWithDepartments[]>;
 }

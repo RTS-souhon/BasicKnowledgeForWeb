@@ -4,7 +4,7 @@ import nextJest from 'next/jest.js';
 const createJestConfig = nextJest({ dir: './' });
 
 const customJestConfig: Config = {
-    testEnvironment: 'jsdom',
+    testEnvironment: '<rootDir>/tests/config/CustomJestEnvironment.ts',
     globals: {
         'ts-jest': {
             tsconfig: '<rootDir>/tsconfig.test.json',
@@ -21,6 +21,9 @@ const customJestConfig: Config = {
     moduleNameMapper: {
         '^@frontend/(.*)$': '<rootDir>/$1',
         '^@backend/(.*)$': '<rootDir>/../backend/$1',
+        '^lru-cache$': '<rootDir>/tests/mocks/lru-cache.js',
+        '^@asamuzakjp/css-color$': '<rootDir>/tests/mocks/css-color.js',
+        '^@asamuzakjp/css-color/(.*)$': '<rootDir>/tests/mocks/css-color.js',
     },
     testMatch: ['<rootDir>/tests/**/*.test.{ts,tsx}'],
 };
