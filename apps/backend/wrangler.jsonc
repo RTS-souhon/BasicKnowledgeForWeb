@@ -21,7 +21,7 @@
 	"r2_buckets": [
 		{
 			"binding": "SHOP_ITEM_ASSET_BUCKET",
-			"bucket_name": "basic-knowledge-for-web-shop-assets-dev"
+			"bucket_name": "dev-basicknowledgeforweb"
 		}
 	],
 	"env": {
@@ -42,7 +42,7 @@
 			"r2_buckets": [
 				{
 					"binding": "SHOP_ITEM_ASSET_BUCKET",
-					"bucket_name": "basic-knowledge-for-web-shop-assets-dev"
+					"bucket_name": "dev-basicknowledgeforweb"
 				}
 			],
             "secrets": {
@@ -77,7 +77,7 @@
 			"r2_buckets": [
 				{
 					"binding": "SHOP_ITEM_ASSET_BUCKET",
-					"bucket_name": "basic-knowledge-for-web-shop-assets"
+					"bucket_name": "basicknowledgeforweb"
 				}
 			],
             "secrets": {
