@@ -93,6 +93,8 @@ function ShopItemImage({
             className={`overflow-hidden rounded-lg bg-muted ${className}`}
             style={style}
         >
+            {/* biome-ignore lint/performance/noImgElement */}
+            {/* next/image でリモート CDN を許可する設定が未確定のため通常の img を使用 */}
             {hasImage ? (
                 <img
                     src={sanitizedUrl}
@@ -101,7 +103,7 @@ function ShopItemImage({
                     className='h-full w-full object-cover'
                 />
             ) : (
-                <div className='flex h-full w-full items-center justify-center text-[10px] uppercase tracking-wide text-muted-foreground'>
+                <div className='flex h-full w-full items-center justify-center text-[10px] text-muted-foreground uppercase tracking-wide'>
                     No Image
                 </div>
             )}
@@ -165,9 +167,10 @@ export default async function ShopPage({
                     {hasImageDataIssue && (
                         <div
                             role='alert'
-                            className='rounded-lg border border-amber-400/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50'
+                            className='rounded-lg border border-amber-400/60 bg-amber-50 px-4 py-3 text-amber-900 text-sm shadow-sm dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50'
                         >
-                            データ不備: 商品画像が登録されていないアイテムがあります。
+                            データ不備:
+                            商品画像が登録されていないアイテムがあります。
                         </div>
                     )}
                     <div className='hidden overflow-x-auto rounded-xl border border-border md:block'>
