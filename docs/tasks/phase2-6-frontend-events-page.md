@@ -20,7 +20,7 @@ Phase 2 では閲覧専用とし、編集 UI は入れない。
 ## Phase 2 でやらないこと
 
 - 追加 / 編集 / 削除 UI
-- admin / developer 向け編集ボタン
+- admin 向け編集ボタン
 
 ## テスト
 

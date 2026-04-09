@@ -103,12 +103,6 @@ describe('AuthHeader', () => {
             ).toBeGreaterThanOrEqual(1);
         });
 
-        it('developer ロールでは会期セレクターが表示されること', () => {
-            renderHeader({ ...defaultProps, role: 'developer', accessCodes: ACCESS_CODES });
-            expect(
-                screen.getAllByRole('combobox', { name: '会期を選択' }).length,
-            ).toBeGreaterThanOrEqual(1);
-        });
     });
 
     describe('ロゴ表示', () => {

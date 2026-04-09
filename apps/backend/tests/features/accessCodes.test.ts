@@ -39,7 +39,6 @@ const expiredAccessCode: AccessCode = {
 };
 
 let adminToken: string;
-let developerToken: string;
 let userToken: string;
 let userAccessToken: string; // access_token（event_id = validAccessCode.id）
 
@@ -48,11 +47,6 @@ beforeAll(async () => {
 
     adminToken = await sign(
         { id: 'admin-id', name: 'Admin', email: 'admin@test.com', role: 'admin', exp },
-        JWT_SECRET,
-        'HS256',
-    );
-    developerToken = await sign(
-        { id: 'dev-id', name: 'Developer', email: 'dev@test.com', role: 'developer', exp },
         JWT_SECRET,
         'HS256',
     );
@@ -202,18 +196,6 @@ describe('GET /api/access-codes', () => {
         expect(body.codes).toHaveLength(2);
         expect(body.codes[0]?.id).toBe(newerAccessCode.id);
         expect(body.codes[1]?.id).toBe(validAccessCode.id);
-    });
-
-    it('developer トークンがあれば 200 が返ること', async () => {
-        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
-
-        const res = await app.request(
-            '/api/access-codes',
-            { headers: { Cookie: `auth_token=${developerToken}` } },
-            mockEnv,
-        );
-
-        expect(res.status).toBe(200);
     });
 
     it('Cookie なしで 401 が返ること', async () => {
@@ -370,21 +352,6 @@ describe('DELETE /api/access-codes/:id', () => {
         expect(body.error).toBe('コードが見つかりません');
     });
 
-    it('developer トークンでも 200 が返ること', async () => {
-        const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
-
-        const res = await app.request(
-            `/api/access-codes/${targetId}`,
-            {
-                method: 'DELETE',
-                headers: { Cookie: `auth_token=${developerToken}` },
-            },
-            mockEnv,
-        );
-
-        expect(res.status).toBe(200);
-    });
-
     it('Cookie なしで 401 が返ること', async () => {
         const app = createTestAppWithAccessCodes(createMockAccessCodeRepository());
 
@@ -454,23 +421,6 @@ describe('GET /api/access-codes/:id', () => {
         const res = await app.request(
             `/api/access-codes/${targetId}`,
             { headers: { Cookie: `auth_token=${adminToken}` } },
-            mockEnv,
-        );
-
-        expect(res.status).toBe(200);
-    });
-
-    it('developer の auth_token で 200 が返ること', async () => {
-        const repo = createMockAccessCodeRepository({
-            findById: jest
-                .fn<(id: string) => Promise<AccessCode | null>>()
-                .mockImplementation(() => Promise.resolve(validAccessCode)),
-        });
-        const app = createTestAppWithAccessCodes(repo);
-
-        const res = await app.request(
-            `/api/access-codes/${targetId}`,
-            { headers: { Cookie: `auth_token=${developerToken}` } },
             mockEnv,
         );
 

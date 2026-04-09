@@ -58,7 +58,7 @@ export default function LoginPage() {
                 <CardHeader>
                     <CardTitle>ログイン</CardTitle>
                     <CardDescription>
-                        管理者・スタッフの方はこちらからログインしてください
+                        管理者の方はこちらからログインしてください
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

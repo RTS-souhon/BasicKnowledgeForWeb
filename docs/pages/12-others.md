@@ -13,7 +13,7 @@ Admin/Developer はアイテムの追加・編集・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -117,7 +117,7 @@ type OtherItem = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ items: OtherItem[] }`（`display_order` 昇順）
 
-### POST `/api/others` （admin/developer）
+### POST `/api/others` （admin）
 
 ```json
 {
@@ -134,11 +134,11 @@ type OtherItem = {
 400 { "error": "バリデーションエラー" }
 ```
 
-### PUT `/api/others/:id` （admin/developer）
+### PUT `/api/others/:id` （admin）
 
 部分更新可。変更フィールドのみ送信。
 
-### DELETE `/api/others/:id` （admin/developer）
+### DELETE `/api/others/:id` （admin）
 
 ```
 200 { "message": "削除しました" }
@@ -151,7 +151,7 @@ type OtherItem = {
 
 - `page.tsx`: Server Component → `GET /api/others` でデータ取得
 - 編集 UI: Client Component
-  - `useAuth()` でロールを確認し admin/developer の場合のみ表示
+  - `useAuth()` でロールを確認し admin の場合のみ表示
 - フォーム: `react-hook-form` + `otherItemSchema`
   - `display_order` は数値入力（デフォルト: 既存アイテム数 + 1）
   - `content` は複数行テキストエリア

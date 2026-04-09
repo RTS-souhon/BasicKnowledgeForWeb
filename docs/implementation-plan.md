@@ -12,9 +12,8 @@
 |---|---|
 | `user` | アクセスコードを入力してコンテンツを閲覧する一般スタッフ |
 | `admin` | アクセスコード管理・全コンテンツの登録・編集が可能 |
-| `developer` | admin と同等の権限 |
 
-> 初期の admin アカウントは DB に直接作成する。以降は admin・developer が `/dashboard` のユーザー管理からロールを変更できる。
+> 初期の admin アカウントは DB に直接作成する。以降は admin が `/dashboard` のユーザー管理からロールを変更できる。
 
 ---
 
@@ -45,7 +44,7 @@
 
 コンテンツ保護        /, /timetable, /rooms, /events, /shop, /search
                       → access_token が有効                     → 許可
-                      → auth_token が有効 + admin/developer ロール → 許可
+                      → auth_token が有効 + admin ロール → 許可
                       → それ以外                                → /access へリダイレクト
 
 ユーザー保護          /dashboard
@@ -53,7 +52,7 @@
                       → それ以外                                → /login へリダイレクト
 
 管理者保護            /admin/*
-                      → auth_token が有効 + admin/developer       → 許可
+                      → auth_token が有効 + admin       → 許可
                       → それ以外                                → /login へリダイレクト
 ```
 
@@ -65,7 +64,7 @@
 -- 既存
 users
   id uuid PK, name, email, password
-  role: 'user' | 'admin' | 'developer'
+  role: 'user' | 'admin'
   created_at, updated_at, deleted_at
 
 -- 新規
@@ -144,19 +143,19 @@ other_items（その他の情報）
   /register                 ユーザー登録画面（実装済み）
   /access                   アクセスコード入力画面
 
-コンテンツ（access_token or admin/developer）
+コンテンツ（access_token or admin）
   /                         TOPページ・ナビゲーション
-  /timetable                タイムテーブル（admin/developer は編集可）
-  /rooms                    部屋割り（admin/developer は編集可）
-  /events                   企画一覧（admin/developer は編集可）
-  /shop                     販売物一覧（admin/developer は編集可）
-  /others                   その他の情報（admin/developer は編集可）
+  /timetable                タイムテーブル（admin は編集可）
+  /rooms                    部屋割り（admin は編集可）
+  /events                   企画一覧（admin は編集可）
+  /shop                     販売物一覧（admin は編集可）
+  /others                   その他の情報（admin は編集可）
   /search                   情報検索（横断検索）
 
 ユーザー（auth_token）
   /dashboard                プロフィール・パスワード変更・ロール確認
 
-管理者（auth_token + admin/developer）
+管理者（auth_token + admin）
   /admin/access-code        アクセスコード管理
 ```
 
@@ -176,25 +175,25 @@ GET  /api/auth/me              → { id, name, email, role }
 
 ```
 POST   /api/access-codes/verify   誰でも  → access_token Cookie 発行
-GET    /api/access-codes          admin/developer
-POST   /api/access-codes          admin/developer
-DELETE /api/access-codes/:id      admin/developer
+GET    /api/access-codes          admin
+POST   /api/access-codes          admin
+DELETE /api/access-codes/:id      admin
 ```
 
 ### ユーザー管理
 
 ```
-GET /api/users                admin/developer  → ユーザー一覧
-PUT /api/users/:id/role       admin/developer  → ロール変更
+GET /api/users                admin  → ユーザー一覧
+PUT /api/users/:id/role       admin  → ロール変更
 ```
 
 ### コンテンツ（各ドメイン共通パターン）
 
 ```
-GET    /api/timetable?event_id=xxx   access_token or admin/developer
-POST   /api/timetable                admin/developer
-PUT    /api/timetable/:id            admin/developer
-DELETE /api/timetable/:id            admin/developer
+GET    /api/timetable?event_id=xxx   access_token or admin
+POST   /api/timetable                admin
+PUT    /api/timetable/:id            admin
+DELETE /api/timetable/:id            admin
 
 -- rooms, programs, shop-items, others も同パターン
 GET/POST/PUT/DELETE /api/rooms
@@ -206,7 +205,7 @@ GET/POST/PUT/DELETE /api/others
 ### 検索
 
 ```
-GET /api/search?q=keyword&event_id=xxx   access_token or admin/developer
+GET /api/search?q=keyword&event_id=xxx   access_token or admin
   → timetable_items / rooms / programs / shop_items / other_items を横断
 ```
 
@@ -250,7 +249,7 @@ src/
 └── presentation/
     ├── middleware/
     │   ├── authMiddleware.ts         JWT Cookie 検証
-    │   └── roleGuard.ts             admin/developer チェック
+    │   └── roleGuard.ts             admin チェック
     ├── controllers/
     │   ├── authController.ts
     │   ├── userController.ts
@@ -294,7 +293,7 @@ app/
 │   └── search/page.tsx
 ├── dashboard/page.tsx                ユーザー認証済み（プロフィール・PW変更・ロール管理）
 └── admin/
-    ├── layout.tsx                    admin/developer ロールチェック
+    ├── layout.tsx                    admin ロールチェック
     └── access-code/page.tsx
 middleware.ts                         ルート保護
 hooks/
@@ -310,7 +309,7 @@ hooks/
 - User は access_token の Cookie payload（`event_id`）を使用して会期が決まる
 - Admin/Developer は access_token を持たないため、各コンテンツページで会期をドロップダウンで選択する
 - 選択した `event_id` は URL クエリパラメータ（`?event_id=xxx`）で管理する
-- `(authenticated)/layout.tsx` の共通ヘッダーに会期セレクターを配置し、auth_token + admin/developer の場合のみ表示
+- `(authenticated)/layout.tsx` の共通ヘッダーに会期セレクターを配置し、auth_token + admin の場合のみ表示
 
 ---
 
@@ -347,7 +346,7 @@ hooks/
 |---|---|---|
 | 4-1 | Backend | 各コンテンツ POST/PUT/DELETE API |
 | 4-2 | Backend | ユーザー管理 API（GET /api/users・PUT /api/users/:id/role） |
-| 4-3 | Frontend | 各コンテンツページに編集 UI 追加（admin/developer のみ表示） |
+| 4-3 | Frontend | 各コンテンツページに編集 UI 追加（admin のみ表示） |
 | 4-4 | Frontend | `/dashboard` ページ（プロフィール・PW変更・ロール管理） |
 | 4-5 | Frontend | `/admin/access-code` ページ |
 

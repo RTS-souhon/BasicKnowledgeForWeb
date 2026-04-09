@@ -13,7 +13,7 @@
 1. TOP ページを `(authenticated)` 配下へ移す
 2. 会期名を表示する
    - user: `access_token` の `event_id` から決定
-   - admin / developer: frontend で保持している選択中会期 ID から決定
+   - admin: frontend で保持している選択中会期 ID から決定
 3. ナビゲーションカードを表示する
    - `/timetable`
    - `/rooms`
@@ -27,7 +27,7 @@
 
 - ナビゲーションカードが表示される
 - 会期名が正しく表示される
-- user / admin / developer で共通導線が崩れない
+- user / admin で共通導線が崩れない
 
 ## 完了条件
 

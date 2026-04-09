@@ -11,7 +11,7 @@
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 表示 |
-| auth_token 有効（admin/developer） | 表示 |
+| auth_token 有効（admin） | 表示 |
 | それ以外 | `/access` へリダイレクト |
 
 ---

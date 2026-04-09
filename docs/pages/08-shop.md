@@ -13,7 +13,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -119,7 +119,7 @@ type ShopItem = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ items: ShopItem[] }`（`name` 昇順）
 
-### POST `/api/shop-items` （admin/developer）
+### POST `/api/shop-items` （admin）
 
 ```json
 {
@@ -131,9 +131,9 @@ type ShopItem = {
 }
 ```
 
-### PUT `/api/shop-items/:id` （admin/developer）
+### PUT `/api/shop-items/:id` （admin）
 
-### DELETE `/api/shop-items/:id` （admin/developer）
+### DELETE `/api/shop-items/:id` （admin）
 
 ---
 

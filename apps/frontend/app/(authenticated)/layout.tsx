@@ -65,7 +65,7 @@ export default async function AuthenticatedLayout({
     const userName = authPayload?.name ?? null;
     const userEventId = accessPayload?.event_id ?? null;
 
-    const isPrivileged = role === 'admin' || role === 'developer';
+    const isPrivileged = role === 'admin';
     const accessCodes: AccessCode[] =
         isPrivileged && authToken ? await fetchAccessCodes(authToken) : [];
     const userEventName: string | null =

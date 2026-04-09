@@ -23,7 +23,7 @@ import { roleGuard } from '../middleware/roleGuard';
 
 type AccessCodeRepositoryFactory = (env: Env) => IAccessCodeRepository;
 
-const ADMIN_ROLES = ['admin', 'developer'];
+const ADMIN_ROLES = ['admin'];
 
 export function createAccessCodeRoutes(
     repositoryFactory: AccessCodeRepositoryFactory = (env) =>
@@ -43,7 +43,7 @@ export function createAccessCodeRoutes(
                 const useCase = new VerifyAccessCodeUseCase(repository);
                 return verifyAccessCode(c, useCase);
             })
-            // GET /api/access-codes — admin/developer のみ
+            // GET /api/access-codes — admin のみ
             .get(
                 '/access-codes',
                 authMiddleware,
@@ -54,7 +54,7 @@ export function createAccessCodeRoutes(
                     return getAccessCodes(c, useCase);
                 },
             )
-            // POST /api/access-codes — admin/developer のみ
+            // POST /api/access-codes — admin のみ
             .post(
                 '/access-codes',
                 authMiddleware,
@@ -65,7 +65,7 @@ export function createAccessCodeRoutes(
                     return createAccessCode(c, useCase);
                 },
             )
-            // DELETE /api/access-codes/:id — admin/developer のみ
+            // DELETE /api/access-codes/:id — admin のみ
             .delete(
                 '/access-codes/:id',
                 authMiddleware,

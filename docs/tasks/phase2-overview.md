@@ -12,7 +12,7 @@ Phase 2 は「閲覧用コンテンツ基盤」の実装フェーズです。
 ## このフェーズで実装しないもの
 
 - 各コンテンツの POST / PUT / DELETE API
-- admin / developer 向けの編集 UI
+- admin 向けの編集 UI
 - `/dashboard` と `/admin/access-code`
 - `/search`
 
@@ -36,6 +36,6 @@ Phase 2 は「閲覧用コンテンツ基盤」の実装フェーズです。
 - `event_id` は backend への GET リクエスト時に header で渡す
   - header 名は `x-event-id`
   - user: `access_token` の `event_id` を使って header を付与する
-  - admin / developer: frontend 側で選択中の会期 ID を使って header を付与する
+  - admin: frontend 側で選択中の会期 ID を使って header を付与する
 - frontend は backend の GET API とテストが揃ってから着手する
 - 各タスク完了時に対象 app で `type-check`, `test`, `lint` を実行する

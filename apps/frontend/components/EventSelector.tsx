@@ -16,7 +16,7 @@ export function EventSelector({ accessCodes, variant = 'header' }: Props) {
     const currentEventId = searchParams?.get('event_id') ?? '';
 
     // TODO: ここを実装してください（5〜10行）
-    // admin/developer が会期を切り替えたとき、URL の ?event_id=xxx を更新します。
+    // 管理者が会期を切り替えたとき、URL の ?event_id=xxx を更新します。
     //
     // 考慮すべきトレードオフ:
     //   - router.push()    → 履歴スタックに積む（「戻る」で前の会期に戻れる）
