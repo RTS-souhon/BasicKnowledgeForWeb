@@ -49,6 +49,17 @@ describe('UpdateUserRoleUseCase', () => {
         expect(result.error).toBe('ユーザーが見つかりません');
     });
 
+    it('updateRole が null を返した場合（並行削除など）、404 エラーを返す', async () => {
+        const repo = createMockRepo({ updateRole: async () => null });
+        const useCase = new UpdateUserRoleUseCase(repo);
+
+        const result = await useCase.execute({ id: mockUser.id, role: 'admin' });
+
+        expect(result.success).toBe(false);
+        if (result.success) return;
+        expect(result.status).toBe(404);
+    });
+
     it('updateRole がエラーをスローした場合、500 エラーを返す', async () => {
         const repo = createMockRepo({
             updateRole: async () => {

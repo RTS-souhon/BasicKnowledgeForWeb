@@ -19,7 +19,17 @@ export class UpdateUserRoleUseCase implements IUpdateUserRoleUseCase {
         }
 
         try {
-            await this.userRepository.updateRole(input.id, input.role);
+            const updated = await this.userRepository.updateRole(
+                input.id,
+                input.role,
+            );
+            if (!updated) {
+                return {
+                    success: false,
+                    error: 'ユーザーが見つかりません',
+                    status: 404,
+                };
+            }
             return { success: true };
         } catch {
             return {
