@@ -19,33 +19,30 @@ export function createUserRoutes(
     repositoryFactory: UserRepositoryFactory = (env) =>
         new UserRepository(createDatabaseClient(env)),
 ) {
-    const app = new Hono<{ Bindings: Env }>();
-
-    // GET /api/users - ユーザー一覧取得（admin のみ）
-    app.get('/users', authMiddleware, roleGuard(['admin']), async (c) => {
-        const repository = repositoryFactory(c.env);
-        const useCase = new GetUsersUseCase(repository);
-        return getUsers(c, useCase);
-    });
-
-    // POST /api/users - ユーザー作成
-    app.post('/users', async (c) => {
-        const repository = repositoryFactory(c.env);
-        const useCase = new CreateUserUseCase(repository);
-        return createUser(c, useCase);
-    });
-
-    // PUT /api/users/:id/role - ロール変更（admin のみ）
-    app.put(
-        '/users/:id/role',
-        authMiddleware,
-        roleGuard(['admin']),
-        async (c) => {
-            const repository = repositoryFactory(c.env);
-            const useCase = new UpdateUserRoleUseCase(repository);
-            return updateUserRole(c, useCase);
-        },
+    return (
+        new Hono<{ Bindings: Env }>()
+            // GET /api/users - ユーザー一覧取得（admin のみ）
+            .get('/users', authMiddleware, roleGuard(['admin']), async (c) => {
+                const repository = repositoryFactory(c.env);
+                const useCase = new GetUsersUseCase(repository);
+                return getUsers(c, useCase);
+            })
+            // POST /api/users - ユーザー作成
+            .post('/users', async (c) => {
+                const repository = repositoryFactory(c.env);
+                const useCase = new CreateUserUseCase(repository);
+                return createUser(c, useCase);
+            })
+            // PUT /api/users/:id/role - ロール変更（admin のみ）
+            .put(
+                '/users/:id/role',
+                authMiddleware,
+                roleGuard(['admin']),
+                async (c) => {
+                    const repository = repositoryFactory(c.env);
+                    const useCase = new UpdateUserRoleUseCase(repository);
+                    return updateUserRole(c, useCase);
+                },
+            )
     );
-
-    return app;
 }
