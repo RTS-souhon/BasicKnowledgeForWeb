@@ -135,9 +135,19 @@ type RoomWithDepartments = {
 }
 ```
 
+- 認可: `auth_token` + admin。`x-event-id` ヘッダー必須で body.`event_id` と一致させる。
+- `pre_day_manager_id`/`day_manager_id` は部署 UUID。`pre_day_*` は null 可。
+- レスポンス: `201 { room: RoomWithDepartments }`。配下部署が他イベントの場合は 400。
+
 ### PUT `/api/rooms/:id` （admin）
 
+- 認可は POST と同じ。body は部分更新で、1 項目以上の指定が必要。
+- レスポンス: `200 { room: RoomWithDepartments }`、対象なしは 404。
+
 ### DELETE `/api/rooms/:id` （admin）
+
+- 認可は POST と同じ。`id` の UUID 検証に失敗すると 400。
+- レスポンス: `200 { id: string }`。
 
 ---
 

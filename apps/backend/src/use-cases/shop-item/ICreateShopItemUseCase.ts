@@ -7,7 +7,6 @@ export type CreateShopItemInput = {
     stockStatus: 'available' | 'low' | 'sold_out';
     description?: string | null;
     imageKey: string;
-    imageUrl: string;
 };
 
 export type CreateShopItemResult =

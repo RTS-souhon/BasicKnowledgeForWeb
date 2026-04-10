@@ -25,6 +25,7 @@ export interface Env {
     HYPERDRIVE: Hyperdrive;
     JWT_SECRET: string;
     SHOP_ITEM_ASSET_BUCKET: R2Bucket;
+    SHOP_ITEM_ASSET_BASE_URL: string;
 }
 
 export function createDatabaseClient(env: Env) {

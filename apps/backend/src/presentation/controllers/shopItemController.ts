@@ -65,7 +65,6 @@ export async function createShopItem(
         stockStatus: parsed.data.stock_status,
         description: parsed.data.description ?? null,
         imageKey: parsed.data.image_key,
-        imageUrl: parsed.data.image_url,
     });
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
@@ -103,7 +102,6 @@ export async function updateShopItem(
             stockStatus: parsed.data.stock_status,
             description: parsed.data.description,
             imageKey: parsed.data.image_key,
-            imageUrl: parsed.data.image_url,
         },
     });
     if (!result.success) {

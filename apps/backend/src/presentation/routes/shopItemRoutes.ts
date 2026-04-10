@@ -40,7 +40,10 @@ export function createShopItemRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new CreateShopItemUseCase(repository);
+            const useCase = new CreateShopItemUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return createShopItem(c, useCase);
         },
     );
@@ -51,7 +54,10 @@ export function createShopItemRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new UpdateShopItemUseCase(repository);
+            const useCase = new UpdateShopItemUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return updateShopItem(c, useCase);
         },
     );

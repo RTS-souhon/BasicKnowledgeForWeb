@@ -9,7 +9,6 @@ const baseShopItemSchema = z.object({
     stock_status: stockStatusSchema,
     description: z.string().max(2000).nullable().optional(),
     image_key: z.string().min(1).max(512),
-    image_url: z.string().url(),
 });
 
 export const createShopItemSchema = baseShopItemSchema;

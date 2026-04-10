@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, jest } from '@jest/globals';
-import type { Env } from '@backend/src/db/connection';
+import type { Env, R2Bucket } from '@backend/src/db/connection';
 import type {
     IShopItemRepository,
     ShopItem,
@@ -8,7 +8,13 @@ import { sign } from 'hono/jwt';
 import { createTestAppWithShopItems } from '../helpers/createTestApp';
 
 const JWT_SECRET = 'test-secret';
-const mockEnv = { JWT_SECRET } as unknown as Env;
+const SHOP_ITEM_ASSET_BASE_URL = 'https://assets.example.com';
+const mockEnv = {
+    JWT_SECRET,
+    SHOP_ITEM_ASSET_BASE_URL,
+    SHOP_ITEM_ASSET_BUCKET: {} as R2Bucket,
+    HYPERDRIVE: { connectionString: '' },
+} as unknown as Env;
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
@@ -261,7 +267,6 @@ const validShopItemBody = {
     price: 500,
     stock_status: 'available',
     image_key: `shop-items/${EVENT_ID}/uuid.webp`,
-    image_url: 'https://assets.example.com/event-1/uuid.webp',
 };
 
 const SHOP_ITEM_ID = shopItem1.id;
@@ -294,6 +299,12 @@ describe('POST /api/shop-items', () => {
         expect(res.status).toBe(201);
         const body = (await res.json()) as { item: ShopItem };
         expect(body.item.id).toBe(shopItem1.id);
+        expect(repo.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                imageKey: validShopItemBody.image_key,
+                imageUrl: `${SHOP_ITEM_ASSET_BASE_URL}/${validShopItemBody.image_key}`,
+            }),
+        );
     });
 
     it('必須フィールドが欠けている場合は 400 が返ること', async () => {
@@ -404,6 +415,41 @@ describe('PUT /api/shop-items/:id', () => {
         expect(res.status).toBe(200);
         const body = (await res.json()) as { item: ShopItem };
         expect(body.item.name).toBe('変更後グッズ');
+    });
+
+    it('image_key を更新すると imageUrl も再計算されること', async () => {
+        const update = jest
+            .fn<IShopItemRepository['update']>()
+            .mockImplementation(() =>
+                Promise.resolve({ ...shopItem1, imageUrl: 'placeholder' }),
+            );
+        const repo = createMockShopItemRepository({ update });
+        const app = createTestAppWithShopItems(repo);
+        const newKey = `shop-items/${EVENT_ID}/new.webp`;
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ image_key: newKey }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+        expect(update).toHaveBeenCalledWith(
+            SHOP_ITEM_ID,
+            EVENT_ID,
+            expect.objectContaining({
+                imageKey: newKey,
+                imageUrl: `${SHOP_ITEM_ASSET_BASE_URL}/${newKey}`,
+            }),
+        );
     });
 
     it('アイテムが存在しない場合は 404 が返ること', async () => {

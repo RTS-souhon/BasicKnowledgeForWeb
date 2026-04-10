@@ -6,6 +6,9 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"SHOP_ITEM_ASSET_BASE_URL": "https://assets.reitaisai.info"
+	},
 	"secrets": {
 		"required": [
 			"JWT_SECRET"

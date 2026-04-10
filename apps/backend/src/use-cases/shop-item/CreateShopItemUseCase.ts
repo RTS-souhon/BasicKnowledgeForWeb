@@ -8,7 +8,10 @@ import type {
 const SHOP_ITEM_PREFIX = 'shop-items';
 
 export class CreateShopItemUseCase implements ICreateShopItemUseCase {
-    constructor(private readonly shopItemRepository: IShopItemRepository) {}
+    constructor(
+        private readonly shopItemRepository: IShopItemRepository,
+        private readonly assetBaseUrl: string,
+    ) {}
 
     async execute(input: CreateShopItemInput): Promise<CreateShopItemResult> {
         if (!this.isKeyAllowed(input.imageKey, input.eventId)) {
@@ -27,7 +30,7 @@ export class CreateShopItemUseCase implements ICreateShopItemUseCase {
                 stockStatus: input.stockStatus,
                 description: input.description ?? null,
                 imageKey: input.imageKey,
-                imageUrl: input.imageUrl,
+                imageUrl: this.buildImageUrl(input.imageKey),
             });
             return { success: true, data };
         } catch {
@@ -41,5 +44,10 @@ export class CreateShopItemUseCase implements ICreateShopItemUseCase {
 
     private isKeyAllowed(key: string, eventId: string) {
         return key.startsWith(`${SHOP_ITEM_PREFIX}/${eventId}/`);
+    }
+
+    private buildImageUrl(imageKey: string) {
+        const trimmedBase = this.assetBaseUrl.replace(/\/+$/, '');
+        return `${trimmedBase}/${imageKey}`;
     }
 }
