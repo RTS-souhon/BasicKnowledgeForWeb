@@ -1,3 +1,4 @@
+import type { R2Bucket } from '@backend/src/db/connection';
 import type {
     GenerateShopItemUploadUrlInput,
     GenerateShopItemUploadUrlResult,
