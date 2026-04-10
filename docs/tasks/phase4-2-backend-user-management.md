@@ -7,14 +7,14 @@
 
 ## 目的
 
-admin/developer がダッシュボードからユーザー一覧を参照し、ロール変更できるように `GET /api/users` と `PUT /api/users/:id/role` を提供する。
+admin がダッシュボードからユーザー一覧を参照し、ロール変更できるように `GET /api/users` と `PUT /api/users/:id/role` を提供する。
 
 ## 実装内容
 
 1. `UserRepository` に `findAll`（role, email, createdAt を返却）と `updateRole` を追加し、`IUserRepository` を更新
 2. `use-cases/user` に `GetUsersUseCase` / `UpdateUserRoleUseCase` を実装し、結果型を `{ success, data|error }` で統一
-3. `userController` に一覧取得とロール更新のエンドポイントを追加し、`roleGuard('admin','developer')` を適用
-4. ルーティングで `/api/users` GET / PUT を登録し、PUT では body バリデーション（`role ∈ {user, admin, developer}`）を行う
+3. `userController` に一覧取得とロール更新のエンドポイントを追加し、`roleGuard(['admin'])` を適用
+4. ルーティングで `/api/users` GET / PUT を登録し、PUT では body バリデーション（`role ∈ {user, admin}`）を行う
 5. CockroachDB 側では `UPDATE users SET role = $1 WHERE id = $2 RETURNING ...` として結果を返却
 
 ## このフェーズでやらないこと

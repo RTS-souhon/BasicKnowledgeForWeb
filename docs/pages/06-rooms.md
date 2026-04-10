@@ -12,7 +12,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -119,7 +119,7 @@ type RoomWithDepartments = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ rooms: RoomWithDepartments[] }`（`building_name`, `floor`, `room_name` 昇順）
 
-### POST `/api/rooms` （admin/developer）
+### POST `/api/rooms` （admin）
 
 ```json
 {
@@ -135,9 +135,9 @@ type RoomWithDepartments = {
 }
 ```
 
-### PUT `/api/rooms/:id` （admin/developer）
+### PUT `/api/rooms/:id` （admin）
 
-### DELETE `/api/rooms/:id` （admin/developer）
+### DELETE `/api/rooms/:id` （admin）
 
 ---
 

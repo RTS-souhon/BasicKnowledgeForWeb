@@ -31,11 +31,6 @@ const adminPayload = {
     role: 'admin',
     exp: 9_999_999_999,
 };
-const developerPayload = {
-    id: 'dev-id',
-    role: 'developer',
-    exp: 9_999_999_999,
-};
 const accessPayload = { event_id: 'event-1', exp: 9_999_999_999 };
 
 beforeEach(() => {
@@ -69,6 +64,18 @@ describe('公開ページ', () => {
         expect(res.headers.get('location')).toContain('/dashboard');
     });
 
+    it('user ロールの auth_token では /login に留まること', async () => {
+        mockVerify.mockResolvedValue({
+            id: 'user-id',
+            role: 'user',
+            exp: 9_999_999_999,
+        });
+        const res = await middleware(
+            createRequest('/login', { auth_token: 'user.token' }),
+        );
+        expect(res.headers.get('location')).toBeNull();
+    });
+
     it('有効な access_token がある場合 /access から / にリダイレクトされること', async () => {
         mockVerify.mockResolvedValue(accessPayload);
         const res = await middleware(
@@ -78,13 +85,25 @@ describe('公開ページ', () => {
         expect(res.headers.get('location')).toContain('/');
     });
 
-    it('admin/developer の auth_token がある場合 /access から / にリダイレクトされること', async () => {
+    it('admin の auth_token がある場合 /access から / にリダイレクトされること', async () => {
         mockVerify.mockResolvedValue(adminPayload);
         const res = await middleware(
             createRequest('/access', { auth_token: 'valid.admin.token' }),
         );
         expect(res.status).toBe(307);
         expect(res.headers.get('location')).toContain('/');
+    });
+
+    it('user ロールの auth_token では /access に留まること', async () => {
+        mockVerify.mockResolvedValue({
+            id: 'user-id',
+            role: 'user',
+            exp: 9_999_999_999,
+        });
+        const res = await middleware(
+            createRequest('/access', { auth_token: 'user.token' }),
+        );
+        expect(res.headers.get('location')).toBeNull();
     });
 });
 
@@ -95,14 +114,6 @@ describe('/admin/* 保護', () => {
         mockVerify.mockResolvedValue(adminPayload);
         const res = await middleware(
             createRequest('/admin/dashboard', { auth_token: 'valid.admin.token' }),
-        );
-        expect(res.headers.get('location')).toBeNull();
-    });
-
-    it('developer ロールの auth_token があれば通過できること', async () => {
-        mockVerify.mockResolvedValue(developerPayload);
-        const res = await middleware(
-            createRequest('/admin/users', { auth_token: 'valid.dev.token' }),
         );
         expect(res.headers.get('location')).toBeNull();
     });
@@ -127,6 +138,37 @@ describe('/admin/* 保護', () => {
     });
 });
 
+// ─── /dashboard 保護 ──────────────────────────────────────────────────────────
+
+describe('/dashboard 保護', () => {
+    it('admin ロールの auth_token があれば通過できること', async () => {
+        mockVerify.mockResolvedValue(adminPayload);
+        const res = await middleware(
+            createRequest('/dashboard', { auth_token: 'valid.admin.token' }),
+        );
+        expect(res.headers.get('location')).toBeNull();
+    });
+
+    it('auth_token がない場合は /login にリダイレクトされること', async () => {
+        const res = await middleware(createRequest('/dashboard'));
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toContain('/login');
+    });
+
+    it('user ロールのトークンは /login にリダイレクトされること', async () => {
+        mockVerify.mockResolvedValue({
+            id: 'user-id',
+            role: 'user',
+            exp: 9_999_999_999,
+        });
+        const res = await middleware(
+            createRequest('/dashboard', { auth_token: 'user.token' }),
+        );
+        expect(res.status).toBe(307);
+        expect(res.headers.get('location')).toContain('/login');
+    });
+});
+
 // ─── コンテンツページ保護 ─────────────────────────────────────────────────────
 
 describe('コンテンツページ保護', () => {
@@ -134,14 +176,6 @@ describe('コンテンツページ保護', () => {
         mockVerify.mockResolvedValue(adminPayload);
         const res = await middleware(
             createRequest('/', { auth_token: 'valid.admin.token' }),
-        );
-        expect(res.headers.get('location')).toBeNull();
-    });
-
-    it('developer の auth_token があればコンテンツページを通過できること', async () => {
-        mockVerify.mockResolvedValue(developerPayload);
-        const res = await middleware(
-            createRequest('/timetable', { auth_token: 'valid.dev.token' }),
         );
         expect(res.headers.get('location')).toBeNull();
     });

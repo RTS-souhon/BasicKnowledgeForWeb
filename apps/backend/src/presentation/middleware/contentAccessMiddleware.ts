@@ -8,7 +8,7 @@ import { verify } from 'hono/jwt';
  *
  * 以下のいずれかを満たす場合にリクエストを通過させる:
  * - access_token が有効、かつ JWT 内の event_id が x-event-id ヘッダーと一致する
- * - auth_token が有効、かつ role が admin または developer である
+ * - auth_token が有効、かつ role が admin である
  *
  * role=user の auth_token はコンテンツ API を通過できない（access_token が必要）。
  */
@@ -36,12 +36,12 @@ export const contentAccessMiddleware = createMiddleware<{
         }
     }
 
-    // auth_token 認証: JWT が有効かつ role が admin または developer であること
+    // auth_token 認証: JWT が有効かつ role が admin であること
     if (authToken) {
         try {
             const payload = await verify(authToken, c.env.JWT_SECRET, 'HS256');
             const role = payload.role as string | undefined;
-            if (role === 'admin' || role === 'developer') {
+            if (role === 'admin') {
                 await next();
                 return;
             }

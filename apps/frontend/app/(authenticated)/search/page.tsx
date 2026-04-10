@@ -54,7 +54,7 @@ function SearchPageContent() {
     const pathname = usePathname() ?? '/search';
     const { role, userEventId } = useAuthContext();
 
-    const isPrivileged = role === 'admin' || role === 'developer';
+    const isPrivileged = role === 'admin';
     const queryParam = searchParams?.get('q') ?? '';
     const adminEventId = searchParams?.get('event_id') ?? null;
     const resolvedEventId = isPrivileged ? adminEventId : userEventId;

@@ -45,7 +45,7 @@ export function AuthHeader({
     const [drawerOpen, setDrawerOpen] = useState(false);
     const drawerRef = useRef<HTMLDivElement>(null);
 
-    const isPrivileged = role === 'admin' || role === 'developer';
+    const isPrivileged = role === 'admin';
 
     const paramsString = useMemo(
         () => searchParams?.toString() ?? '',

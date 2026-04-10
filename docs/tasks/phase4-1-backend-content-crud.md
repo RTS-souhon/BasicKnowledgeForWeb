@@ -11,13 +11,13 @@
 
 ## 目的
 
-タイムテーブル / 部屋割り / 企画 / 販売物 / その他の各ドメインに対して、admin/developer がコンテンツを追加・更新・削除できる API を提供する。
+タイムテーブル / 部屋割り / 企画 / 販売物 / その他の各ドメインに対して、admin がコンテンツを追加・更新・削除できる API を提供する。
 
 ## 実装内容
 
 1. 各ドメインの validator を拡張し、POST/PUT/DELETE 用の入力スキーマを追加する
 2. 各 repository に `create`, `update`, `delete` メソッドを追加し、use-case 層（Create/Update/Delete）を実装する
-3. 既存 controller / route に POST/PUT/DELETE ハンドラを追加し、`roleGuard('admin','developer')` を適用する
+3. 既存 controller / route に POST/PUT/DELETE ハンドラを追加し、`roleGuard(['admin'])` を適用する
 4. contentAccessMiddleware とは別に編集専用 middleware で auth_token + role を検証し、`event_id` の整合性（アクセスコード or クエリ）を必ずチェックする
 5. すべてのミューテーション API は `{ success: true, data }` / `{ success: false, error }` の結果型を返す
 6. CockroachDB での更新/削除は `RETURNING *` を使って結果を返却し、ソフトデリートは未対応で OK（別タスクで導入予定）

@@ -154,7 +154,7 @@ describe('HomePage', () => {
         );
     });
 
-    it('admin/developer で会期未選択時に案内メッセージを表示すること', async () => {
+    it('admin で会期未選択時に案内メッセージを表示すること', async () => {
         mockResolveAuth.mockResolvedValue(ADMIN_WITHOUT_EVENT);
 
         const element = await HomePage({

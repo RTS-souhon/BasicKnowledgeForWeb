@@ -12,7 +12,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -103,17 +103,17 @@ type TimetableItem = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用（未指定時はデータなし）
 - レスポンス: `{ items: TimetableItem[] }`（`start_time` 昇順）
 
-### POST `/api/timetable` （admin/developer）
+### POST `/api/timetable` （admin）
 
 ```json
 { "event_id": "...", "title": "...", "start_time": "...", "end_time": "...", "location": "...", "description": "..." }
 ```
 
-### PUT `/api/timetable/:id` （admin/developer）
+### PUT `/api/timetable/:id` （admin）
 
 部分更新可。変更フィールドのみ送信。
 
-### DELETE `/api/timetable/:id` （admin/developer）
+### DELETE `/api/timetable/:id` （admin）
 
 ---
 
@@ -121,7 +121,7 @@ type TimetableItem = {
 
 - `page.tsx`: Server Component → `GET /api/timetable` でデータ取得
 - 編集 UI: Client Component（モーダルまたはインラインフォーム）
-  - `useAuth()` でロールを確認し admin/developer の場合のみ表示
+  - `useAuth()` でロールを確認し admin の場合のみ表示
 - フォーム: `react-hook-form` + `timetableSchema`（フロントエンド定義）
 
 ---

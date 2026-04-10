@@ -723,7 +723,7 @@ JWT-based authentication is implemented. Two token types are in use:
 以下のいずれかを満たすリクエストのみ通過させる:
 
 1. **access_token 認証**: `access_token` Cookie の JWT が有効、かつ `payload.event_id === x-event-id` ヘッダーの値
-2. **auth_token 認証**: `auth_token` Cookie の JWT が有効、かつ `payload.role === 'admin' || 'developer'`
+2. **auth_token 認証**: `auth_token` Cookie の JWT が有効、かつ `payload.role === 'admin'`
 
 `role=user` の `auth_token` はコンテンツ API を通過できない。一般ユーザーは `access_token` が必要。
 どちらも満たさない場合は `401 Unauthorized` を返す。
@@ -737,10 +737,9 @@ The `users.role` field supports three roles:
 | Role | Description |
 |---|---|
 | `user` | Default role for registered users |
-| `developer` | Extended access for developers |
 | `admin` | Full administrative access |
 
-コンテンツ GET API では `contentAccessMiddleware` が role チェックを担う（admin / developer のみ通過）。
+コンテンツ GET API では `contentAccessMiddleware` が role チェックを担う（admin のみ通過）。
 より細かい RBAC が必要な場合は use case 層に追加する。
 
 ### Soft Delete (Planned)

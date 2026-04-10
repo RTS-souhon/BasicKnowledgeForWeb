@@ -16,13 +16,13 @@ async function verifyToken<T>(token: string): Promise<T | null> {
     }
 }
 
-// コンテンツページ: access_token または auth_token(admin/developer) が必要
+// コンテンツページ: access_token または auth_token(admin) が必要
 const CONTENT_PATHS = ['/', '/timetable', '/rooms', '/events', '/shop', '/others', '/search'];
 
-// ユーザー認証が必要
+// 管理者ダッシュボード（要ログイン）
 const USER_AUTH_PATHS = ['/dashboard'];
 
-// admin/developer 専用
+// 管理者専用ルート
 const ADMIN_PATHS = ['/admin'];
 
 // 公開ページ（認証不要）
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/login')) {
         if (authToken) {
             const auth = await verifyToken<AuthPayload>(authToken);
-            if (auth) {
+            if (auth?.role === 'admin') {
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
         }
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/access')) {
         if (authToken) {
             const auth = await verifyToken<AuthPayload>(authToken);
-            if (auth && ['admin', 'developer'].includes(auth.role)) {
+            if (auth?.role === 'admin') {
                 return NextResponse.redirect(new URL('/', request.url));
             }
         }
@@ -69,7 +69,7 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
         const auth = await verifyToken<AuthPayload>(authToken);
-        if (!auth || !['admin', 'developer'].includes(auth.role)) {
+        if (!auth || auth.role !== 'admin') {
             return NextResponse.redirect(new URL('/login', request.url));
         }
         return NextResponse.next();
@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
         const auth = await verifyToken<AuthPayload>(authToken);
-        if (!auth) {
+        if (!auth || auth.role !== 'admin') {
             return NextResponse.redirect(new URL('/login', request.url));
         }
         return NextResponse.next();
@@ -89,10 +89,10 @@ export async function middleware(request: NextRequest) {
 
     // --- コンテンツページ保護 ---
     if (CONTENT_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-        // admin/developer はユーザー認証で通過
+        // admin はユーザー認証で通過
         if (authToken) {
             const auth = await verifyToken<AuthPayload>(authToken);
-            if (auth && ['admin', 'developer'].includes(auth.role)) {
+            if (auth?.role === 'admin') {
                 return NextResponse.next();
             }
         }

@@ -13,7 +13,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -108,7 +108,7 @@ type Program = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ programs: Program[] }`（`start_time` 昇順）
 
-### POST `/api/programs` （admin/developer）
+### POST `/api/programs` （admin）
 
 ```json
 {
@@ -121,9 +121,9 @@ type Program = {
 }
 ```
 
-### PUT `/api/programs/:id` （admin/developer）
+### PUT `/api/programs/:id` （admin）
 
-### DELETE `/api/programs/:id` （admin/developer）
+### DELETE `/api/programs/:id` （admin）
 
 ---
 
