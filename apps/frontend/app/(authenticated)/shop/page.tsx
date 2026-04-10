@@ -2,6 +2,8 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import Image from 'next/image';
+import type { CSSProperties } from 'react';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
 
@@ -11,6 +13,7 @@ type ShopItem = {
     price: number;
     stockStatus: StockStatus;
     description: string | null;
+    imageUrl: string;
 };
 
 async function fetchShopItems(
@@ -69,6 +72,46 @@ const priceFormatter = new Intl.NumberFormat('ja-JP');
 const sortByName = (items: ShopItem[]) =>
     [...items].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
+type ShopItemImageProps = {
+    item: ShopItem;
+    className?: string;
+    aspectRatio?: string;
+};
+
+function ShopItemImage({
+    item,
+    className = '',
+    aspectRatio,
+}: ShopItemImageProps) {
+    const sanitizedUrl = item.imageUrl.trim();
+    const hasImage = sanitizedUrl.length > 0;
+    const style: CSSProperties | undefined = aspectRatio
+        ? { aspectRatio }
+        : undefined;
+
+    return (
+        <div
+            className={`relative overflow-hidden rounded-lg bg-muted ${className}`}
+            style={style}
+        >
+            {hasImage ? (
+                <Image
+                    src={sanitizedUrl}
+                    alt={item.name}
+                    fill
+                    sizes='(max-width: 768px) 100vw, 160px'
+                    className='object-cover'
+                    unoptimized
+                />
+            ) : (
+                <div className='flex h-full w-full items-center justify-center text-[10px] text-muted-foreground uppercase tracking-wide'>
+                    No Image
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default async function ShopPage({
     searchParams,
 }: {
@@ -93,6 +136,9 @@ export default async function ShopPage({
 
     const items = sortByName(
         await fetchShopItems(eventId, authToken, accessToken, role),
+    );
+    const hasImageDataIssue = items.some(
+        (item) => item.imageUrl.trim().length === 0,
     );
 
     const renderStock = (status: StockStatus | string) => {
@@ -119,6 +165,15 @@ export default async function ShopPage({
                 </p>
             ) : (
                 <div className='space-y-6'>
+                    {hasImageDataIssue && (
+                        <div
+                            role='alert'
+                            className='rounded-lg border border-amber-400/60 bg-amber-50 px-4 py-3 text-amber-900 text-sm shadow-sm dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50'
+                        >
+                            データ不備:
+                            商品画像が登録されていないアイテムがあります。
+                        </div>
+                    )}
                     <div className='hidden overflow-x-auto rounded-xl border border-border md:block'>
                         <table
                             className='min-w-full divide-y divide-border text-sm'
@@ -126,6 +181,9 @@ export default async function ShopPage({
                         >
                             <thead className='bg-muted/40 text-left text-muted-foreground text-xs uppercase tracking-wide'>
                                 <tr>
+                                    <th className='px-4 py-3 font-medium'>
+                                        画像
+                                    </th>
                                     <th className='px-4 py-3 font-medium'>
                                         商品名
                                     </th>
@@ -143,6 +201,13 @@ export default async function ShopPage({
                             <tbody className='divide-y divide-border bg-card text-foreground'>
                                 {items.map((item) => (
                                     <tr key={item.id}>
+                                        <td className='px-4 py-3 align-top'>
+                                            <ShopItemImage
+                                                item={item}
+                                                className='h-20 w-20'
+                                                aspectRatio='1 / 1'
+                                            />
+                                        </td>
                                         <td className='px-4 py-3 align-top font-medium'>
                                             {item.name}
                                         </td>
@@ -167,6 +232,11 @@ export default async function ShopPage({
                                 key={item.id}
                                 className='rounded-xl border border-border bg-card p-4'
                             >
+                                <ShopItemImage
+                                    item={item}
+                                    className='mb-3 w-full'
+                                    aspectRatio='4 / 3'
+                                />
                                 <div className='flex items-center justify-between gap-2'>
                                     <p className='font-medium text-base text-foreground'>
                                         {item.name}

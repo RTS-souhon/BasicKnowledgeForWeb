@@ -20,6 +20,7 @@ const shopItem1: ShopItem = {
     price: 500,
     stockStatus: 'available',
     description: null,
+    imageUrl: 'https://assets.example.com/event-1/item-1.webp',
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
 };
@@ -30,6 +31,7 @@ const shopItem2: ShopItem = {
     name: 'グッズ B',
     price: 1000,
     stockStatus: 'low',
+    imageUrl: 'https://assets.example.com/event-1/item-2.webp',
 };
 
 let accessToken: string;
@@ -92,6 +94,7 @@ describe('GET /api/shop-items', () => {
 
         expect(res.status).toBe(200);
         expect(body.items).toHaveLength(2);
+        expect(body.items[0]?.imageUrl).toBe(shopItem1.imageUrl);
     });
 
     it('admin の auth_token で 200 が返ること', async () => {

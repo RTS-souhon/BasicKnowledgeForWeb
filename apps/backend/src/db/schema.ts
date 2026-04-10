@@ -137,6 +137,8 @@ export const shopItems = cockroachTable('shop_items', {
         .notNull()
         .default('available'),
     description: text('description'),
+    imageKey: varchar('image_key', { length: 512 }).notNull(),
+    imageUrl: text('image_url').notNull(),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
 });

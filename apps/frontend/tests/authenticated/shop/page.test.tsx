@@ -34,6 +34,7 @@ const MOCK_ITEMS = [
         price: 500,
         stockStatus: 'available',
         description: null,
+        imageUrl: 'https://assets.example.com/event-1/pamphlet.webp',
     },
     {
         id: '2',
@@ -41,6 +42,7 @@ const MOCK_ITEMS = [
         price: 2500,
         stockStatus: 'low',
         description: 'サイズはS・M・Lのみ',
+        imageUrl: 'https://assets.example.com/event-1/tshirt.webp',
     },
     {
         id: '3',
@@ -48,6 +50,7 @@ const MOCK_ITEMS = [
         price: 300,
         stockStatus: 'sold_out',
         description: null,
+        imageUrl: 'https://assets.example.com/event-1/badge.webp',
     },
 ];
 
@@ -102,6 +105,7 @@ describe('ShopPage', () => {
         expect(screen.getAllByText('公式パンフレット')).toHaveLength(2);
         expect(screen.getAllByText('限定Tシャツ')).toHaveLength(2);
         expect(screen.getAllByText('缶バッジセット')).toHaveLength(2);
+        expect(screen.getAllByAltText('公式パンフレット')).toHaveLength(2);
     });
 
     it('価格を正しくフォーマットして表示する', async () => {
@@ -190,5 +194,34 @@ describe('ShopPage', () => {
         expect(articles).toHaveLength(3);
         expect(articles[1]).toHaveTextContent('限定Tシャツ');
         expect(articles[1]).toHaveTextContent('残りわずか');
+    });
+
+    it('画像が欠けている場合に警告とプレースホルダーを表示する', async () => {
+        mockResolveAuth.mockResolvedValue(WITH_AUTH);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    items: [
+                        {
+                            ...MOCK_ITEMS[0],
+                            imageUrl: '',
+                        },
+                    ],
+                }),
+                {
+                    status: 200,
+                },
+            ),
+        );
+
+        const element = await ShopPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByText('データ不備: 商品画像が登録されていないアイテムがあります。'),
+        ).toBeInTheDocument();
+        expect(screen.getAllByText('No Image')).toHaveLength(2);
     });
 });
