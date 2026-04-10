@@ -99,7 +99,7 @@ export async function updateProgram(
             location: parsed.data.location,
             startTime: parsed.data.start_time,
             endTime: parsed.data.end_time,
-            description: parsed.data.description ?? undefined,
+            description: parsed.data.description,
         },
     });
     if (!result.success) {

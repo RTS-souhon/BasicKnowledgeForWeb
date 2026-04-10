@@ -97,6 +97,9 @@ const baseOtherItem: OtherItem = {
 function mockTimetableRepository(overrides: Partial<ITimetableRepository> = {}) {
     return {
         findByEventId: jest.fn(),
+        findById: jest
+            .fn<ITimetableRepository['findById']>()
+            .mockImplementation(() => Promise.resolve(baseTimetable)),
         search: jest.fn(),
         create: jest
             .fn<ITimetableRepository['create']>()
@@ -131,6 +134,9 @@ function mockRoomRepository(overrides: Partial<IRoomRepository> = {}) {
 function mockProgramRepository(overrides: Partial<IProgramRepository> = {}) {
     return {
         findByEventId: jest.fn(),
+        findById: jest
+            .fn<IProgramRepository['findById']>()
+            .mockImplementation(() => Promise.resolve(baseProgram)),
         search: jest.fn(),
         create: jest
             .fn<IProgramRepository['create']>()

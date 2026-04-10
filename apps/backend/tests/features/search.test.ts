@@ -53,6 +53,9 @@ function createRepositories() {
         findByEventId: jest
             .fn<(eventId: string) => Promise<TimetableItem[]>>()
             .mockResolvedValue([]),
+        findById: jest.fn<ITimetableRepository['findById']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
         search: jest
             .fn<
                 (keyword: string, eventId: string) => Promise<TimetableItem[]>
@@ -94,6 +97,9 @@ function createRepositories() {
         findByEventId: jest
             .fn<(eventId: string) => Promise<Program[]>>()
             .mockResolvedValue([]),
+        findById: jest.fn<IProgramRepository['findById']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
         search: jest
             .fn<(keyword: string, eventId: string) => Promise<Program[]>>()
             .mockResolvedValue([]),

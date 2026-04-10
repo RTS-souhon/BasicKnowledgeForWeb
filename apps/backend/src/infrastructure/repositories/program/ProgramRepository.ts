@@ -22,6 +22,15 @@ export class ProgramRepository implements IProgramRepository {
             .orderBy(asc(programs.startTime));
     }
 
+    async findById(id: string, eventId: string): Promise<Program | null> {
+        const [item] = await this.db
+            .select()
+            .from(programs)
+            .where(and(eq(programs.id, id), eq(programs.eventId, eventId)))
+            .limit(1);
+        return item ?? null;
+    }
+
     async search(keyword: string, eventId: string): Promise<Program[]> {
         const pattern = createIlikePattern(keyword);
         return this.db

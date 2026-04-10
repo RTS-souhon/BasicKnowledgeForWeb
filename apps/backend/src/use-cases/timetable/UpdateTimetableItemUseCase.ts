@@ -31,25 +31,39 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
             updatePayload.description = input.payload.description;
         }
 
-        if (updatePayload.startTime && updatePayload.endTime) {
-            if (
-                (updatePayload.endTime as Date) <=
-                (updatePayload.startTime as Date)
-            ) {
-                return {
-                    success: false,
-                    error: '終了時刻は開始時刻より後である必要があります',
-                    status: 400,
-                };
-            }
-        }
-
         if (Object.keys(updatePayload).length === 0) {
             return {
                 success: false,
                 error: '更新項目が指定されていません',
                 status: 400,
             };
+        }
+
+        if (
+            updatePayload.startTime !== undefined ||
+            updatePayload.endTime !== undefined
+        ) {
+            const existing = await this.timetableRepository.findById(
+                input.id,
+                input.eventId,
+            );
+            if (!existing) {
+                return {
+                    success: false,
+                    error: 'タイムテーブルが見つかりません',
+                    status: 404,
+                };
+            }
+            const effectiveStart =
+                updatePayload.startTime ?? existing.startTime;
+            const effectiveEnd = updatePayload.endTime ?? existing.endTime;
+            if (effectiveEnd <= effectiveStart) {
+                return {
+                    success: false,
+                    error: '終了時刻は開始時刻より後である必要があります',
+                    status: 400,
+                };
+            }
         }
 
         try {

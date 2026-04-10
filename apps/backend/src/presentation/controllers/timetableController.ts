@@ -102,7 +102,7 @@ export async function updateTimetableItem(
             startTime: parsed.data.start_time,
             endTime: parsed.data.end_time,
             location: parsed.data.location,
-            description: parsed.data.description ?? undefined,
+            description: parsed.data.description,
         },
     });
     if (!result.success) {

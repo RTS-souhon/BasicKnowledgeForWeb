@@ -16,6 +16,7 @@ export type UpdateTimetableItemInput = Partial<
 
 export interface ITimetableRepository {
     findByEventId(eventId: string): Promise<TimetableItem[]>;
+    findById(id: string, eventId: string): Promise<TimetableItem | null>;
     search(keyword: string, eventId: string): Promise<TimetableItem[]>;
     create(input: CreateTimetableItemInput): Promise<TimetableItem>;
     update(

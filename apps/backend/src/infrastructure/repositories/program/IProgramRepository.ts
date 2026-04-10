@@ -16,6 +16,7 @@ export type UpdateProgramInput = Partial<
 
 export interface IProgramRepository {
     findByEventId(eventId: string): Promise<Program[]>;
+    findById(id: string, eventId: string): Promise<Program | null>;
     search(keyword: string, eventId: string): Promise<Program[]>;
     create(input: CreateProgramInput): Promise<Program>;
     update(

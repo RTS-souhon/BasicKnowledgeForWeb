@@ -29,22 +29,35 @@ export class UpdateProgramUseCase implements IUpdateProgramUseCase {
             payload.description = input.payload.description;
         }
 
-        if (payload.startTime && payload.endTime) {
-            if ((payload.endTime as Date) <= (payload.startTime as Date)) {
-                return {
-                    success: false,
-                    error: '終了時刻は開始時刻より後である必要があります',
-                    status: 400,
-                };
-            }
-        }
-
         if (Object.keys(payload).length === 0) {
             return {
                 success: false,
                 error: '更新項目が指定されていません',
                 status: 400,
             };
+        }
+
+        if (payload.startTime !== undefined || payload.endTime !== undefined) {
+            const existing = await this.programRepository.findById(
+                input.id,
+                input.eventId,
+            );
+            if (!existing) {
+                return {
+                    success: false,
+                    error: '企画情報が見つかりません',
+                    status: 404,
+                };
+            }
+            const effectiveStart = payload.startTime ?? existing.startTime;
+            const effectiveEnd = payload.endTime ?? existing.endTime;
+            if (effectiveEnd <= effectiveStart) {
+                return {
+                    success: false,
+                    error: '終了時刻は開始時刻より後である必要があります',
+                    status: 400,
+                };
+            }
         }
 
         try {

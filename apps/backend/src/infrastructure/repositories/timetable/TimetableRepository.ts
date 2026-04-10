@@ -22,6 +22,20 @@ export class TimetableRepository implements ITimetableRepository {
             .orderBy(asc(timetableItems.startTime));
     }
 
+    async findById(id: string, eventId: string): Promise<TimetableItem | null> {
+        const [item] = await this.db
+            .select()
+            .from(timetableItems)
+            .where(
+                and(
+                    eq(timetableItems.id, id),
+                    eq(timetableItems.eventId, eventId),
+                ),
+            )
+            .limit(1);
+        return item ?? null;
+    }
+
     async search(keyword: string, eventId: string): Promise<TimetableItem[]> {
         const pattern = createIlikePattern(keyword);
         return this.db

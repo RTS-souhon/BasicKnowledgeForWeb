@@ -27,6 +27,7 @@ const timetableRepo = (): ITimetableRepository => ({
     findByEventId: jest
         .fn<(eventId: string) => Promise<TimetableItem[]>>()
         .mockResolvedValue([]),
+    findById: jest.fn<ITimetableRepository['findById']>().mockImplementation(notCalled),
     search: jest
         .fn<
             (keyword: string, eventId: string) => Promise<TimetableItem[]>
@@ -58,6 +59,7 @@ const programRepo = (): IProgramRepository => ({
     findByEventId: jest
         .fn<(eventId: string) => Promise<Program[]>>()
         .mockResolvedValue([]),
+    findById: jest.fn<IProgramRepository['findById']>().mockImplementation(notCalled),
     search: jest
         .fn<(keyword: string, eventId: string) => Promise<Program[]>>()
         .mockResolvedValue([]),
