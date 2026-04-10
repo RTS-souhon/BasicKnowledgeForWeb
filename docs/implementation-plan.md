@@ -386,7 +386,7 @@ hooks/
 
 ### フェーズ 4
 - [x] Backend: 各コンテンツ POST/PUT/DELETE API
-- [ ] Backend: ユーザー管理 API（GET /api/users・PUT /api/users/:id/role）
+- [x] Backend: ユーザー管理 API（GET /api/users・PUT /api/users/:id/role）
 - [ ] Frontend: 各コンテンツページへ編集 UI 追加 + テスト
 - [ ] Frontend: `/dashboard` （プロフィール・PW変更・ロール管理） + テスト
 - [ ] Frontend: `/admin/access-code` + テスト

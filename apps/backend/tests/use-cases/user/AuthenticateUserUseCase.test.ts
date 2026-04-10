@@ -24,8 +24,10 @@ beforeAll(async () => {
 function createMockRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
     return {
         findAll: async () => [],
+        findById: async () => null,
         findByEmail: async () => null,
         create: async () => mockUser,
+        updateRole: async () => null,
         ...overrides,
     };
 }

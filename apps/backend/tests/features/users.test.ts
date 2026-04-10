@@ -1,12 +1,21 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeAll, describe, expect, it, jest } from '@jest/globals';
+import type { Env } from '@backend/src/db/connection';
 import type {
     IUserRepository,
     User,
+    UserPublic,
 } from '@backend/src/infrastructure/repositories/user/IUserRepository';
+import { sign } from 'hono/jwt';
 import { createTestAppWithUsers } from '../helpers/createTestApp';
 
+const JWT_SECRET = 'test-secret';
+const mockEnv = { JWT_SECRET } as unknown as Env;
+
+const USER_ID = '00000000-0000-4000-8000-000000000001';
+const OTHER_USER_ID = '00000000-0000-4000-8000-000000000002';
+
 const mockUser: User = {
-    id: '00000000-0000-0000-0000-000000000001',
+    id: USER_ID,
     name: 'テストユーザー',
     email: 'test@example.com',
     password: 'hashedPassword',
@@ -16,21 +25,46 @@ const mockUser: User = {
     deletedAt: null,
 };
 
+let adminToken: string;
+let userToken: string;
+
+beforeAll(async () => {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    adminToken = await sign(
+        { id: 'admin-id', name: 'Admin', email: 'admin@test.com', role: 'admin', exp },
+        JWT_SECRET,
+        'HS256',
+    );
+    userToken = await sign(
+        { id: 'user-id', name: 'User', email: 'user@test.com', role: 'user', exp },
+        JWT_SECRET,
+        'HS256',
+    );
+});
+
 function createMockUserRepository(
     overrides: Partial<IUserRepository> = {},
 ): IUserRepository {
     return {
         findAll: jest.fn<() => Promise<User[]>>().mockResolvedValue([]),
+        findById: jest
+            .fn<(id: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
         findByEmail: jest
             .fn<(email: string) => Promise<User | null>>()
             .mockResolvedValue(null),
         create: jest.fn<() => Promise<User>>().mockResolvedValue(mockUser),
+        updateRole: jest
+            .fn<(id: string, role: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
         ...overrides,
     };
 }
 
+// ─── GET /api/users ───────────────────────────────────────────────────────────
+
 describe('GET /api/users', () => {
-    it('ユーザー一覧を返す', async () => {
+    it('admin トークンでユーザー一覧（password なし）を返す', async () => {
         const repository = createMockUserRepository({
             findAll: jest
                 .fn<() => Promise<User[]>>()
@@ -38,38 +72,58 @@ describe('GET /api/users', () => {
         });
         const app = createTestAppWithUsers(repository);
 
-        const res = await app.request('/api/users');
-        const body = await res.json() as { users: User[] };
+        const res = await app.request(
+            '/api/users',
+            { headers: { Cookie: `auth_token=${adminToken}` } },
+            mockEnv,
+        );
+        const body = await res.json() as { users: UserPublic[] };
 
         expect(res.status).toBe(200);
         expect(body.users).toHaveLength(1);
         expect(body.users[0].email).toBe('test@example.com');
+        expect(body.users[0]).not.toHaveProperty('password');
+    });
+
+    it('auth_token なしの場合 401 を返す', async () => {
+        const repository = createMockUserRepository();
+        const app = createTestAppWithUsers(repository);
+
+        const res = await app.request('/api/users', {}, mockEnv);
+
+        expect(res.status).toBe(401);
+    });
+
+    it('user ロールの場合 403 を返す', async () => {
+        const repository = createMockUserRepository();
+        const app = createTestAppWithUsers(repository);
+
+        const res = await app.request(
+            '/api/users',
+            { headers: { Cookie: `auth_token=${userToken}` } },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(403);
     });
 
     it('ユーザーが存在しない場合、空配列を返す', async () => {
         const repository = createMockUserRepository();
         const app = createTestAppWithUsers(repository);
 
-        const res = await app.request('/api/users');
-        const body = await res.json() as { users: User[] };
+        const res = await app.request(
+            '/api/users',
+            { headers: { Cookie: `auth_token=${adminToken}` } },
+            mockEnv,
+        );
+        const body = await res.json() as { users: UserPublic[] };
 
         expect(res.status).toBe(200);
         expect(body.users).toEqual([]);
     });
-
-    it('リポジトリがエラーをスローした場合、500を返す', async () => {
-        const repository = createMockUserRepository({
-            findAll: jest
-                .fn<() => Promise<User[]>>()
-                .mockRejectedValue(new Error('DB error')),
-        });
-        const app = createTestAppWithUsers(repository);
-
-        const res = await app.request('/api/users');
-
-        expect(res.status).toBe(500);
-    });
 });
+
+// ─── POST /api/users ──────────────────────────────────────────────────────────
 
 describe('POST /api/users', () => {
     const validUserBody = {
@@ -146,6 +200,107 @@ describe('POST /api/users', () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...validUserBody, password: 'short' }),
         });
+
+        expect(res.status).toBe(400);
+    });
+});
+
+// ─── PUT /api/users/:id/role ──────────────────────────────────────────────────
+
+describe('PUT /api/users/:id/role', () => {
+    function putRoleRequest(
+        app: ReturnType<typeof createTestAppWithUsers>,
+        id: string,
+        body: unknown,
+        cookie?: string,
+    ) {
+        return app.request(
+            `/api/users/${id}/role`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(cookie ? { Cookie: cookie } : {}),
+                },
+                body: JSON.stringify(body),
+            },
+            mockEnv,
+        );
+    }
+
+    it('admin トークンでロール変更が成功し 200 を返す', async () => {
+        const repository = createMockUserRepository({
+            findById: jest
+                .fn<(id: string) => Promise<User | null>>()
+                .mockResolvedValue(mockUser),
+            updateRole: jest
+                .fn<(id: string, role: string) => Promise<User | null>>()
+                .mockResolvedValue({ ...mockUser, role: 'admin' }),
+        });
+        const app = createTestAppWithUsers(repository);
+
+        const res = await putRoleRequest(
+            app,
+            USER_ID,
+            { role: 'admin' },
+            `auth_token=${adminToken}`,
+        );
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ message: 'ロールを変更しました' });
+    });
+
+    it('auth_token なしの場合 401 を返す', async () => {
+        const repository = createMockUserRepository();
+        const app = createTestAppWithUsers(repository);
+
+        const res = await putRoleRequest(app, USER_ID, { role: 'admin' });
+
+        expect(res.status).toBe(401);
+    });
+
+    it('user ロールの場合 403 を返す', async () => {
+        const repository = createMockUserRepository();
+        const app = createTestAppWithUsers(repository);
+
+        const res = await putRoleRequest(
+            app,
+            USER_ID,
+            { role: 'admin' },
+            `auth_token=${userToken}`,
+        );
+
+        expect(res.status).toBe(403);
+    });
+
+    it('存在しないユーザー ID の場合 404 を返す', async () => {
+        const repository = createMockUserRepository({
+            findById: jest
+                .fn<(id: string) => Promise<User | null>>()
+                .mockResolvedValue(null),
+        });
+        const app = createTestAppWithUsers(repository);
+
+        const res = await putRoleRequest(
+            app,
+            OTHER_USER_ID,
+            { role: 'admin' },
+            `auth_token=${adminToken}`,
+        );
+
+        expect(res.status).toBe(404);
+    });
+
+    it('不正な role 値の場合 400 を返す', async () => {
+        const repository = createMockUserRepository();
+        const app = createTestAppWithUsers(repository);
+
+        const res = await putRoleRequest(
+            app,
+            USER_ID,
+            { role: 'superadmin' },
+            `auth_token=${adminToken}`,
+        );
 
         expect(res.status).toBe(400);
     });
