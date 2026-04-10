@@ -1,0 +1,12 @@
+export type DeleteShopItemInput = {
+    id: string;
+    eventId: string;
+};
+
+export type DeleteShopItemResult =
+    | { success: true; data: { id: string } }
+    | { success: false; error: string; status?: number };
+
+export interface IDeleteShopItemUseCase {
+    execute(input: DeleteShopItemInput): Promise<DeleteShopItemResult>;
+}

@@ -16,6 +16,7 @@ import { createRoomRoutes } from '@backend/src/presentation/routes/roomRoutes';
 import { createSearchRoutes } from '@backend/src/presentation/routes/searchRoutes';
 import { createShopItemRoutes } from '@backend/src/presentation/routes/shopItemRoutes';
 import { createTimetableRoutes } from '@backend/src/presentation/routes/timetableRoutes';
+import type { ContentEditVariables } from '@backend/src/presentation/middleware/contentEditMiddleware';
 import { createUserRoutes } from '@backend/src/presentation/routes/userRoutes';
 import { Hono } from 'hono';
 
@@ -54,13 +55,13 @@ export function createTestAppWithAccessCodes(
 export function createTestAppWithTimetable(
     timetableRepository: ITimetableRepository,
 ) {
-    const app = new Hono<{ Bindings: Env }>();
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createTimetableRoutes(() => timetableRepository));
     return app;
 }
 
 export function createTestAppWithRooms(roomRepository: IRoomRepository) {
-    const app = new Hono<{ Bindings: Env }>();
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createRoomRoutes(() => roomRepository));
     return app;
 }
@@ -68,7 +69,7 @@ export function createTestAppWithRooms(roomRepository: IRoomRepository) {
 export function createTestAppWithPrograms(
     programRepository: IProgramRepository,
 ) {
-    const app = new Hono<{ Bindings: Env }>();
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createProgramRoutes(() => programRepository));
     return app;
 }
@@ -76,7 +77,7 @@ export function createTestAppWithPrograms(
 export function createTestAppWithShopItems(
     shopItemRepository: IShopItemRepository,
 ) {
-    const app = new Hono<{ Bindings: Env }>();
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createShopItemRoutes(() => shopItemRepository));
     return app;
 }
@@ -84,7 +85,7 @@ export function createTestAppWithShopItems(
 export function createTestAppWithOtherItems(
     otherItemRepository: IOtherItemRepository,
 ) {
-    const app = new Hono<{ Bindings: Env }>();
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createOtherItemRoutes(() => otherItemRepository));
     return app;
 }

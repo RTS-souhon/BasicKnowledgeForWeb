@@ -304,6 +304,12 @@ hooks/
 > フォーム・インタラクションは Client Components（react-hook-form）で実装。
 > Hono RPC client は Client Components のみで使用。
 
+### コンテンツ編集 API (Phase 4-1)
+
+- すべての POST/PUT/DELETE ルートは `contentEditMiddleware` → `roleGuard(['admin'])` → controller の順で実行し、`contentEditMiddleware` が `auth_token`（admin）と `x-event-id` を検証して `event_id` をコンテキストに渡す。controller では body の `event_id` が異なる場合は 400 を返す。
+- 各ドメインの Create/Update/Delete use-case と controller に単体テストを追加し、Feature テストで JWT / ヘッダーのエラーケースも網羅する。
+- 販売物の `image_url` は `SHOP_ITEM_ASSET_BASE_URL` 環境変数のプレフィックスから server-side で組み立てる。クライアントは `image_key` のみ送信し、`POST /api/shop-items/upload-url` で署名付き URL を取得してからアップロードする。
+
 ### イベント選択（Admin/Developer）
 
 - User は access_token の Cookie payload（`event_id`）を使用して会期が決まる
@@ -379,7 +385,7 @@ hooks/
 - [ ] Frontend: `/search` + テスト
 
 ### フェーズ 4
-- [ ] Backend: 各コンテンツ POST/PUT/DELETE API
+- [x] Backend: 各コンテンツ POST/PUT/DELETE API
 - [ ] Backend: ユーザー管理 API（GET /api/users・PUT /api/users/:id/role）
 - [ ] Frontend: 各コンテンツページへ編集 UI 追加 + テスト
 - [ ] Frontend: `/dashboard` （プロフィール・PW変更・ロール管理） + テスト

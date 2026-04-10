@@ -109,11 +109,21 @@ type TimetableItem = {
 { "event_id": "...", "title": "...", "start_time": "...", "end_time": "...", "location": "...", "description": "..." }
 ```
 
+- 認可: `auth_token` + admin ロール必須。`contentEditMiddleware` が `x-event-id` ヘッダーを検証し、`event_id` と一致しない場合は 400。
+- バリデーション: `start_time < end_time`、`title`/`location` は 1〜255 文字、`description` は 2000 文字以内。
+- レスポンス: 成功時は `201 { item: TimetableItem }`。リポジトリエラー時は 500 を返す。
+
 ### PUT `/api/timetable/:id` （admin）
 
 部分更新可。変更フィールドのみ送信。
 
+- 認可は POST と同じ。`id` は UUID 形式。`payload` が空の場合は 400。
+- レスポンス: `200 { item: TimetableItem }`、対象なしは 404。
+
 ### DELETE `/api/timetable/:id` （admin）
+
+- 認可は POST と同じ。`id` の UUID 検証後、削除できなければ 404。
+- レスポンス: `200 { id: string }`。
 
 ---
 

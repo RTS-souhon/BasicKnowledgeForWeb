@@ -134,16 +134,24 @@ type OtherItem = {
 400 { "error": "バリデーションエラー" }
 ```
 
+- 認可: `auth_token` + admin。`x-event-id` と `event_id` が一致しない場合は 400。
+- `display_order` は 0 以上の整数。`content` は必須。
+
 ### PUT `/api/others/:id` （admin）
 
 部分更新可。変更フィールドのみ送信。
 
+- 認可は POST と同じ。1 項目以上の更新が必要。
+- レスポンス: `200 { item: OtherItem }`、対象なしは 404。
+
 ### DELETE `/api/others/:id` （admin）
 
 ```
-200 { "message": "削除しました" }
+200 { "id": "<uuid>" }
 404 { "error": "アイテムが見つかりません" }
 ```
+
+- 認可は POST と同じ。レスポンスは `200 { id: string }`（存在しない場合は 404）。
 
 ---
 

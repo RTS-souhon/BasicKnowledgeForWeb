@@ -132,7 +132,7 @@ type ShopItem = {
   - User: `access_token` Cookie の `event_id` を自動付与
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ items: ShopItem[] }`（`name` 昇順）。各アイテムで `image_url` が必須、未設定の場合は 400 を返す。
-- `image_url` は R2 の公開ホスト（例: `https://assets.reitaisai.info/<image_key>`）を backend で組み立てて返却する。
+- `image_url` は R2 の公開ホスト（例: `https://assets.reitaisai.info/<image_key>`）を backend で組み立てて返却する。公開ホストは `SHOP_ITEM_ASSET_BASE_URL` 環境変数で統一管理する。
 
 ### POST `/api/shop-items` （admin）
 
@@ -142,13 +142,30 @@ type ShopItem = {
     "name": "...",
     "price": 500,
     "stock_status": "available",
-    "description": "..."
+    "description": "...",
+    "image_key": "shop-items/<event_id>/<uuid>.webp"
 }
 ```
 
+- 認可: `auth_token` + admin。`x-event-id` ヘッダーと body.`event_id` が一致しない場合は 400。
+- `image_key` は `shop-items/<event_id>/...` で始まる必要があり、`image_url` は backend が `SHOP_ITEM_ASSET_BASE_URL` から組み立てる（リクエスト値を無視）。
+- レスポンス: `201 { item: ShopItem }`。
+
 ### PUT `/api/shop-items/:id` （admin）
 
+- 認可は POST と同じ。部分更新で 1 項目以上が必須。`image_key` を変更した場合は自動で `image_url` も更新される。
+- レスポンス: `200 { item: ShopItem }`。対象なしは 404。
+
 ### DELETE `/api/shop-items/:id` （admin）
+
+- 認可は POST と同じ。`id` の UUID 検証に失敗すると 400。
+- レスポンス: `200 { id: string }`。
+
+### POST `/api/shop-items/upload-url` （admin）
+
+- 目的: Cloudflare R2 への署名付き PUT URL を取得してからフロントがアップロードする。
+- リクエスト body は `{ "file_name": "xxx.webp", "content_type": "image/webp" }`（任意）。
+- レスポンス: `{ upload_url, image_key, headers }`。`image_key` はそのまま POST/PUT API に渡す。
 
 ---
 

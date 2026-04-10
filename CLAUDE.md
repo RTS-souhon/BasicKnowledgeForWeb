@@ -250,8 +250,11 @@ users table:
 
 access_codes table:
   id          uuid        primary key
-  code        varchar(255) not null, unique
+  code        varchar(50)  not null, unique
   event_name  varchar(255) not null
+  valid_from  timestamp    not null
+  valid_to    timestamp    not null
+  created_by  uuid         not null
   created_at  timestamp    auto-populated
 
 departments table:
@@ -274,7 +277,7 @@ timetable_items table:
   title       varchar(255) not null
   start_time  timestamp    not null
   end_time    timestamp    not null
-  location    varchar(255)
+  location    varchar(255) not null
   description text
   created_at  timestamp    auto-populated
   updated_at  timestamp    auto-populated
@@ -296,29 +299,33 @@ rooms table:
 programs table:
   id          uuid        primary key
   event_id    uuid        FK → access_codes.id (RESTRICT)
-  title       varchar(255) not null
+  name        varchar(255) not null
+  location    varchar(255) not null
   start_time  timestamp    not null
   end_time    timestamp    not null
-  location    varchar(255)
   description text
   created_at  timestamp    auto-populated
   updated_at  timestamp    auto-populated
 
 shop_items table:
-  id          uuid        primary key
-  event_id    uuid        FK → access_codes.id (RESTRICT)
-  name        varchar(255) not null
-  price       int          not null
-  description text
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
+  id           uuid        primary key
+  event_id     uuid        FK → access_codes.id (RESTRICT)
+  name         varchar(255) not null
+  price        int          not null
+  stock_status varchar(50)  not null, default 'available'  ← 'available' | 'low' | 'sold_out'
+  description  text
+  image_key    varchar(512) not null
+  image_url    text         not null
+  created_at   timestamp    auto-populated
+  updated_at   timestamp    auto-populated
 
 other_items table:
   id            uuid        primary key
   event_id      uuid        FK → access_codes.id (RESTRICT)
   title         varchar(255) not null
+  content       text         not null
   display_order int          not null
-  description   text
+  created_by    uuid         not null
   created_at    timestamp    auto-populated
   updated_at    timestamp    auto-populated
 ```
