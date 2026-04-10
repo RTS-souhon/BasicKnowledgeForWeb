@@ -58,6 +58,15 @@ function createRepositories() {
                 (keyword: string, eventId: string) => Promise<TimetableItem[]>
             >()
             .mockResolvedValue([]),
+        create: jest.fn<ITimetableRepository['create']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        update: jest.fn<ITimetableRepository['update']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        delete: jest.fn<ITimetableRepository['delete']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
     };
     const roomRepository: IRoomRepository = {
         findByEventId: jest
@@ -71,6 +80,15 @@ function createRepositories() {
                 ) => Promise<RoomWithDepartments[]>
             >()
             .mockResolvedValue([]),
+        create: jest.fn<IRoomRepository['create']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        update: jest.fn<IRoomRepository['update']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        delete: jest.fn<IRoomRepository['delete']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
     };
     const programRepository: IProgramRepository = {
         findByEventId: jest
@@ -79,6 +97,15 @@ function createRepositories() {
         search: jest
             .fn<(keyword: string, eventId: string) => Promise<Program[]>>()
             .mockResolvedValue([]),
+        create: jest.fn<IProgramRepository['create']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        update: jest.fn<IProgramRepository['update']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        delete: jest.fn<IProgramRepository['delete']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
     };
     const shopItemRepository: IShopItemRepository = {
         findByEventId: jest
@@ -87,6 +114,15 @@ function createRepositories() {
         search: jest
             .fn<(keyword: string, eventId: string) => Promise<ShopItem[]>>()
             .mockResolvedValue([]),
+        create: jest.fn<IShopItemRepository['create']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        update: jest.fn<IShopItemRepository['update']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        delete: jest.fn<IShopItemRepository['delete']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
     };
     const otherItemRepository: IOtherItemRepository = {
         findByEventId: jest
@@ -95,6 +131,15 @@ function createRepositories() {
         search: jest
             .fn<(keyword: string, eventId: string) => Promise<OtherItem[]>>()
             .mockResolvedValue([]),
+        create: jest.fn<IOtherItemRepository['create']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        update: jest.fn<IOtherItemRepository['update']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
+        delete: jest.fn<IOtherItemRepository['delete']>().mockImplementation(
+            () => Promise.reject(new Error('not called')),
+        ),
     };
     return {
         timetableRepository,

@@ -21,6 +21,8 @@ import type {
 } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
 import { SearchUseCase } from '@backend/src/use-cases/search/SearchUseCase';
 
+const notCalled = () => Promise.reject(new Error('not called'));
+
 const timetableRepo = (): ITimetableRepository => ({
     findByEventId: jest
         .fn<(eventId: string) => Promise<TimetableItem[]>>()
@@ -30,6 +32,9 @@ const timetableRepo = (): ITimetableRepository => ({
             (keyword: string, eventId: string) => Promise<TimetableItem[]>
         >()
         .mockResolvedValue([]),
+    create: jest.fn<ITimetableRepository['create']>().mockImplementation(notCalled),
+    update: jest.fn<ITimetableRepository['update']>().mockImplementation(notCalled),
+    delete: jest.fn<ITimetableRepository['delete']>().mockImplementation(notCalled),
 });
 
 const roomRepo = (): IRoomRepository => ({
@@ -44,6 +49,9 @@ const roomRepo = (): IRoomRepository => ({
             ) => Promise<RoomWithDepartments[]>
         >()
         .mockResolvedValue([]),
+    create: jest.fn<IRoomRepository['create']>().mockImplementation(notCalled),
+    update: jest.fn<IRoomRepository['update']>().mockImplementation(notCalled),
+    delete: jest.fn<IRoomRepository['delete']>().mockImplementation(notCalled),
 });
 
 const programRepo = (): IProgramRepository => ({
@@ -53,6 +61,9 @@ const programRepo = (): IProgramRepository => ({
     search: jest
         .fn<(keyword: string, eventId: string) => Promise<Program[]>>()
         .mockResolvedValue([]),
+    create: jest.fn<IProgramRepository['create']>().mockImplementation(notCalled),
+    update: jest.fn<IProgramRepository['update']>().mockImplementation(notCalled),
+    delete: jest.fn<IProgramRepository['delete']>().mockImplementation(notCalled),
 });
 
 const shopRepo = (): IShopItemRepository => ({
@@ -62,6 +73,9 @@ const shopRepo = (): IShopItemRepository => ({
     search: jest
         .fn<(keyword: string, eventId: string) => Promise<ShopItem[]>>()
         .mockResolvedValue([]),
+    create: jest.fn<IShopItemRepository['create']>().mockImplementation(notCalled),
+    update: jest.fn<IShopItemRepository['update']>().mockImplementation(notCalled),
+    delete: jest.fn<IShopItemRepository['delete']>().mockImplementation(notCalled),
 });
 
 const otherRepo = (): IOtherItemRepository => ({
@@ -71,6 +85,9 @@ const otherRepo = (): IOtherItemRepository => ({
     search: jest
         .fn<(keyword: string, eventId: string) => Promise<OtherItem[]>>()
         .mockResolvedValue([]),
+    create: jest.fn<IOtherItemRepository['create']>().mockImplementation(notCalled),
+    update: jest.fn<IOtherItemRepository['update']>().mockImplementation(notCalled),
+    delete: jest.fn<IOtherItemRepository['delete']>().mockImplementation(notCalled),
 });
 
 describe('SearchUseCase', () => {

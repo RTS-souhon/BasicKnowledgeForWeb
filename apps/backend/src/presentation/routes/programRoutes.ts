@@ -1,10 +1,21 @@
 import { createDatabaseClient, type Env } from '@backend/src/db/connection';
 import type { IProgramRepository } from '@backend/src/infrastructure/repositories/program/IProgramRepository';
 import { ProgramRepository } from '@backend/src/infrastructure/repositories/program/ProgramRepository';
-import { getPrograms } from '@backend/src/presentation/controllers/programController';
+import {
+    createProgram,
+    deleteProgram,
+    getPrograms,
+    updateProgram,
+} from '@backend/src/presentation/controllers/programController';
 import { contentAccessMiddleware } from '@backend/src/presentation/middleware/contentAccessMiddleware';
+import { contentEditMiddleware } from '@backend/src/presentation/middleware/contentEditMiddleware';
+import { roleGuard } from '@backend/src/presentation/middleware/roleGuard';
+import { CreateProgramUseCase } from '@backend/src/use-cases/program/CreateProgramUseCase';
+import { DeleteProgramUseCase } from '@backend/src/use-cases/program/DeleteProgramUseCase';
 import { GetProgramsUseCase } from '@backend/src/use-cases/program/GetProgramsUseCase';
+import { UpdateProgramUseCase } from '@backend/src/use-cases/program/UpdateProgramUseCase';
 import { Hono } from 'hono';
+import type { ContentEditVariables } from '../middleware/contentEditMiddleware';
 
 type ProgramRepositoryFactory = (env: Env) => IProgramRepository;
 
@@ -12,13 +23,47 @@ export function createProgramRoutes(
     repositoryFactory: ProgramRepositoryFactory = (env) =>
         new ProgramRepository(createDatabaseClient(env)),
 ) {
-    return new Hono<{ Bindings: Env }>().get(
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
+    const ADMIN_ROLES = ['admin'];
+
+    app.get('/programs', contentAccessMiddleware, async (c) => {
+        const repository = repositoryFactory(c.env);
+        const useCase = new GetProgramsUseCase(repository);
+        return getPrograms(c, useCase);
+    });
+
+    app.post(
         '/programs',
-        contentAccessMiddleware,
+        contentEditMiddleware,
+        roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new GetProgramsUseCase(repository);
-            return getPrograms(c, useCase);
+            const useCase = new CreateProgramUseCase(repository);
+            return createProgram(c, useCase);
         },
     );
+
+    app.put(
+        '/programs/:id',
+        contentEditMiddleware,
+        roleGuard(ADMIN_ROLES),
+        async (c) => {
+            const repository = repositoryFactory(c.env);
+            const useCase = new UpdateProgramUseCase(repository);
+            return updateProgram(c, useCase);
+        },
+    );
+
+    app.delete(
+        '/programs/:id',
+        contentEditMiddleware,
+        roleGuard(ADMIN_ROLES),
+        async (c) => {
+            const repository = repositoryFactory(c.env);
+            const useCase = new DeleteProgramUseCase(repository);
+            return deleteProgram(c, useCase);
+        },
+    );
+
+    return app;
 }

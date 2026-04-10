@@ -2,7 +2,12 @@ import type { createDatabaseClient } from '@backend/src/db/connection';
 import { programs } from '@backend/src/db/schema';
 import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
 import { and, asc, eq, ilike, or } from 'drizzle-orm';
-import type { IProgramRepository, Program } from './IProgramRepository';
+import type {
+    CreateProgramInput,
+    IProgramRepository,
+    Program,
+    UpdateProgramInput,
+} from './IProgramRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;
 
@@ -33,5 +38,34 @@ export class ProgramRepository implements IProgramRepository {
                 ),
             )
             .orderBy(asc(programs.startTime));
+    }
+
+    async create(input: CreateProgramInput): Promise<Program> {
+        const [created] = await this.db
+            .insert(programs)
+            .values(input)
+            .returning();
+        return created;
+    }
+
+    async update(
+        id: string,
+        eventId: string,
+        input: UpdateProgramInput,
+    ): Promise<Program | null> {
+        const [updated] = await this.db
+            .update(programs)
+            .set({ ...input, updatedAt: new Date() })
+            .where(and(eq(programs.id, id), eq(programs.eventId, eventId)))
+            .returning();
+        return updated ?? null;
+    }
+
+    async delete(id: string, eventId: string): Promise<boolean> {
+        const deleted = await this.db
+            .delete(programs)
+            .where(and(eq(programs.id, id), eq(programs.eventId, eventId)))
+            .returning({ id: programs.id });
+        return deleted.length > 0;
     }
 }

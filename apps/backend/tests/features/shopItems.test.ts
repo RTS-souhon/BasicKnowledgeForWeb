@@ -14,7 +14,7 @@ const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
 
 const shopItem1: ShopItem = {
-    id: '40000000-0000-0000-0000-000000000001',
+    id: '40000000-0000-4000-8000-000000000001',
     eventId: EVENT_ID,
     name: 'グッズ A',
     price: 500,
@@ -27,7 +27,7 @@ const shopItem1: ShopItem = {
 
 const shopItem2: ShopItem = {
     ...shopItem1,
-    id: '40000000-0000-0000-0000-000000000002',
+    id: '40000000-0000-4000-8000-000000000002',
     name: 'グッズ B',
     price: 1000,
     stockStatus: 'low',
@@ -65,6 +65,15 @@ function createMockShopItemRepository(
                 (keyword: string, eventId: string) => Promise<ShopItem[]>
             >()
             .mockResolvedValue([]),
+        create: jest
+            .fn<IShopItemRepository['create']>()
+            .mockImplementation(() => Promise.resolve(shopItem1)),
+        update: jest
+            .fn<IShopItemRepository['update']>()
+            .mockImplementation(() => Promise.resolve(shopItem1)),
+        delete: jest
+            .fn<IShopItemRepository['delete']>()
+            .mockImplementation(() => Promise.resolve(true)),
         ...overrides,
     };
 }
@@ -243,5 +252,304 @@ describe('GET /api/shop-items', () => {
 
         expect(body.items[0]?.stockStatus).toBe('available');
         expect(body.items[1]?.stockStatus).toBe('low');
+    });
+});
+
+const validShopItemBody = {
+    event_id: EVENT_ID,
+    name: 'グッズ A',
+    price: 500,
+    stock_status: 'available',
+    image_key: `shop-items/${EVENT_ID}/uuid.webp`,
+    image_url: 'https://assets.example.com/event-1/uuid.webp',
+};
+
+const SHOP_ITEM_ID = shopItem1.id;
+
+// ─── POST /api/shop-items ─────────────────────────────────────────────────────
+
+describe('POST /api/shop-items', () => {
+    it('admin トークンと正しいボディで 201 と item が返ること', async () => {
+        const repo = createMockShopItemRepository({
+            create: jest
+                .fn<IShopItemRepository['create']>()
+                .mockImplementation(() => Promise.resolve(shopItem1)),
+        });
+        const app = createTestAppWithShopItems(repo);
+
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify(validShopItemBody),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(201);
+        const body = (await res.json()) as { item: ShopItem };
+        expect(body.item.id).toBe(shopItem1.id);
+    });
+
+    it('必須フィールドが欠けている場合は 400 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ name: 'グッズ' }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('body の event_id と x-event-id が不一致のとき 400 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': OTHER_EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify(validShopItemBody),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(validShopItemBody),
+            },
+        );
+
+        expect(res.status).toBe(401);
+    });
+
+    it('role=user の auth_token では 403 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${userToken}`,
+                },
+                body: JSON.stringify(validShopItemBody),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(403);
+    });
+});
+
+// ─── PUT /api/shop-items/:id ──────────────────────────────────────────────────
+
+describe('PUT /api/shop-items/:id', () => {
+    it('admin トークンと正しいボディで 200 と更新済み item が返ること', async () => {
+        const updated = { ...shopItem1, name: '変更後グッズ' };
+        const repo = createMockShopItemRepository({
+            update: jest
+                .fn<IShopItemRepository['update']>()
+                .mockImplementation(() => Promise.resolve(updated)),
+        });
+        const app = createTestAppWithShopItems(repo);
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ name: '変更後グッズ' }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as { item: ShopItem };
+        expect(body.item.name).toBe('変更後グッズ');
+    });
+
+    it('アイテムが存在しない場合は 404 が返ること', async () => {
+        const repo = createMockShopItemRepository({
+            update: jest
+                .fn<IShopItemRepository['update']>()
+                .mockImplementation(() => Promise.resolve(null)),
+        });
+        const app = createTestAppWithShopItems(repo);
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ name: '変更' }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(404);
+    });
+
+    it('不正な UUID のとき 400 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items/not-a-uuid',
+            {
+                method: 'PUT',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ name: '変更' }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: '変更' }),
+            },
+        );
+
+        expect(res.status).toBe(401);
+    });
+});
+
+// ─── DELETE /api/shop-items/:id ───────────────────────────────────────────────
+
+describe('DELETE /api/shop-items/:id', () => {
+    it('admin トークンで 200 と削除した id が返ること', async () => {
+        const repo = createMockShopItemRepository({
+            delete: jest
+                .fn<IShopItemRepository['delete']>()
+                .mockImplementation(() => Promise.resolve(true)),
+        });
+        const app = createTestAppWithShopItems(repo);
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `auth_token=${adminToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(200);
+        const body = (await res.json()) as { id: string };
+        expect(body.id).toBe(SHOP_ITEM_ID);
+    });
+
+    it('アイテムが存在しない場合は 404 が返ること', async () => {
+        const repo = createMockShopItemRepository({
+            delete: jest
+                .fn<IShopItemRepository['delete']>()
+                .mockImplementation(() => Promise.resolve(false)),
+        });
+        const app = createTestAppWithShopItems(repo);
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `auth_token=${adminToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(404);
+    });
+
+    it('不正な UUID のとき 400 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            '/api/shop-items/not-a-uuid',
+            {
+                method: 'DELETE',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    Cookie: `auth_token=${adminToken}`,
+                },
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('認証なしのとき 401 が返ること', async () => {
+        const app = createTestAppWithShopItems(createMockShopItemRepository());
+
+        const res = await app.request(
+            `/api/shop-items/${SHOP_ITEM_ID}`,
+            {
+                method: 'DELETE',
+                headers: { 'x-event-id': EVENT_ID },
+            },
+        );
+
+        expect(res.status).toBe(401);
     });
 });
