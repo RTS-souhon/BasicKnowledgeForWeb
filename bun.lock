@@ -21,7 +21,7 @@
         "@hono/zod-validator": "^0.7.6",
         "@types/bcryptjs": "^3.0.0",
         "bcryptjs": "^3.0.3",
-        "dotenv": "^17.4.0",
+        "dotenv": "^17.4.1",
         "drizzle-orm": "^1.0.0-beta.20",
         "hono": "^4.12.9",
         "pg": "^8.20.0",
@@ -1097,7 +1097,7 @@
 
     "dom-accessibility-api": ["dom-accessibility-api@0.6.3", "", {}, "sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w=="],
 
-    "dotenv": ["dotenv@17.4.0", "", {}, "sha512-kCKF62fwtzwYm0IGBNjRUjtJgMfGapII+FslMHIjMR5KTnwEmBmWLDRSnc3XSNP8bNy34tekgQyDT0hr7pERRQ=="],
+    "dotenv": ["dotenv@17.4.1", "", {}, "sha512-k8DaKGP6r1G30Lx8V4+pCsLzKr8vLmV2paqEj1Y55GdAgJuIqpRp5FfajGF8KtwMxCz9qJc6wUIJnm053d/WCw=="],
 
     "drizzle-kit": ["drizzle-kit@1.0.0-beta.18-905b79a", "", { "dependencies": { "@drizzle-team/brocli": "^0.11.0", "@js-temporal/polyfill": "^0.5.1", "esbuild": "^0.25.10", "get-tsconfig": "^4.13.6", "jiti": "^2.6.1" }, "bin": { "drizzle-kit": "bin.cjs" } }, "sha512-fEmtI0PNgNs8Ws1qAZEfrv5h/c2kTrRpd+gA/wB1oAvXYFznh3j+s5UlgUgcDc5u5+fnwOTsr+iYJVX3sI1Viw=="],
 
