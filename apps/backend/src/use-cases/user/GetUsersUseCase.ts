@@ -7,7 +7,10 @@ export class GetUsersUseCase implements IGetUsersUseCase {
     async execute() {
         try {
             const allUsers = await this.userRepository.findAll();
-            return { success: true as const, data: allUsers };
+            const usersPublic = allUsers.map(
+                ({ password: _pw, ...rest }) => rest,
+            );
+            return { success: true as const, data: usersPublic };
         } catch (error) {
             return {
                 success: false as const,

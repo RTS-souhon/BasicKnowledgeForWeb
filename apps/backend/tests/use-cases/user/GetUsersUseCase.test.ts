@@ -16,14 +16,16 @@ const mockUser: User = {
 function createMockRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
     return {
         findAll: async () => [],
+        findById: async () => null,
         findByEmail: async () => null,
         create: async () => mockUser,
+        updateRole: async () => null,
         ...overrides,
     };
 }
 
 describe('GetUsersUseCase', () => {
-    it('ユーザー一覧を正常に取得できる', async () => {
+    it('ユーザー一覧を正常に取得できる（password を除外する）', async () => {
         const repo = createMockRepo({ findAll: async () => [mockUser] });
         const useCase = new GetUsersUseCase(repo);
 
@@ -31,7 +33,9 @@ describe('GetUsersUseCase', () => {
 
         expect(result.success).toBe(true);
         if (!result.success) return;
-        expect(result.data).toEqual([mockUser]);
+        expect(result.data).toHaveLength(1);
+        expect(result.data[0]).not.toHaveProperty('password');
+        expect(result.data[0].email).toBe(mockUser.email);
     });
 
     it('ユーザーが存在しない場合は空配列を返す', async () => {

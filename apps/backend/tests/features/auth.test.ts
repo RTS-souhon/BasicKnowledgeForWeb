@@ -34,12 +34,18 @@ function createMockUserRepository(
 ): IUserRepository {
     return {
         findAll: jest.fn<() => Promise<User[]>>().mockResolvedValue([]),
+        findById: jest
+            .fn<(id: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
         findByEmail: jest
             .fn<(email: string) => Promise<User | null>>()
             .mockResolvedValue(null),
         create: jest
             .fn<() => Promise<User>>()
             .mockImplementation(() => Promise.resolve(testUser)),
+        updateRole: jest
+            .fn<(id: string, role: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
         ...overrides,
     };
 }
