@@ -1,9 +1,15 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
+}));
+
+jest.mock('@frontend/app/actions/programs', () => ({
+    createProgramAction: jest.fn(),
+    updateProgramAction: jest.fn(),
+    deleteProgramAction: jest.fn(),
 }));
 
 const serverAuth =
@@ -46,9 +52,15 @@ const MOCK_PROGRAMS = [
     },
 ];
 
+const originalFetch = global.fetch;
+
 beforeEach(() => {
     jest.resetAllMocks();
     mockBuildHeaders.mockReturnValue({});
+});
+
+afterEach(() => {
+    global.fetch = originalFetch;
 });
 
 describe('EventsPage', () => {
@@ -159,5 +171,30 @@ describe('EventsPage', () => {
 
         expect(screen.getByText('時間未定の企画')).toBeInTheDocument();
         expect(screen.getByText('日時未定')).toBeInTheDocument();
+    });
+
+    it('admin ロールの場合、管理パネルを表示する', async () => {
+        const adminAuth: serverAuth.ResolvedAuth = {
+            eventId: 'event-1',
+            authToken: 'auth-token',
+            accessToken: null,
+            role: 'admin',
+        };
+        mockResolveAuth.mockResolvedValue(adminAuth);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ programs: MOCK_PROGRAMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await EventsPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByRole('button', { name: '+ 追加' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(2);
     });
 });

@@ -2,6 +2,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import OtherItemAdminPanel from './OtherItemAdminPanel';
 
 type OtherItem = {
     id: string;
@@ -62,6 +63,10 @@ export default async function OthersPage({
 
     const items = await fetchOtherItems(eventId, authToken, accessToken, role);
     const sorted = [...items].sort((a, b) => a.displayOrder - b.displayOrder);
+
+    if (role === 'admin') {
+        return <OtherItemAdminPanel items={sorted} eventId={eventId} />;
+    }
 
     return (
         <section aria-labelledby='others-heading'>

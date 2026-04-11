@@ -1,9 +1,24 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
+}));
+
+jest.mock('@frontend/app/actions/shop-items', () => ({
+    createShopItemAction: jest.fn(),
+    updateShopItemAction: jest.fn(),
+    deleteShopItemAction: jest.fn(),
+    getShopItemUploadUrlAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const serverAuth =
@@ -54,9 +69,15 @@ const MOCK_ITEMS = [
     },
 ];
 
+const originalFetch = global.fetch;
+
 beforeEach(() => {
     jest.resetAllMocks();
     mockBuildHeaders.mockReturnValue({});
+});
+
+afterEach(() => {
+    global.fetch = originalFetch;
 });
 
 describe('ShopPage', () => {
@@ -223,5 +244,31 @@ describe('ShopPage', () => {
             screen.getByText('データ不備: 商品画像が登録されていないアイテムがあります。'),
         ).toBeInTheDocument();
         expect(screen.getAllByText('No Image')).toHaveLength(2);
+    });
+
+    it('admin ロールの場合、管理パネルを表示する', async () => {
+        const adminAuth: serverAuth.ResolvedAuth = {
+            eventId: 'event-1',
+            authToken: 'auth-token',
+            accessToken: null,
+            role: 'admin',
+        };
+        mockResolveAuth.mockResolvedValue(adminAuth);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await ShopPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByRole('button', { name: '+ 追加' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(6);
+        expect(screen.getAllByRole('button', { name: '削除' })).toHaveLength(6);
     });
 });

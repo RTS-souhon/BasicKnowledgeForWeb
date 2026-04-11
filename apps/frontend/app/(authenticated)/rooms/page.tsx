@@ -2,6 +2,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import RoomAdminPanel from './RoomAdminPanel';
 
 type RoomWithDepartments = {
     id: string;
@@ -65,6 +66,11 @@ export default async function RoomsPage({
     }
 
     const rooms = await fetchRooms(eventId, authToken, accessToken, role);
+
+    if (role === 'admin') {
+        return <RoomAdminPanel rooms={rooms} eventId={eventId} />;
+    }
+
     const sorted = [...rooms].sort((a, b) => {
         const buildingDiff = a.buildingName.localeCompare(b.buildingName);
         if (buildingDiff !== 0) return buildingDiff;

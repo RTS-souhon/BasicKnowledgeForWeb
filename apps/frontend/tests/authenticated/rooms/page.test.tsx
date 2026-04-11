@@ -1,9 +1,15 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
+}));
+
+jest.mock('@frontend/app/actions/rooms', () => ({
+    createRoomAction: jest.fn(),
+    updateRoomAction: jest.fn(),
+    deleteRoomAction: jest.fn(),
 }));
 
 const serverAuth =
@@ -56,9 +62,15 @@ const MOCK_ROOMS = [
     },
 ];
 
+const originalFetch = global.fetch;
+
 beforeEach(() => {
     jest.resetAllMocks();
     mockBuildHeaders.mockReturnValue({});
+});
+
+afterEach(() => {
+    global.fetch = originalFetch;
 });
 
 describe('RoomsPage', () => {
@@ -133,5 +145,30 @@ describe('RoomsPage', () => {
         expect(card).toHaveTextContent('A棟・2F');
         expect(card).toHaveTextContent('企画部 — 準備');
         expect(card).toHaveTextContent('備考: 追加机あり');
+    });
+
+    it('admin ロールの場合、管理パネルを表示する', async () => {
+        const adminAuth: serverAuth.ResolvedAuth = {
+            eventId: 'event-1',
+            authToken: 'auth-token',
+            accessToken: null,
+            role: 'admin',
+        };
+        mockResolveAuth.mockResolvedValue(adminAuth);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ rooms: MOCK_ROOMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await RoomsPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByRole('button', { name: '+ 追加' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(4);
     });
 });
