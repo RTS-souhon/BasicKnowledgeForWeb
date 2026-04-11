@@ -6,6 +6,21 @@ jest.mock('@frontend/app/lib/serverAuth', () => ({
     buildContentFetchHeaders: jest.fn(),
 }));
 
+jest.mock('@frontend/app/actions/shop-items', () => ({
+    createShopItemAction: jest.fn(),
+    updateShopItemAction: jest.fn(),
+    deleteShopItemAction: jest.fn(),
+    getShopItemUploadUrlAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
+}));
+
 const serverAuth =
     require('@frontend/app/lib/serverAuth') as typeof import('@frontend/app/lib/serverAuth');
 const ShopPage =
@@ -223,5 +238,31 @@ describe('ShopPage', () => {
             screen.getByText('データ不備: 商品画像が登録されていないアイテムがあります。'),
         ).toBeInTheDocument();
         expect(screen.getAllByText('No Image')).toHaveLength(2);
+    });
+
+    it('admin ロールの場合、管理パネルを表示する', async () => {
+        const adminAuth: serverAuth.ResolvedAuth = {
+            eventId: 'event-1',
+            authToken: 'auth-token',
+            accessToken: null,
+            role: 'admin',
+        };
+        mockResolveAuth.mockResolvedValue(adminAuth);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await ShopPage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByRole('button', { name: '+ 追加' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(6);
+        expect(screen.getAllByRole('button', { name: '削除' })).toHaveLength(6);
     });
 });

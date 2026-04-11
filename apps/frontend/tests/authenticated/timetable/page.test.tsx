@@ -6,6 +6,12 @@ jest.mock('@frontend/app/lib/serverAuth', () => ({
     buildContentFetchHeaders: jest.fn(),
 }));
 
+jest.mock('@frontend/app/actions/timetable', () => ({
+    createTimetableItemAction: jest.fn(),
+    updateTimetableItemAction: jest.fn(),
+    deleteTimetableItemAction: jest.fn(),
+}));
+
 const serverAuth =
     require('@frontend/app/lib/serverAuth') as typeof import('@frontend/app/lib/serverAuth');
 const TimetablePage = require('@frontend/app/(authenticated)/timetable/page')
@@ -176,5 +182,30 @@ describe('TimetablePage', () => {
         expect(
             screen.getByText('登録されているタイムテーブルはありません'),
         ).toBeInTheDocument();
+    });
+
+    it('admin ロールの場合、管理パネルを表示する', async () => {
+        const adminAuth: serverAuth.ResolvedAuth = {
+            eventId: 'event-1',
+            authToken: 'auth-token',
+            accessToken: null,
+            role: 'admin',
+        };
+        mockResolveAuth.mockResolvedValue(adminAuth);
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
+                status: 200,
+            }),
+        );
+
+        const element = await TimetablePage({
+            searchParams: Promise.resolve({ event_id: 'event-1' }),
+        });
+        render(element);
+
+        expect(
+            screen.getByRole('button', { name: '+ 追加' }),
+        ).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(2);
     });
 });

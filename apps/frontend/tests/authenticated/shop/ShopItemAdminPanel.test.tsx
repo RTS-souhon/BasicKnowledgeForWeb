@@ -1,0 +1,208 @@
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+jest.mock('@frontend/app/actions/shop-items', () => ({
+    createShopItemAction: jest.fn(),
+    updateShopItemAction: jest.fn(),
+    deleteShopItemAction: jest.fn(),
+    getShopItemUploadUrlAction: jest.fn(),
+}));
+
+// next/image はテスト環境では通常の img タグにフォールバック
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
+}));
+
+const actions =
+    require('@frontend/app/actions/shop-items') as typeof import('@frontend/app/actions/shop-items');
+const ShopItemAdminPanel =
+    require('@frontend/app/(authenticated)/shop/ShopItemAdminPanel')
+        .default as typeof import('@frontend/app/(authenticated)/shop/ShopItemAdminPanel').default;
+
+const mockCreate = jest.mocked(actions.createShopItemAction);
+const mockUpdate = jest.mocked(actions.updateShopItemAction);
+const mockDelete = jest.mocked(actions.deleteShopItemAction);
+const mockGetUploadUrl = jest.mocked(actions.getShopItemUploadUrlAction);
+
+const MOCK_ITEMS = [
+    {
+        id: '1',
+        name: 'オリジナルTシャツ',
+        price: 2000,
+        stockStatus: 'available' as const,
+        description: null,
+        imageUrl: 'https://assets.example.com/tshirt.webp',
+    },
+    {
+        id: '2',
+        name: '缶バッジセット',
+        price: 500,
+        stockStatus: 'sold_out' as const,
+        description: '3個セット',
+        imageUrl: 'https://assets.example.com/badge.webp',
+    },
+];
+
+beforeEach(() => {
+    jest.resetAllMocks();
+    global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+        new Response(null, { status: 200 }),
+    );
+});
+
+describe('ShopItemAdminPanel', () => {
+    it('販売物一覧を表示する', () => {
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        expect(screen.getAllByText('オリジナルTシャツ')[0]).toBeInTheDocument();
+        expect(screen.getAllByText('缶バッジセット')[0]).toBeInTheDocument();
+    });
+
+    it('各アイテムに編集・削除ボタンを表示する', () => {
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(4);
+        expect(screen.getAllByRole('button', { name: '削除' })).toHaveLength(4);
+    });
+
+    it('アイテムがない場合に空メッセージを表示する', () => {
+        render(<ShopItemAdminPanel items={[]} eventId='event-1' />);
+
+        expect(
+            screen.getByText('登録されている販売物はありません'),
+        ).toBeInTheDocument();
+    });
+
+    it('在庫ステータスラベルを表示する', () => {
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        expect(screen.getAllByText('在庫あり')[0]).toBeInTheDocument();
+        expect(screen.getAllByText('完売')[0]).toBeInTheDocument();
+    });
+
+    it('+ 追加 ボタンクリックでフォームを表示する', async () => {
+        const user = userEvent.setup();
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+
+        expect(screen.getByText('新しい販売物を追加')).toBeInTheDocument();
+        expect(screen.getByLabelText(/商品名/)).toBeInTheDocument();
+    });
+
+    it('キャンセルボタンでフォームを閉じる', async () => {
+        const user = userEvent.setup();
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+
+        expect(
+            screen.queryByText('新しい販売物を追加'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('編集ボタンで既存データがフォームに入力済みになる', async () => {
+        const user = userEvent.setup();
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        const editButtons = screen.getAllByRole('button', { name: '編集' });
+        await user.click(editButtons[0]);
+
+        expect(screen.getByText('販売物を編集')).toBeInTheDocument();
+        expect(screen.getByLabelText(/商品名/)).toHaveValue('オリジナルTシャツ');
+        expect(screen.getByLabelText(/価格/)).toHaveValue(2000);
+    });
+
+    it('商品名が空の場合にバリデーションエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<ShopItemAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.click(screen.getByRole('button', { name: '保存' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            '商品名は必須です',
+        );
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('新規追加時に画像未選択でエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<ShopItemAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/商品名/), 'テスト商品');
+
+        await user.click(screen.getByRole('button', { name: '保存' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            '新規追加時は画像が必須です',
+        );
+    });
+
+    it('削除ボタンクリック + confirm で deleteShopItemAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        mockDelete.mockResolvedValue({ success: true });
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        const deleteButtons = screen.getAllByRole('button', { name: '削除' });
+        await act(async () => {
+            await user.click(deleteButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(mockDelete).toHaveBeenCalledWith('event-1', '1');
+        });
+    });
+
+    it('confirm キャンセル時は deleteShopItemAction を呼ばない', async () => {
+        const user = userEvent.setup();
+        global.confirm = jest.fn<typeof confirm>().mockReturnValue(false);
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        const deleteButtons = screen.getAllByRole('button', { name: '削除' });
+        await user.click(deleteButtons[0]);
+
+        expect(mockDelete).not.toHaveBeenCalled();
+    });
+
+    it('アクション失敗時にエラーメッセージを表示する', async () => {
+        const user = userEvent.setup();
+        mockDelete.mockResolvedValue({
+            success: false,
+            error: '削除に失敗しました',
+        });
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        const deleteButtons = screen.getAllByRole('button', { name: '削除' });
+        await act(async () => {
+            await user.click(deleteButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                '削除に失敗しました',
+            );
+        });
+    });
+
+    it('価格を正しくフォーマットして表示する', () => {
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        expect(screen.getAllByText('¥2,000')[0]).toBeInTheDocument();
+        expect(screen.getAllByText('¥500')[0]).toBeInTheDocument();
+    });
+
+    it('説明がある場合に表示する', () => {
+        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
+
+        expect(screen.getAllByText('3個セット')[0]).toBeInTheDocument();
+    });
+});
