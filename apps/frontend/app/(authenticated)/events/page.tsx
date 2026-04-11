@@ -3,6 +3,7 @@ import {
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
 import { Clock3, MapPin } from 'lucide-react';
+import ProgramAdminPanel from './ProgramAdminPanel';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -102,6 +103,11 @@ export default async function EventsPage({
     }
 
     const programs = await fetchPrograms(eventId, authToken, accessToken, role);
+
+    if (role === 'admin') {
+        return <ProgramAdminPanel items={programs} eventId={eventId} />;
+    }
+
     const sorted = [...programs].sort(
         (a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),

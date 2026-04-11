@@ -4,6 +4,7 @@ import {
 } from '@frontend/app/lib/serverAuth';
 import Image from 'next/image';
 import type { CSSProperties } from 'react';
+import ShopItemAdminPanel from './ShopItemAdminPanel';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
 
@@ -134,9 +135,18 @@ export default async function ShopPage({
         );
     }
 
-    const items = sortByName(
-        await fetchShopItems(eventId, authToken, accessToken, role),
+    const rawItems = await fetchShopItems(
+        eventId,
+        authToken,
+        accessToken,
+        role,
     );
+
+    if (role === 'admin') {
+        return <ShopItemAdminPanel items={rawItems} eventId={eventId} />;
+    }
+
+    const items = sortByName(rawItems);
     const hasImageDataIssue = items.some(
         (item) => item.imageUrl.trim().length === 0,
     );

@@ -2,6 +2,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import TimetableAdminPanel from './TimetableAdminPanel';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -128,6 +129,11 @@ export default async function TimetablePage({
     }
 
     const items = await fetchTimetable(eventId, authToken, accessToken, role);
+
+    if (role === 'admin') {
+        return <TimetableAdminPanel items={items} eventId={eventId} />;
+    }
+
     const sorted = [...items].sort(
         (a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
