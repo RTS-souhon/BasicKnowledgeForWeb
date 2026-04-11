@@ -157,13 +157,16 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         const uploadRes = await fetch(uploadResult.uploadUrl, {
             method: 'PUT',
             body: file,
-            headers: { 'Content-Type': file.type },
+            headers: {
+                'Content-Type': file.type,
+                ...uploadResult.headers,
+            },
         });
         if (!uploadRes.ok) {
             throw new Error('画像のアップロードに失敗しました');
         }
 
-        return uploadResult.key;
+        return uploadResult.imageKey;
     };
 
     const handleSubmit = () => {

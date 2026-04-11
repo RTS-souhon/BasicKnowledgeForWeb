@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 
 jest.mock('@frontend/app/lib/serverAuth', () => ({
@@ -74,9 +74,15 @@ const MOCK_ITEMS = [
     },
 ];
 
+const originalFetch = global.fetch;
+
 beforeEach(() => {
     jest.resetAllMocks();
     mockBuildHeaders.mockReturnValue({});
+});
+
+afterEach(() => {
+    global.fetch = originalFetch;
 });
 
 describe('TimetablePage', () => {

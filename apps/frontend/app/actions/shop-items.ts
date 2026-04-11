@@ -7,7 +7,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 type UploadUrlResult =
-    | { success: true; uploadUrl: string; key: string }
+    | {
+          success: true;
+          uploadUrl: string;
+          imageKey: string;
+          headers: Record<string, string>;
+      }
     | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
@@ -45,8 +50,17 @@ export async function getShopItemUploadUrlAction(
                 error: body.error ?? 'アップロードURLの取得に失敗しました',
             };
         }
-        const body = (await res.json()) as { uploadUrl: string; key: string };
-        return { success: true, uploadUrl: body.uploadUrl, key: body.key };
+        const body = (await res.json()) as {
+            uploadUrl: string;
+            imageKey: string;
+            headers: Record<string, string>;
+        };
+        return {
+            success: true,
+            uploadUrl: body.uploadUrl,
+            imageKey: body.imageKey,
+            headers: body.headers,
+        };
     } catch {
         return {
             success: false,
