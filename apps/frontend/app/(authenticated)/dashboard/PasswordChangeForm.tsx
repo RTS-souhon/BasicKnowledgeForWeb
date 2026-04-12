@@ -8,12 +8,12 @@ export default function PasswordChangeForm() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState(false);
+    const [success, setSuccess] = useState<string | null>(null);
     const [isPending, setIsPending] = useState(false);
 
     const handleSubmit = async () => {
         setError(null);
-        setSuccess(false);
+        setSuccess(null);
 
         if (!currentPassword || !newPassword || !confirmPassword) {
             setError('すべての項目を入力してください');
@@ -37,7 +37,7 @@ export default function PasswordChangeForm() {
             if (!result.success) {
                 setError(result.error);
             } else {
-                setSuccess(true);
+                setSuccess('パスワードを変更しました');
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
@@ -114,9 +114,9 @@ export default function PasswordChangeForm() {
                     {success && (
                         <p
                             role='status'
-                            className='text-green-600 text-sm dark:text-green-400'
+                            className='rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                         >
-                            パスワードを変更しました
+                            {success}
                         </p>
                     )}
 

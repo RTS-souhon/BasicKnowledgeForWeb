@@ -15,6 +15,10 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
+function revalidateOthersPage(eventId: string) {
+    revalidatePath(`/others?event_id=${encodeURIComponent(eventId)}`, 'page');
+}
+
 export async function createOtherItemAction(
     eventId: string,
     data: { title: string; content: string; display_order: number },
@@ -46,7 +50,7 @@ export async function createOtherItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        await revalidatePath('/others');
+        revalidateOthersPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -91,7 +95,7 @@ export async function updateOtherItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        await revalidatePath('/others');
+        revalidateOthersPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -133,7 +137,7 @@ export async function deleteOtherItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        await revalidatePath('/others');
+        revalidateOthersPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(

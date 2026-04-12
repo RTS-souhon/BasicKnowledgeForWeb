@@ -30,6 +30,7 @@ export default function UserRolePanel({ initialUsers }: Props) {
         ),
     );
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [, startTransition] = useTransition();
 
     const handleRoleChange = (userId: string) => {
@@ -38,6 +39,7 @@ export default function UserRolePanel({ initialUsers }: Props) {
 
         setError(null);
         setPendingId(userId);
+        setInfoMessage(null);
 
         startTransition(async () => {
             const result = await updateUserRoleAction(userId, newRole);
@@ -60,6 +62,7 @@ export default function UserRolePanel({ initialUsers }: Props) {
                         u.id === userId ? { ...u, role: newRole } : u,
                     ),
                 );
+                setInfoMessage('ユーザーのロールを更新しました');
             }
         });
     };
@@ -72,6 +75,14 @@ export default function UserRolePanel({ initialUsers }: Props) {
             >
                 ユーザー管理
             </h2>
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-3 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
             {error && (
                 <p role='alert' className='mb-3 text-destructive text-sm'>
                     {error}

@@ -15,6 +15,10 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
+function revalidateRoomsPage(eventId: string) {
+    revalidatePath(`/rooms?event_id=${encodeURIComponent(eventId)}`, 'page');
+}
+
 export async function createRoomAction(
     eventId: string,
     data: {
@@ -55,7 +59,7 @@ export async function createRoomAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        await revalidatePath('/rooms');
+        revalidateRoomsPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -109,7 +113,7 @@ export async function updateRoomAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        await revalidatePath('/rooms');
+        revalidateRoomsPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -151,7 +155,7 @@ export async function deleteRoomAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        await revalidatePath('/rooms');
+        revalidateRoomsPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(

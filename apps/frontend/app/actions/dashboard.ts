@@ -15,6 +15,10 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
+function revalidateDashboard() {
+    revalidatePath('/dashboard');
+}
+
 export async function changePasswordAction(data: {
     currentPassword: string;
     newPassword: string;
@@ -87,7 +91,7 @@ export async function updateUserRoleAction(
                 error: body.error ?? 'ロールの変更に失敗しました',
             };
         }
-        await revalidatePath('/dashboard');
+        revalidateDashboard();
         return { success: true };
     } catch (err) {
         logActionError(

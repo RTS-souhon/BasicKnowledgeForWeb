@@ -69,6 +69,7 @@ export default function AccessCodeAdminPanel({
     const [validTo, setValidTo] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
     const [globalError, setGlobalError] = useState<string | null>(initialError);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isFormSubmitting, setIsFormSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isRefreshing, startTransition] = useTransition();
@@ -81,6 +82,7 @@ export default function AccessCodeAdminPanel({
 
     const handleCreate = () => {
         setFormError(null);
+        setInfoMessage(null);
 
         if (!eventName.trim() || !code.trim() || !validFrom || !validTo) {
             setFormError('すべての項目を入力してください');
@@ -106,6 +108,7 @@ export default function AccessCodeAdminPanel({
                 setCode('');
                 setValidFrom('');
                 setValidTo('');
+                setInfoMessage('アクセスコードを生成しました');
                 refreshCodes();
             }
             setIsFormSubmitting(false);
@@ -149,6 +152,14 @@ export default function AccessCodeAdminPanel({
                     新規コード生成
                 </h2>
                 <div className='rounded-lg border border-border bg-card p-6'>
+                    {infoMessage && (
+                        <p
+                            role='status'
+                            className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        >
+                            {infoMessage}
+                        </p>
+                    )}
                     <div className='space-y-4'>
                         <div>
                             <label

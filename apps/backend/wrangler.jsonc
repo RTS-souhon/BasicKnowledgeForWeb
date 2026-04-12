@@ -37,7 +37,7 @@
 				}
 			],
 			"vars": {
-				"SHOP_ITEM_ASSET_BASE_URL": "https://assets.reitaisai.info"
+				"SHOP_ITEM_ASSET_BASE_URL": "https://assets.dev.reitaisai.info"
 			},
 			"hyperdrive": [
 				{
