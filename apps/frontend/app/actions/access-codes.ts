@@ -15,6 +15,10 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
+function revalidateAccessCodesPage() {
+    revalidatePath('/admin/access-codes');
+}
+
 export async function createAccessCodeAction(data: {
     code: string;
     eventName: string;
@@ -47,7 +51,7 @@ export async function createAccessCodeAction(data: {
                 error: body.error ?? 'コードの作成に失敗しました',
             };
         }
-        await revalidatePath('/admin/access-codes');
+        revalidateAccessCodesPage();
         return { success: true };
     } catch (err) {
         logActionError(
@@ -85,7 +89,7 @@ export async function deleteAccessCodeAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        await revalidatePath('/admin/access-codes');
+        revalidateAccessCodesPage();
         return { success: true };
     } catch (err) {
         logActionError(
