@@ -43,4 +43,11 @@ export class UserRepository implements IUserRepository {
             .returning();
         return updated ?? null;
     }
+
+    async updatePassword(id: string, hashedPassword: string): Promise<void> {
+        await this.db
+            .update(users)
+            .set({ password: hashedPassword, updatedAt: new Date() })
+            .where(eq(users.id, id));
+    }
 }

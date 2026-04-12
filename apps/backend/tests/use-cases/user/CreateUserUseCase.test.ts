@@ -27,6 +27,7 @@ function createMockRepo(overrides: Partial<IUserRepository> = {}): IUserReposito
         findByEmail: async () => null,
         create: async () => mockUser,
         updateRole: async () => null,
+        updatePassword: async () => undefined,
         ...overrides,
     };
 }

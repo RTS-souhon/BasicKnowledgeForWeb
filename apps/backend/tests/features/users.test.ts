@@ -57,6 +57,9 @@ function createMockUserRepository(
         updateRole: jest
             .fn<(id: string, role: string) => Promise<User | null>>()
             .mockResolvedValue(null),
+        updatePassword: jest
+            .fn<(id: string, hashedPassword: string) => Promise<void>>()
+            .mockResolvedValue(undefined),
         ...overrides,
     };
 }
