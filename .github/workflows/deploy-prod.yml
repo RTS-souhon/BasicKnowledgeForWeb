@@ -75,6 +75,7 @@ jobs:
       - name: Build frontend
         run: |
           cd apps/frontend
+          rm -f .env
           bun run build:cloudflare
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
