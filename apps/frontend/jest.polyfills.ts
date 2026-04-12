@@ -8,6 +8,16 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // biome-ignore lint/suspicious/noExplicitAny: polyfill requires any
 
+// 0. React 18+/19 act() サポート: jsdom16 では自動判定されないため手動で有効化
+const globalForAct = globalThis as {
+    IS_REACT_ACT_ENVIRONMENT?: boolean;
+    window?: { IS_REACT_ACT_ENVIRONMENT?: boolean };
+};
+globalForAct.IS_REACT_ACT_ENVIRONMENT = true;
+if (globalForAct.window) {
+    globalForAct.window.IS_REACT_ACT_ENVIRONMENT = true;
+}
+
 // 1. TextEncoder / TextDecoder (Node.js 組み込み)
 const { TextDecoder, TextEncoder } = require('node:util') as any;
 Object.assign(global, { TextDecoder, TextEncoder });

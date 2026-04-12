@@ -25,4 +25,16 @@ const cssColorMock = require('../mocks/css-color.js');
 hijackModule('@asamuzakjp/css-color', cssColorMock);
 hijackModule('@asamuzakjp/css-color/dist/cjs/index.cjs', cssColorMock);
 
-export default class CustomJestEnvironment extends JsdomEnvironment {}
+export default class CustomJestEnvironment extends JsdomEnvironment {
+    override async setup() {
+        await super.setup();
+        const globalForAct = this.global as typeof globalThis & {
+            window?: { IS_REACT_ACT_ENVIRONMENT?: boolean };
+            IS_REACT_ACT_ENVIRONMENT?: boolean;
+        };
+        globalForAct.IS_REACT_ACT_ENVIRONMENT = true;
+        if (globalForAct.window) {
+            globalForAct.window.IS_REACT_ACT_ENVIRONMENT = true;
+        }
+    }
+}
