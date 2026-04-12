@@ -1,30 +1,20 @@
-import { resolveAuth } from '@frontend/app/lib/serverAuth';
+import {
+    type AuthPayload,
+    decodeJwtPayload,
+    resolveAuth,
+} from '@frontend/app/lib/serverAuth';
 import { redirect } from 'next/navigation';
 import PasswordChangeForm from './PasswordChangeForm';
 import UserRolePanel from './UserRolePanel';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
-type Me = { id: string; name: string; email: string; role: string };
 type UserEntry = { id: string; name: string; email: string; role: string };
 
 const ROLE_LABELS: Record<string, string> = {
     user: 'スタッフ',
     admin: '管理者',
 };
-
-async function fetchMe(authToken: string): Promise<Me | null> {
-    try {
-        const res = await fetch(`${API_URL}/api/auth/me`, {
-            headers: { Cookie: `auth_token=${authToken}` },
-            cache: 'no-store',
-        });
-        if (!res.ok) return null;
-        return (await res.json()) as Me;
-    } catch {
-        return null;
-    }
-}
 
 async function fetchUsers(authToken: string): Promise<UserEntry[]> {
     try {
@@ -47,13 +37,13 @@ export default async function DashboardPage() {
         redirect('/login');
     }
 
-    const me = await fetchMe(authToken);
+    const me = decodeJwtPayload<AuthPayload>(authToken!);
     if (!me) {
         redirect('/login');
     }
 
     const isAdmin = role === 'admin';
-    const users = isAdmin ? await fetchUsers(authToken) : [];
+    const users = isAdmin ? await fetchUsers(authToken!) : [];
 
     return (
         <div className='space-y-8'>
