@@ -75,7 +75,11 @@ jobs:
       - name: Build frontend
         run: |
           cd apps/frontend
-          rm -f .env
+          rm -f .env .env.local .env.production
+          cat <<EOF > .env.production
+NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+JWT_SECRET=${{ secrets.JWT_SECRET }}
+EOF
           bun run build:cloudflare
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
