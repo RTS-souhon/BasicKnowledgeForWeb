@@ -9,6 +9,11 @@ jest.mock('@frontend/app/actions/shop-items', () => ({
     uploadShopItemImageAction: jest.fn(),
 }));
 
+const mockRefresh = jest.fn();
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ refresh: mockRefresh }),
+}));
+
 // next/image はテスト環境では通常の img タグにフォールバック
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -57,6 +62,38 @@ beforeEach(() => {
 });
 
 describe('ShopItemAdminPanel', () => {
+    it('新規追加成功時にフォームを閉じてリフレッシュする', async () => {
+        const user = userEvent.setup();
+        mockUploadImage.mockResolvedValue({
+            success: true,
+            imageKey: 'shop-items/event-1/new.webp',
+        });
+        mockCreate.mockResolvedValue({ success: true });
+        render(<ShopItemAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/商品名/), '新商品');
+        const fileInput = screen.getByLabelText(/画像ファイル/);
+        const file = new File(['dummy'], 'dummy.png', { type: 'image/png' });
+        await user.upload(fileInput, file);
+
+        await user.click(screen.getByRole('button', { name: '保存' }));
+
+        await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalledWith('event-1', {
+                name: '新商品',
+                price: 0,
+                stock_status: 'available',
+                image_key: 'shop-items/event-1/new.webp',
+                description: null,
+            });
+            expect(mockRefresh).toHaveBeenCalled();
+        });
+        expect(
+            screen.queryByText('新しい販売物を追加'),
+        ).not.toBeInTheDocument();
+    });
+
     it('販売物一覧を表示する', () => {
         render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
@@ -147,7 +184,7 @@ describe('ShopItemAdminPanel', () => {
         );
     });
 
-    it('削除ボタンクリック + confirm で deleteShopItemAction を呼ぶ', async () => {
+    it('削除ボタンクリック + confirm で deleteShopItemAction を呼びリフレッシュする', async () => {
         const user = userEvent.setup();
         mockDelete.mockResolvedValue({ success: true });
         render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
@@ -159,6 +196,7 @@ describe('ShopItemAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('event-1', '1');
+            expect(mockRefresh).toHaveBeenCalled();
         });
     });
 
