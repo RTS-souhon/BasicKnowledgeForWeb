@@ -15,6 +15,13 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
+function revalidateTimetablePage(eventId: string) {
+    revalidatePath(
+        `/timetable?event_id=${encodeURIComponent(eventId)}`,
+        'page',
+    );
+}
+
 export async function createTimetableItemAction(
     eventId: string,
     data: {
@@ -52,7 +59,7 @@ export async function createTimetableItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        await revalidatePath('/timetable');
+        revalidateTimetablePage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -103,7 +110,7 @@ export async function updateTimetableItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        await revalidatePath('/timetable');
+        revalidateTimetablePage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -145,7 +152,7 @@ export async function deleteTimetableItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        await revalidatePath('/timetable');
+        revalidateTimetablePage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
