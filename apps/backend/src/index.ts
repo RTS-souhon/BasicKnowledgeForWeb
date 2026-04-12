@@ -28,6 +28,24 @@ app.use(
         credentials: true,
     }),
 );
+app.get('/assets/*', async (c) => {
+    const key = c.req.path.replace(/^\/assets\//, '');
+    if (!key) {
+        return c.notFound();
+    }
+    const object = await c.env.SHOP_ITEM_ASSET_BUCKET.get(key);
+    if (!object) {
+        return c.notFound();
+    }
+    return new Response(object.body, {
+        headers: {
+            'Content-Type':
+                object.httpMetadata?.contentType ?? 'application/octet-stream',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+    });
+});
+
 const appWithRoutes = app
     .route('/api', createHealthRoutes())
     .route('/api', createUserRoutes())
