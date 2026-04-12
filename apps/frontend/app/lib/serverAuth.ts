@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 export type AuthPayload = {
     id: string;
     name: string;
+    email: string;
     role: string;
     exp?: number;
 };
