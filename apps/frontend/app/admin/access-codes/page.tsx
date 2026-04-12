@@ -29,9 +29,9 @@ async function fetchAccessCodes(authToken: string): Promise<FetchResult> {
         redirect('/login');
     }
     if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-            | { error?: string }
-            | null;
+        const body = (await res.json().catch(() => null)) as {
+            error?: string;
+        } | null;
         return {
             codes: [],
             error: body?.error ?? 'アクセスコードの取得に失敗しました',
