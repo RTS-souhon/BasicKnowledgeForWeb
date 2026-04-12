@@ -63,6 +63,14 @@ export function AuthHeader({
         return pathname.startsWith(href);
     };
 
+    const navItems = useMemo(() => {
+        if (!isPrivileged) return NAV_ITEMS;
+        return [
+            ...NAV_ITEMS,
+            { href: '/dashboard', label: 'ダッシュボード' },
+        ];
+    }, [isPrivileged]);
+
     // Escape key closes the drawer
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -101,7 +109,7 @@ export function AuthHeader({
                     aria-label='メインナビゲーション'
                     className='hidden items-center gap-1 md:flex'
                 >
-                    {NAV_ITEMS.map(({ href, label }) => (
+                    {navItems.map(({ href, label }) => (
                         <Link
                             key={href}
                             href={buildHref(href)}
@@ -187,7 +195,7 @@ export function AuthHeader({
                     aria-label='モバイルナビゲーション'
                     className='flex-1 overflow-y-auto py-4'
                 >
-                    {NAV_ITEMS.map(({ href, label }) => (
+                    {navItems.map(({ href, label }) => (
                         <Link
                             key={href}
                             href={buildHref(href)}

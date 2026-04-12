@@ -8,6 +8,7 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 type OtherItem = {
@@ -36,18 +37,21 @@ function itemToForm(item: OtherItem): FormData {
 type Props = { items: OtherItem[]; eventId: string };
 
 export default function OtherItemAdminPanel({ items, eventId }: Props) {
+    const router = useRouter();
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
     const [editingItem, setEditingItem] = useState<OtherItem | null>(null);
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
     };
 
@@ -55,6 +59,7 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
     };
 
@@ -93,7 +98,16 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
 
             if (!result.success) {
                 setError(result.error);
+                return;
             }
+
+            setInfoMessage(
+                formMode === 'adding'
+                    ? '情報を追加しました'
+                    : '情報を更新しました',
+            );
+            closeForm();
+            router.refresh();
         });
     };
 
@@ -101,7 +115,12 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
         if (!confirm(`「${item.title}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteOtherItemAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            setInfoMessage('情報を削除しました');
+            router.refresh();
         });
     };
 
@@ -127,6 +146,15 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
                     </Button>
                 )}
             </div>
+
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
 
             {error && (
                 <p

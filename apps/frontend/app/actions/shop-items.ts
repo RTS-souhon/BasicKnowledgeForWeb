@@ -32,21 +32,23 @@ export async function getShopItemUploadUrlAction(
     if (!authToken) return { success: false, error: '認証が必要です' };
 
     try {
-        const params = new URLSearchParams();
-        if (fileName) params.set('file_name', fileName);
-        if (contentType) params.set('content_type', contentType);
-        const query = params.size > 0 ? `?${params}` : '';
+        const endpoint = '/api/shop-items/upload-url';
+        const payload: Record<string, string> = {};
+        if (fileName) payload.file_name = fileName;
+        if (contentType) payload.content_type = contentType;
 
-        const endpoint = `/api/shop-items/upload-url${query}`;
         const res = await fetchFromBackend(endpoint, {
+            method: 'POST',
             headers: {
+                'Content-Type': 'application/json',
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
+            body: JSON.stringify(payload),
         });
         logAction(
             'getShopItemUploadUrlAction',
-            'GET',
+            'POST',
             buildBackendUrl(endpoint),
             res.status,
         );
@@ -71,7 +73,7 @@ export async function getShopItemUploadUrlAction(
     } catch (err) {
         logActionError(
             'getShopItemUploadUrlAction',
-            'GET',
+            'POST',
             buildBackendUrl('/api/shop-items/upload-url'),
             err,
         );
