@@ -1,5 +1,6 @@
 import type { Env } from '@backend/src/db/connection';
 import type { IAccessCodeRepository } from '@backend/src/infrastructure/repositories/access-code/IAccessCodeRepository';
+import type { IDepartmentRepository } from '@backend/src/infrastructure/repositories/departments/IDepartmentRepository';
 import type { IHealthRepository } from '@backend/src/infrastructure/repositories/health/IHealthRepository';
 import type { IOtherItemRepository } from '@backend/src/infrastructure/repositories/other-item/IOtherItemRepository';
 import type { IProgramRepository } from '@backend/src/infrastructure/repositories/program/IProgramRepository';
@@ -9,6 +10,7 @@ import type { ITimetableRepository } from '@backend/src/infrastructure/repositor
 import type { IUserRepository } from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import { createAccessCodeRoutes } from '@backend/src/presentation/routes/accessCodeRoutes';
 import { createAuthRoutes } from '@backend/src/presentation/routes/authRoutes';
+import { createDepartmentRoutes } from '@backend/src/presentation/routes/departmentRoutes';
 import { createHealthRoutes } from '@backend/src/presentation/routes/healthRoutes';
 import { createOtherItemRoutes } from '@backend/src/presentation/routes/otherItemRoutes';
 import { createProgramRoutes } from '@backend/src/presentation/routes/programRoutes';
@@ -87,6 +89,14 @@ export function createTestAppWithOtherItems(
 ) {
     const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
     app.route('/api', createOtherItemRoutes(() => otherItemRepository));
+    return app;
+}
+
+export function createTestAppWithDepartments(
+    departmentRepository: IDepartmentRepository,
+) {
+    const app = new Hono<{ Bindings: Env; Variables: ContentEditVariables }>();
+    app.route('/api', createDepartmentRoutes(() => departmentRepository));
     return app;
 }
 

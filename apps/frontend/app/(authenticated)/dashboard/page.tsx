@@ -102,12 +102,20 @@ export default async function DashboardPage() {
                         管理メニュー
                     </h2>
                     <div className='rounded-lg border border-border bg-card p-6'>
-                        <a
-                            href='/admin/access-codes'
-                            className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
-                        >
-                            アクセスコード管理 →
-                        </a>
+                        <div className='flex flex-col gap-3'>
+                            <a
+                                href='/admin/access-codes'
+                                className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
+                            >
+                                アクセスコード管理 →
+                            </a>
+                            <a
+                                href='/departments'
+                                className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
+                            >
+                                部署管理 →
+                            </a>
+                        </div>
                     </div>
                 </section>
             )}

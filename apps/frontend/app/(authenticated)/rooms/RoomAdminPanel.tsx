@@ -59,9 +59,15 @@ function itemToForm(item: RoomWithDepartments): FormData {
     };
 }
 
-type Props = { rooms: RoomWithDepartments[]; eventId: string };
+type Department = { id: string; name: string };
 
-export default function RoomAdminPanel({ rooms, eventId }: Props) {
+type Props = {
+    rooms: RoomWithDepartments[];
+    departments: Department[];
+    eventId: string;
+};
+
+export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -106,7 +112,7 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
             !day_manager_id ||
             !day_purpose
         ) {
-            setError('建物名・階・部屋名・当日担当ID・当日用途は必須です');
+            setError('建物名・階・部屋名・当日担当部署・当日用途は必須です');
             return;
         }
 
@@ -198,9 +204,6 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                             ? '新しい部屋割りを追加'
                             : '部屋割りを編集'}
                     </h2>
-                    <p className='mb-3 text-muted-foreground text-xs'>
-                        担当者IDは部署ID（UUID）を入力してください。
-                    </p>
                     <div className='space-y-3'>
                         <div className='grid grid-cols-3 gap-3'>
                             <div>
@@ -261,10 +264,10 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                         <div className='grid grid-cols-2 gap-3'>
                             <div>
                                 <Label htmlFor='room-day-mgr'>
-                                    当日担当ID
+                                    当日担当部署
                                     <span className='ml-1 text-red-500'>*</span>
                                 </Label>
-                                <Input
+                                <select
                                     id='room-day-mgr'
                                     value={formData.day_manager_id}
                                     onChange={(e) =>
@@ -273,9 +276,15 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                                             day_manager_id: e.target.value,
                                         }))
                                     }
-                                    placeholder='部署UUID'
-                                    className='mt-1 font-mono text-xs'
-                                />
+                                    className='mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                                >
+                                    <option value=''>部署を選択</option>
+                                    {departments.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <Label htmlFor='room-day-purpose'>
@@ -299,9 +308,9 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                         <div className='grid grid-cols-2 gap-3'>
                             <div>
                                 <Label htmlFor='room-pre-mgr'>
-                                    前日担当ID（任意）
+                                    前日担当部署（任意）
                                 </Label>
-                                <Input
+                                <select
                                     id='room-pre-mgr'
                                     value={formData.pre_day_manager_id}
                                     onChange={(e) =>
@@ -310,9 +319,15 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                                             pre_day_manager_id: e.target.value,
                                         }))
                                     }
-                                    placeholder='部署UUID'
-                                    className='mt-1 font-mono text-xs'
-                                />
+                                    className='mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                                >
+                                    <option value=''>（なし）</option>
+                                    {departments.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <Label htmlFor='room-pre-purpose'>

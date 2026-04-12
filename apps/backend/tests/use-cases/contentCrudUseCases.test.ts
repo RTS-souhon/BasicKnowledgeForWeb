@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import type { Department, IDepartmentRepository } from '@backend/src/infrastructure/repositories/departments/IDepartmentRepository';
 import type { TimetableItem } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
 import type { RoomWithDepartments } from '@backend/src/infrastructure/repositories/room/IRoomRepository';
 import type { Program } from '@backend/src/infrastructure/repositories/program/IProgramRepository';
@@ -24,9 +25,21 @@ import { DeleteShopItemUseCase } from '@backend/src/use-cases/shop-item/DeleteSh
 import { CreateOtherItemUseCase } from '@backend/src/use-cases/other-item/CreateOtherItemUseCase';
 import { UpdateOtherItemUseCase } from '@backend/src/use-cases/other-item/UpdateOtherItemUseCase';
 import { DeleteOtherItemUseCase } from '@backend/src/use-cases/other-item/DeleteOtherItemUseCase';
+import { CreateDepartmentUseCase } from '@backend/src/use-cases/department/CreateDepartmentUseCase';
+import { UpdateDepartmentUseCase } from '@backend/src/use-cases/department/UpdateDepartmentUseCase';
+import { DeleteDepartmentUseCase } from '@backend/src/use-cases/department/DeleteDepartmentUseCase';
+import { GetDepartmentsUseCase } from '@backend/src/use-cases/department/GetDepartmentsUseCase';
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
+
+const baseDepartment: Department = {
+    id: '60000000-0000-4000-8000-000000000001',
+    eventId: EVENT_ID,
+    name: '企画部',
+    createdAt: new Date('2025-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+};
 
 const baseTimetable: TimetableItem = {
     id: '10000000-0000-4000-8000-000000000001',
@@ -166,6 +179,22 @@ function mockShopItemRepository(overrides: Partial<IShopItemRepository> = {}) {
             .mockImplementation(() => Promise.resolve(true)),
         ...overrides,
     } as unknown as jest.Mocked<IShopItemRepository>;
+}
+
+function mockDepartmentRepository(overrides: Partial<IDepartmentRepository> = {}) {
+    return {
+        findByEventId: jest.fn(),
+        create: jest
+            .fn<IDepartmentRepository['create']>()
+            .mockImplementation(() => Promise.resolve(baseDepartment)),
+        update: jest
+            .fn<IDepartmentRepository['update']>()
+            .mockImplementation(() => Promise.resolve(baseDepartment)),
+        delete: jest
+            .fn<IDepartmentRepository['delete']>()
+            .mockImplementation(() => Promise.resolve(true)),
+        ...overrides,
+    } as unknown as jest.Mocked<IDepartmentRepository>;
 }
 
 function mockOtherItemRepository(overrides: Partial<IOtherItemRepository> = {}) {
@@ -484,5 +513,75 @@ describe('Other item use cases', () => {
         const result = await useCase.execute({ id: baseOtherItem.id, eventId: EVENT_ID });
         expectFailure(result);
         expect(result.status).toBe(404);
+    });
+});
+
+// Departments
+
+describe('Department use cases', () => {
+    it('GetDepartmentsUseCase forwards eventId to repository', async () => {
+        const repo = mockDepartmentRepository({
+            findByEventId: jest
+                .fn<IDepartmentRepository['findByEventId']>()
+                .mockImplementation(() => Promise.resolve([baseDepartment])),
+        });
+        const useCase = new GetDepartmentsUseCase(repo);
+        const result = await useCase.execute(EVENT_ID);
+        expect(result.success).toBe(true);
+        if (result.success) expect(result.data).toHaveLength(1);
+        expect(repo.findByEventId).toHaveBeenCalledWith(EVENT_ID);
+    });
+
+    it('CreateDepartmentUseCase forwards name and eventId to repository', async () => {
+        const repo = mockDepartmentRepository();
+        const useCase = new CreateDepartmentUseCase(repo);
+        await useCase.execute({ eventId: EVENT_ID, name: '企画部' });
+        expect(repo.create).toHaveBeenCalledWith({
+            eventId: EVENT_ID,
+            name: '企画部',
+        });
+    });
+
+    it('UpdateDepartmentUseCase returns 404 when department missing', async () => {
+        const repo = mockDepartmentRepository({
+            update: jest
+                .fn<IDepartmentRepository['update']>()
+                .mockImplementation(() => Promise.resolve(null)),
+        });
+        const useCase = new UpdateDepartmentUseCase(repo);
+        const result = await useCase.execute({
+            id: baseDepartment.id,
+            eventId: EVENT_ID,
+            payload: { name: '変更' },
+        });
+        expectFailure(result);
+        expect(result.status).toBe(404);
+        expect(result.error).toContain('見つかりません');
+    });
+
+    it('DeleteDepartmentUseCase returns 404 when not found', async () => {
+        const repo = mockDepartmentRepository({
+            delete: jest
+                .fn<IDepartmentRepository['delete']>()
+                .mockImplementation(() => Promise.resolve(false)),
+        });
+        const useCase = new DeleteDepartmentUseCase(repo);
+        const result = await useCase.execute({ id: baseDepartment.id, eventId: EVENT_ID });
+        expectFailure(result);
+        expect(result.status).toBe(404);
+    });
+
+    it('DeleteDepartmentUseCase returns 409 on FK constraint violation', async () => {
+        const repo = mockDepartmentRepository({
+            delete: jest
+                .fn<IDepartmentRepository['delete']>()
+                .mockImplementation(() =>
+                    Promise.reject(new Error('foreign key constraint violation')),
+                ),
+        });
+        const useCase = new DeleteDepartmentUseCase(repo);
+        const result = await useCase.execute({ id: baseDepartment.id, eventId: OTHER_EVENT_ID });
+        expectFailure(result);
+        expect(result.status).toBe(409);
     });
 });

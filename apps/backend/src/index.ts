@@ -4,6 +4,7 @@ import { logger } from 'hono/logger';
 import type { Env } from './db/connection';
 import { createAccessCodeRoutes } from './presentation/routes/accessCodeRoutes';
 import { createAuthRoutes } from './presentation/routes/authRoutes';
+import { createDepartmentRoutes } from './presentation/routes/departmentRoutes';
 import { createHealthRoutes } from './presentation/routes/healthRoutes';
 import { createOtherItemRoutes } from './presentation/routes/otherItemRoutes';
 import { createProgramRoutes } from './presentation/routes/programRoutes';
@@ -55,6 +56,7 @@ const appWithRoutes = app
     .route('/api', createRoomRoutes())
     .route('/api', createProgramRoutes())
     .route('/api', createShopItemRoutes())
+    .route('/api', createDepartmentRoutes())
     .route('/api', createOtherItemRoutes())
     .route('/api', createSearchRoutes());
 
