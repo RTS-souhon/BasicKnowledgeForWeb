@@ -153,7 +153,9 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                             className='mt-1'
                             onKeyDown={(e) => {
                                 if (e.key !== 'Enter') return;
-                                if ((e.nativeEvent as KeyboardEvent).isComposing) {
+                                if (
+                                    (e.nativeEvent as KeyboardEvent).isComposing
+                                ) {
                                     // IME 変換確定 Enter のみ無視
                                     return;
                                 }
