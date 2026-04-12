@@ -19,6 +19,15 @@ export class AccessCodeRepository implements IAccessCodeRepository {
             .orderBy(desc(accessCodes.validFrom));
     }
 
+    async findById(id: string): Promise<AccessCode | null> {
+        const [row] = await this.db
+            .select()
+            .from(accessCodes)
+            .where(eq(accessCodes.id, id))
+            .limit(1);
+        return row ?? null;
+    }
+
     async findByCode(code: string): Promise<AccessCode | null> {
         const [row] = await this.db
             .select()

@@ -1,0 +1,4 @@
+display_name: DB Migration ガイド
+short_description: CockroachDB向けDrizzleマイグレーションの生成と検証手順
+default_prompt: |
+  Drizzleのスキーマ更新後に必要なマイグレーション生成とSQL確認、適用、トラブルシュートの流れを教えてください。

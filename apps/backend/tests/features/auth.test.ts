@@ -34,12 +34,21 @@ function createMockUserRepository(
 ): IUserRepository {
     return {
         findAll: jest.fn<() => Promise<User[]>>().mockResolvedValue([]),
+        findById: jest
+            .fn<(id: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
         findByEmail: jest
             .fn<(email: string) => Promise<User | null>>()
             .mockResolvedValue(null),
         create: jest
             .fn<() => Promise<User>>()
             .mockImplementation(() => Promise.resolve(testUser)),
+        updateRole: jest
+            .fn<(id: string, role: string) => Promise<User | null>>()
+            .mockResolvedValue(null),
+        updatePassword: jest
+            .fn<(id: string, hashedPassword: string) => Promise<void>>()
+            .mockResolvedValue(undefined),
         ...overrides,
     };
 }
@@ -215,6 +224,147 @@ describe('GET /api/auth/me', () => {
         const res = await app.request(
             '/api/auth/me',
             { headers: { Cookie: 'auth_token=invalid.token.value' } },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(401);
+    });
+});
+
+// ─── PUT /api/auth/password ───────────────────────────────────────────────────
+
+describe('PUT /api/auth/password', () => {
+    it('正しい現在のパスワードでパスワード変更が成功すること', async () => {
+        const token = await sign(
+            {
+                id: testUser.id,
+                name: testUser.name,
+                email: testUser.email,
+                role: testUser.role,
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            },
+            JWT_SECRET,
+            'HS256',
+        );
+
+        const repo = createMockUserRepository({
+            findById: jest
+                .fn<(id: string) => Promise<User | null>>()
+                .mockImplementation(() => Promise.resolve(testUser)),
+        });
+        const app = createTestAppWithAuth(repo);
+
+        const res = await app.request(
+            '/api/auth/password',
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword: 'password123',
+                    newPassword: 'newpassword456',
+                }),
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { message: string };
+
+        expect(res.status).toBe(200);
+        expect(body.message).toBe('パスワードを変更しました');
+    });
+
+    it('現在のパスワードが誤っている場合 400 が返ること', async () => {
+        const token = await sign(
+            {
+                id: testUser.id,
+                name: testUser.name,
+                email: testUser.email,
+                role: testUser.role,
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            },
+            JWT_SECRET,
+            'HS256',
+        );
+
+        const repo = createMockUserRepository({
+            findById: jest
+                .fn<(id: string) => Promise<User | null>>()
+                .mockImplementation(() => Promise.resolve(testUser)),
+        });
+        const app = createTestAppWithAuth(repo);
+
+        const res = await app.request(
+            '/api/auth/password',
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword: 'wrongpassword',
+                    newPassword: 'newpassword456',
+                }),
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { error: string };
+
+        expect(res.status).toBe(400);
+        expect(body.error).toBe('現在のパスワードが正しくありません');
+    });
+
+    it('新しいパスワードが短すぎる場合 400 が返ること', async () => {
+        const token = await sign(
+            {
+                id: testUser.id,
+                name: testUser.name,
+                email: testUser.email,
+                role: testUser.role,
+                exp: Math.floor(Date.now() / 1000) + 3600,
+            },
+            JWT_SECRET,
+            'HS256',
+        );
+
+        const app = createTestAppWithAuth(createMockUserRepository());
+
+        const res = await app.request(
+            '/api/auth/password',
+            {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword: 'password123',
+                    newPassword: 'short',
+                }),
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as { error: string };
+
+        expect(res.status).toBe(400);
+        expect(body.error).toBe('バリデーションエラー');
+    });
+
+    it('auth_token なしで 401 が返ること', async () => {
+        const app = createTestAppWithAuth(createMockUserRepository());
+
+        const res = await app.request(
+            '/api/auth/password',
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentPassword: 'password123',
+                    newPassword: 'newpassword456',
+                }),
+            },
             mockEnv,
         );
 

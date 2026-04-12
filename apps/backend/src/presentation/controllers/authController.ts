@@ -1,5 +1,9 @@
 import type { Env } from '@backend/src/db/connection';
-import { loginSchema } from '@backend/src/infrastructure/validators/authValidator';
+import {
+    changePasswordSchema,
+    loginSchema,
+} from '@backend/src/infrastructure/validators/authValidator';
+import type { IChangePasswordUseCase } from '@backend/src/use-cases/auth/IChangePasswordUseCase';
 import type { ILoginUseCase } from '@backend/src/use-cases/auth/ILoginUseCase';
 import type { Context } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
@@ -49,4 +53,31 @@ export function me(c: AppContext) {
         { id: user.id, name: user.name, email: user.email, role: user.role },
         200,
     );
+}
+
+export async function changePassword(
+    c: AppContext,
+    useCase: IChangePasswordUseCase,
+) {
+    const body = await c.req.json().catch(() => null);
+    const parsed = changePasswordSchema.safeParse(body);
+    if (!parsed.success) {
+        return c.json(
+            { error: 'バリデーションエラー', details: parsed.error.issues },
+            400,
+        );
+    }
+
+    const user = c.get('user');
+    const result = await useCase.execute({
+        userId: user.id,
+        currentPassword: parsed.data.currentPassword,
+        newPassword: parsed.data.newPassword,
+    });
+
+    if (!result.success) {
+        return c.json({ error: result.error }, result.status as 400 | 404);
+    }
+
+    return c.json({ message: 'パスワードを変更しました' }, 200);
 }

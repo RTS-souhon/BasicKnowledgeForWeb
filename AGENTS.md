@@ -247,7 +247,87 @@ users table:
   created_at  timestamp    auto-populated
   updated_at  timestamp    auto-populated
   deleted_at  timestamp    nullable (soft delete)
+
+access_codes table:
+  id          uuid        primary key
+  code        varchar(255) not null, unique
+  event_name  varchar(255) not null
+  created_at  timestamp    auto-populated
+
+departments table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  name        varchar(255) not null
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+  UNIQUE INDEX (event_id, id)  ← composite FK の参照元として必要
+
+user_departments table:
+  user_id       uuid        FK → users.id (RESTRICT)
+  event_id      uuid        FK → access_codes.id (RESTRICT)
+  department_id uuid        composite FK → departments(event_id, id) (RESTRICT)
+  PRIMARY KEY (user_id, event_id)
+
+timetable_items table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  title       varchar(255) not null
+  start_time  timestamp    not null
+  end_time    timestamp    not null
+  location    varchar(255)
+  description text
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+
+rooms table:
+  id                  uuid        primary key
+  event_id            uuid        FK → access_codes.id (RESTRICT)
+  building_name       varchar(255) not null
+  floor               varchar(50)  not null
+  room_name           varchar(255) not null
+  pre_day_manager_id  uuid        composite FK → departments(event_id, id) (RESTRICT), nullable
+  pre_day_purpose     varchar(255) nullable
+  day_manager_id      uuid        composite FK → departments(event_id, id) (RESTRICT), not null
+  day_purpose         varchar(255) not null
+  notes               text         nullable
+  created_at          timestamp    auto-populated
+  updated_at          timestamp    auto-populated
+
+programs table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  title       varchar(255) not null
+  start_time  timestamp    not null
+  end_time    timestamp    not null
+  location    varchar(255)
+  description text
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+
+shop_items table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  name        varchar(255) not null
+  price       int          not null
+  description text
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+
+other_items table:
+  id            uuid        primary key
+  event_id      uuid        FK → access_codes.id (RESTRICT)
+  title         varchar(255) not null
+  display_order int          not null
+  description   text
+  created_at    timestamp    auto-populated
+  updated_at    timestamp    auto-populated
 ```
+
+**⚠️ CockroachDB — 複合外部キーと migration 順序:**
+CockroachDB で複合 FK（例: `(event_id, manager_id) → departments(event_id, id)`）を追加するには、
+参照先の列の組み合わせに UNIQUE INDEX が先に存在していなければならない。
+migration ファイルでは `CREATE UNIQUE INDEX IF NOT EXISTS` を `ADD CONSTRAINT ... FOREIGN KEY` より前に記述すること。
+`IF NOT EXISTS` を付けることで migration の部分実行後の再試行でもエラーにならない。
 
 ### Backend — Test Structure
 
@@ -533,24 +613,44 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 
 Always branch off `develop`. PRs target `develop`; `develop` merges into `main` for production releases.
 
-### Authentication (Planned)
+### Authentication
 
-JWT-based authentication will be added. When implementing:
-- Token issuance and validation belong in the use case layer
-- The JWT secret should be stored as a Cloudflare Workers secret (not in `wrangler.jsonc`)
-- Authenticated routes should verify tokens in middleware or at the route level, before reaching controllers
+JWT-based authentication is implemented. Two token types are in use:
 
-### Roles & RBAC (Planned)
+| Token | Cookie name | Issued by | Payload | Scope |
+|---|---|---|---|---|
+| Access token | `access_token` | `POST /api/access-codes/verify` | `{ event_id, exp }` | イベント単位 |
+| Auth token | `auth_token` | `POST /api/auth/login` | `{ id, name, email, role, exp }` | ユーザー単位 |
 
-The `users.role` field will support three roles:
+- JWT secret is stored as a Cloudflare Workers secret (`JWT_SECRET`), not in `wrangler.jsonc`
+- Token verification uses `hono/jwt` (`verify(token, secret, 'HS256')`)
+- Authentication logic lives in middleware (`src/presentation/middleware/`)
+
+### Content Access Middleware
+
+`contentAccessMiddleware` (`src/presentation/middleware/contentAccessMiddleware.ts`) は全コンテンツ GET API に適用する。
+
+以下のいずれかを満たすリクエストのみ通過させる:
+
+1. **access_token 認証**: `access_token` Cookie の JWT が有効、かつ `payload.event_id === x-event-id` ヘッダーの値
+2. **auth_token 認証**: `auth_token` Cookie の JWT が有効、かつ `payload.role === 'admin'`
+
+`role=user` の `auth_token` はコンテンツ API を通過できない。一般ユーザーは `access_token` が必要。
+どちらも満たさない場合は `401 Unauthorized` を返す。
+
+Feature テストでは `app.request(path, { headers }, mockEnv)` の第3引数で `{ JWT_SECRET }` を渡す。
+
+### Roles & RBAC
+
+The `users.role` field supports three roles:
 
 | Role | Description |
 |---|---|
 | `user` | Default role for registered users |
-| `developer` | Extended access for developers |
 | `admin` | Full administrative access |
 
-RBAC will be enforced at the route or use case layer. Add role checks as a dedicated use case concern, not inside repositories.
+コンテンツ GET API では `contentAccessMiddleware` が role チェックを担う（admin のみ通過）。
+より細かい RBAC が必要な場合は use case 層に追加する。
 
 ### Soft Delete (Planned)
 

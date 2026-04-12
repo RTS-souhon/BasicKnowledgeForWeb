@@ -1,0 +1,167 @@
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+jest.mock('@frontend/app/actions/dashboard', () => ({
+    changePasswordAction: jest.fn(),
+    updateUserRoleAction: jest.fn(),
+}));
+
+const actions =
+    require('@frontend/app/actions/dashboard') as typeof import('@frontend/app/actions/dashboard');
+const PasswordChangeForm =
+    require('@frontend/app/(authenticated)/dashboard/PasswordChangeForm')
+        .default as typeof import('@frontend/app/(authenticated)/dashboard/PasswordChangeForm').default;
+
+const mockChangePassword = jest.mocked(actions.changePasswordAction);
+
+beforeEach(() => {
+    jest.resetAllMocks();
+});
+
+describe('PasswordChangeForm', () => {
+    it('入力フォームを表示する', () => {
+        render(<PasswordChangeForm />);
+
+        expect(screen.getByLabelText('現在のパスワード')).toBeInTheDocument();
+        expect(screen.getByLabelText('新しいパスワード')).toBeInTheDocument();
+        expect(screen.getByLabelText('確認')).toBeInTheDocument();
+        expect(
+            screen.getByRole('button', { name: '変更する' }),
+        ).toBeInTheDocument();
+    });
+
+    it('空欄の場合にバリデーションエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<PasswordChangeForm />);
+
+        await user.click(screen.getByRole('button', { name: '変更する' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'すべての項目を入力してください',
+        );
+        expect(mockChangePassword).not.toHaveBeenCalled();
+    });
+
+    it('新しいパスワードが8文字未満のときバリデーションエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<PasswordChangeForm />);
+
+        await user.type(screen.getByLabelText('現在のパスワード'), 'oldpass');
+        await user.type(screen.getByLabelText('新しいパスワード'), 'short');
+        await user.type(screen.getByLabelText('確認'), 'short');
+        await user.click(screen.getByRole('button', { name: '変更する' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            '新しいパスワードは8文字以上で入力してください',
+        );
+        expect(mockChangePassword).not.toHaveBeenCalled();
+    });
+
+    it('確認用パスワードが一致しない場合にエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<PasswordChangeForm />);
+
+        await user.type(screen.getByLabelText('現在のパスワード'), 'oldpass');
+        await user.type(
+            screen.getByLabelText('新しいパスワード'),
+            'newpassword1',
+        );
+        await user.type(screen.getByLabelText('確認'), 'newpassword2');
+        await user.click(screen.getByRole('button', { name: '変更する' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            '新しいパスワードと確認用パスワードが一致しません',
+        );
+        expect(mockChangePassword).not.toHaveBeenCalled();
+    });
+
+    it('正常にパスワード変更できる場合に成功メッセージを表示する', async () => {
+        const user = userEvent.setup();
+        mockChangePassword.mockResolvedValue({ success: true });
+        render(<PasswordChangeForm />);
+
+        await user.type(
+            screen.getByLabelText('現在のパスワード'),
+            'currentpass',
+        );
+        await user.type(
+            screen.getByLabelText('新しいパスワード'),
+            'newpassword1',
+        );
+        await user.type(screen.getByLabelText('確認'), 'newpassword1');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '変更する' }));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('status')).toHaveTextContent(
+                'パスワードを変更しました',
+            );
+        });
+        expect(mockChangePassword).toHaveBeenCalledWith({
+            currentPassword: 'currentpass',
+            newPassword: 'newpassword1',
+        });
+    });
+
+    it('API エラー時にエラーメッセージを表示する', async () => {
+        const user = userEvent.setup();
+        mockChangePassword.mockResolvedValue({
+            success: false,
+            error: '現在のパスワードが正しくありません',
+        });
+        render(<PasswordChangeForm />);
+
+        await user.type(
+            screen.getByLabelText('現在のパスワード'),
+            'wrongpass',
+        );
+        await user.type(
+            screen.getByLabelText('新しいパスワード'),
+            'newpassword1',
+        );
+        await user.type(screen.getByLabelText('確認'), 'newpassword1');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '変更する' }));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                '現在のパスワードが正しくありません',
+            );
+        });
+    });
+
+    it('成功後にフォームをリセットする', async () => {
+        const user = userEvent.setup();
+        mockChangePassword.mockResolvedValue({ success: true });
+        render(<PasswordChangeForm />);
+
+        await user.type(
+            screen.getByLabelText('現在のパスワード'),
+            'currentpass',
+        );
+        await user.type(
+            screen.getByLabelText('新しいパスワード'),
+            'newpassword1',
+        );
+        await user.type(screen.getByLabelText('確認'), 'newpassword1');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '変更する' }));
+        });
+
+        await waitFor(() => {
+            expect(
+                screen.getByLabelText('現在のパスワード'),
+            ).toHaveValue('');
+            expect(
+                screen.getByLabelText('新しいパスワード'),
+            ).toHaveValue('');
+            expect(screen.getByLabelText('確認')).toHaveValue('');
+        });
+    });
+});

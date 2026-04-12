@@ -13,7 +13,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -108,7 +108,7 @@ type Program = {
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
 - レスポンス: `{ programs: Program[] }`（`start_time` 昇順）
 
-### POST `/api/programs` （admin/developer）
+### POST `/api/programs` （admin）
 
 ```json
 {
@@ -121,9 +121,19 @@ type Program = {
 }
 ```
 
-### PUT `/api/programs/:id` （admin/developer）
+- 認可: `auth_token` + admin。`x-event-id` ヘッダーと body.`event_id` の整合性を必須化。
+- 時刻は ISO8601。`end_time` は `start_time` より後でなければならない。
+- レスポンス: `201 { program: Program }`。
 
-### DELETE `/api/programs/:id` （admin/developer）
+### PUT `/api/programs/:id` （admin）
+
+- 認可は POST と同じ。部分更新で、1 項目以上の指定が必要。
+- レスポンス: `200 { program: Program }`。対象なしは 404。
+
+### DELETE `/api/programs/:id` （admin）
+
+- 認可は POST と同じ。`id` が UUID でない場合は 400。
+- レスポンス: `200 { id: string }`。
 
 ---
 

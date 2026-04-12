@@ -43,9 +43,11 @@ jobs:
           workingDirectory: apps/backend
           secrets: |
             DATABASE_URL
+            JWT_SECRET
           environment: dev
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Notify deployment
         run: |
@@ -73,9 +75,22 @@ jobs:
       - name: Build frontend
         run: |
           cd apps/frontend
+          rm -f .env .env.local .env.production .env.development
+          {
+            echo "NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}"
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+          } > .env.production
           bun run build:cloudflare
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      - name: Upload next-env artifact (dev)
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-next-env-dev-${{ github.run_id }}
+          path: apps/frontend/.open-next/cloudflare/next-env.mjs
+          if-no-files-found: error
 
       - name: Build and deploy to Cloudflare Workers (Dev)
         id: deploy-frontend
@@ -85,9 +100,12 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env dev
           workingDirectory: apps/frontend
+          secrets: |
+            JWT_SECRET
           environment: dev
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Notify deployment
         run: |

@@ -12,7 +12,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -87,14 +87,24 @@ Admin/Developer はインライン編集・追加・削除が可能。
 
 ## データ構造
 
+GET API は部署名を JOIN 解決した `RoomWithDepartments` を返す。
+
 ```typescript
-type Room = {
+type RoomWithDepartments = {
     id: string
-    event_id: string
-    room_name: string
-    assignee: string
-    purpose: string
+    eventId: string
+    buildingName: string
+    floor: string
+    roomName: string
+    preDayManagerId: string | null   // 前日担当部署 UUID（nullable）
+    preDayManagerName: string | null // 前日担当部署名（JOIN 解決済み）
+    preDayPurpose: string | null     // 前日用途
+    dayManagerId: string             // 当日担当部署 UUID
+    dayManagerName: string           // 当日担当部署名（JOIN 解決済み）
+    dayPurpose: string               // 当日用途
     notes: string | null
+    createdAt: Date
+    updatedAt: Date
 }
 ```
 
@@ -107,17 +117,37 @@ type Room = {
 - `event_id` の解決:
   - User: `access_token` Cookie の `event_id` を自動付与
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
-- レスポンス: `{ rooms: Room[] }`（`room_name` 昇順）
+- レスポンス: `{ rooms: RoomWithDepartments[] }`（`building_name`, `floor`, `room_name` 昇順）
 
-### POST `/api/rooms` （admin/developer）
+### POST `/api/rooms` （admin）
 
 ```json
-{ "event_id": "...", "room_name": "...", "assignee": "...", "purpose": "...", "notes": "..." }
+{
+    "event_id": "...",
+    "building_name": "...",
+    "floor": "...",
+    "room_name": "...",
+    "pre_day_manager_id": "...",
+    "pre_day_purpose": "...",
+    "day_manager_id": "...",
+    "day_purpose": "...",
+    "notes": "..."
+}
 ```
 
-### PUT `/api/rooms/:id` （admin/developer）
+- 認可: `auth_token` + admin。`x-event-id` ヘッダー必須で body.`event_id` と一致させる。
+- `pre_day_manager_id`/`day_manager_id` は部署 UUID。`pre_day_*` は null 可。
+- レスポンス: `201 { room: RoomWithDepartments }`。配下部署が他イベントの場合は 400。
 
-### DELETE `/api/rooms/:id` （admin/developer）
+### PUT `/api/rooms/:id` （admin）
+
+- 認可は POST と同じ。body は部分更新で、1 項目以上の指定が必要。
+- レスポンス: `200 { room: RoomWithDepartments }`、対象なしは 404。
+
+### DELETE `/api/rooms/:id` （admin）
+
+- 認可は POST と同じ。`id` の UUID 検証に失敗すると 400。
+- レスポンス: `200 { id: string }`。
 
 ---
 

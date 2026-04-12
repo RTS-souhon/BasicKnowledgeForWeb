@@ -1,9 +1,14 @@
 import { Hono } from 'hono';
 import { describe, expect, it } from '@jest/globals';
-import { createUser, getUsers } from '@backend/src/presentation/controllers/userController';
+import {
+    createUser,
+    getUsers,
+    updateUserRole,
+} from '@backend/src/presentation/controllers/userController';
 import type { User } from '@backend/src/infrastructure/repositories/user/IUserRepository';
 import type { ICreateUserUseCase } from '@backend/src/use-cases/user/ICreateUserUseCase';
 import type { IGetUsersUseCase } from '@backend/src/use-cases/user/IGetUsersUseCase';
+import type { IUpdateUserRoleUseCase } from '@backend/src/use-cases/user/IUpdateUserRoleUseCase';
 
 const mockUser: User = {
     id: 'uuid-1',
@@ -109,5 +114,72 @@ describe('createUser controller', () => {
         expect(await res.json()).toEqual({
             error: 'このメールアドレスは既に使用されています',
         });
+    });
+});
+
+// ---- updateUserRole ----
+
+describe('updateUserRole controller', () => {
+    const USER_ID = '00000000-0000-4000-8000-000000000001';
+
+    function putJson(app: Hono, id: string, body: unknown) {
+        return app.request(`/users/${id}/role`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    }
+
+    it('ロール変更成功時に 200 とメッセージを返す', async () => {
+        const mockUseCase: IUpdateUserRoleUseCase = {
+            execute: async () => ({ success: true }),
+        };
+        const app = new Hono();
+        app.put('/users/:id/role', (c) => updateUserRole(c, mockUseCase));
+
+        const res = await putJson(app, USER_ID, { role: 'admin' });
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ message: 'ロールを変更しました' });
+    });
+
+    it('UUID でない id の場合 400 を返す', async () => {
+        const mockUseCase: IUpdateUserRoleUseCase = {
+            execute: async () => ({ success: true }),
+        };
+        const app = new Hono();
+        app.put('/users/:id/role', (c) => updateUserRole(c, mockUseCase));
+
+        const res = await putJson(app, 'invalid-id', { role: 'admin' });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('role が不正な値の場合 400 を返す', async () => {
+        const mockUseCase: IUpdateUserRoleUseCase = {
+            execute: async () => ({ success: true }),
+        };
+        const app = new Hono();
+        app.put('/users/:id/role', (c) => updateUserRole(c, mockUseCase));
+
+        const res = await putJson(app, USER_ID, { role: 'superadmin' });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('ユーザーが存在しない場合 404 を返す', async () => {
+        const mockUseCase: IUpdateUserRoleUseCase = {
+            execute: async () => ({
+                success: false,
+                error: 'ユーザーが見つかりません',
+                status: 404,
+            }),
+        };
+        const app = new Hono();
+        app.put('/users/:id/role', (c) => updateUserRole(c, mockUseCase));
+
+        const res = await putJson(app, USER_ID, { role: 'admin' });
+
+        expect(res.status).toBe(404);
     });
 });

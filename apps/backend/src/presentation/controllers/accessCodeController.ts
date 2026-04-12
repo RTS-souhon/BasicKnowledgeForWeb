@@ -6,6 +6,7 @@ import {
 import type { ICreateAccessCodeUseCase } from '@backend/src/use-cases/access-code/ICreateAccessCodeUseCase';
 import type { IDeleteAccessCodeUseCase } from '@backend/src/use-cases/access-code/IDeleteAccessCodeUseCase';
 import type { IGetAccessCodesUseCase } from '@backend/src/use-cases/access-code/IGetAccessCodesUseCase';
+import type { IGetAccessCodeUseCase } from '@backend/src/use-cases/access-code/IGetAccessCodeUseCase';
 import type { IVerifyAccessCodeUseCase } from '@backend/src/use-cases/access-code/IVerifyAccessCodeUseCase';
 import type { Context } from 'hono';
 import { setCookie } from 'hono/cookie';
@@ -44,6 +45,18 @@ export async function verifyAccessCode(
 
     setCookie(c, 'access_token', result.token, ACCESS_COOKIE_OPTIONS);
     return c.json({ message: 'アクセスコードを確認しました' }, 200);
+}
+
+export async function getAccessCode(
+    c: AppContext,
+    useCase: IGetAccessCodeUseCase,
+) {
+    const id = c.req.param('id') ?? '';
+    const result = await useCase.execute(id);
+    if (!result.success) {
+        return c.json({ error: result.error }, 404);
+    }
+    return c.json({ code: result.data }, 200);
 }
 
 export async function getAccessCodes(
