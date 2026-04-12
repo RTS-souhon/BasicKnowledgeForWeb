@@ -14,8 +14,8 @@ jest.mock('next/navigation', () => ({
 const actions =
     require('@frontend/app/actions/access-codes') as typeof import('@frontend/app/actions/access-codes');
 const AccessCodeAdminPanel =
-    require('@frontend/app/admin/access-codes/AccessCodeAdminPanel')
-        .default as typeof import('@frontend/app/admin/access-codes/AccessCodeAdminPanel').default;
+    require('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel')
+        .default as typeof import('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel').default;
 const navigation =
     require('next/navigation') as typeof import('next/navigation');
 
