@@ -1,3 +1,4 @@
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import {
     buildContentFetchHeaders,
     resolveAuth,
@@ -32,9 +33,8 @@ async function fetchTimetable(
     accessToken: string | null,
     role: string,
 ): Promise<TimetableItem[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/timetable`, {
+        const res = await fetchFromBackend('/api/timetable', {
             headers: buildContentFetchHeaders(
                 eventId,
                 authToken,
