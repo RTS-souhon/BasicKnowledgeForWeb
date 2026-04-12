@@ -13,6 +13,10 @@ type UploadImageResult =
     | { success: true; imageKey: string }
     | { success: false; error: string };
 
+function revalidateShopPage(eventId: string) {
+    revalidatePath(`/shop?event_id=${encodeURIComponent(eventId)}`, 'page');
+}
+
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
@@ -98,7 +102,7 @@ export async function createShopItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        revalidatePath('/shop');
+        revalidateShopPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -149,7 +153,7 @@ export async function updateShopItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        revalidatePath('/shop');
+        revalidateShopPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
@@ -191,7 +195,7 @@ export async function deleteShopItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/shop');
+        revalidateShopPage(eventId);
         return { success: true };
     } catch (err) {
         logActionError(
