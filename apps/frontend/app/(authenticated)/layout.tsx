@@ -11,6 +11,8 @@ import { AuthHeader } from '@frontend/components/AuthHeader';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 type AccessCode = { id: string; eventName: string };
 
 async function fetchAccessCodes(authToken: string): Promise<AccessCode[]> {
