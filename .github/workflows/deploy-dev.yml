@@ -81,6 +81,13 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      - name: Upload next-env artifact (dev)
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-next-env-dev-${{ github.run_id }}
+          path: apps/frontend/.open-next/cloudflare/next-env.mjs
+          if-no-files-found: error
+
       - name: Build and deploy to Cloudflare Workers (Dev)
         id: deploy-frontend
         uses: cloudflare/wrangler-action@v3
