@@ -5,9 +5,14 @@ jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
 }));
 
+const mockRefreshForPage = jest.fn();
+
 jest.mock('next/navigation', () => ({
     redirect: jest.fn().mockImplementation((url: string) => {
         throw new Error(`NEXT_REDIRECT:${url}`);
+    }),
+    useRouter: jest.fn().mockReturnValue({
+        refresh: mockRefreshForPage,
     }),
 }));
 
@@ -21,8 +26,12 @@ const serverAuth =
 const AccessCodesPage =
     require('@frontend/app/admin/access-codes/page')
         .default as typeof import('@frontend/app/admin/access-codes/page').default;
+const navigation =
+    require('next/navigation') as typeof import('next/navigation');
 
 const mockResolveAuth = jest.mocked(serverAuth.resolveAuth);
+const mockRedirect = jest.mocked(navigation.redirect);
+const mockUseRouter = jest.mocked(navigation.useRouter);
 
 const now = new Date();
 const past = (days: number) =>
@@ -51,6 +60,13 @@ const originalFetch = global.fetch;
 
 beforeEach(() => {
     jest.resetAllMocks();
+    mockRefreshForPage.mockReset();
+    mockRedirect.mockImplementation((url: string) => {
+        throw new Error(`NEXT_REDIRECT:${url}`);
+    });
+    mockUseRouter.mockReturnValue({
+        refresh: mockRefreshForPage,
+    } as never);
 });
 
 afterEach(() => {
@@ -102,7 +118,27 @@ describe('AccessCodesPage', () => {
         ).toBeInTheDocument();
     });
 
-    it('fetch 失敗時に空メッセージを表示する', async () => {
+    it('fetch 失敗時にエラーメッセージを表示する', async () => {
+        mockResolveAuth.mockResolvedValue({
+            authToken: 'auth-token',
+            accessToken: null,
+            eventId: null,
+            role: 'admin',
+        });
+        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
+            new Response(
+                JSON.stringify({ error: 'サーバーエラー' }),
+                { status: 500 },
+            ),
+        );
+
+        const element = await AccessCodesPage();
+        render(element);
+
+        expect(screen.getByText('サーバーエラー')).toBeInTheDocument();
+    });
+
+    it('401/403 が返った場合に /login へリダイレクトする', async () => {
         mockResolveAuth.mockResolvedValue({
             authToken: 'auth-token',
             accessToken: null,
@@ -113,11 +149,7 @@ describe('AccessCodesPage', () => {
             new Response(null, { status: 403 }),
         );
 
-        const element = await AccessCodesPage();
-        render(element);
-
-        expect(
-            screen.getByText('登録されているコードはありません'),
-        ).toBeInTheDocument();
+        await expect(AccessCodesPage()).rejects.toThrow('NEXT_REDIRECT:/login');
+        expect(mockRedirect).toHaveBeenCalledWith('/login');
     });
 });

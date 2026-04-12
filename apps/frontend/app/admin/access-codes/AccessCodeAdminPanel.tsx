@@ -4,6 +4,7 @@ import {
     createAccessCodeAction,
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 type AccessCode = {
@@ -16,6 +17,7 @@ type AccessCode = {
 
 type Props = {
     codes: AccessCode[];
+    initialError?: string | null;
 };
 
 function getStatus(validFrom: string, validTo: string) {
@@ -56,14 +58,28 @@ function generateCode(): string {
     ).join('');
 }
 
-export default function AccessCodeAdminPanel({ codes }: Props) {
+export default function AccessCodeAdminPanel({
+    codes,
+    initialError = null,
+}: Props) {
+    const router = useRouter();
     const [eventName, setEventName] = useState('');
     const [code, setCode] = useState('');
     const [validFrom, setValidFrom] = useState('');
     const [validTo, setValidTo] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
-    const [globalError, setGlobalError] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
+    const [globalError, setGlobalError] = useState<string | null>(
+        initialError,
+    );
+    const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [isRefreshing, startTransition] = useTransition();
+
+    const refreshCodes = () => {
+        startTransition(() => {
+            router.refresh();
+        });
+    };
 
     const handleCreate = () => {
         setFormError(null);
@@ -77,7 +93,8 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
             return;
         }
 
-        startTransition(async () => {
+        setIsFormSubmitting(true);
+        (async () => {
             const result = await createAccessCodeAction({
                 code: code.trim(),
                 eventName: eventName.trim(),
@@ -91,7 +108,11 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
                 setCode('');
                 setValidFrom('');
                 setValidTo('');
+                refreshCodes();
             }
+            setIsFormSubmitting(false);
+        })().catch(() => {
+            setIsFormSubmitting(false);
         });
     };
 
@@ -99,13 +120,21 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
         if (!confirm('このアクセスコードを削除しますか？')) return;
 
         setGlobalError(null);
-        startTransition(async () => {
+        setDeletingId(id);
+        (async () => {
             const result = await deleteAccessCodeAction(id);
             if (!result.success) {
                 setGlobalError(result.error);
+            } else {
+                refreshCodes();
             }
+            setDeletingId(null);
+        })().catch(() => {
+            setDeletingId(null);
         });
     };
+
+    const isBusy = isFormSubmitting || isRefreshing;
 
     return (
         <div className='space-y-8'>
@@ -213,10 +242,10 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
                         <button
                             type='button'
                             onClick={handleCreate}
-                            disabled={isPending}
+                            disabled={isBusy}
                             className='rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm transition-colors hover:bg-primary/90 disabled:opacity-50'
                         >
-                            {isPending ? '生成中...' : '生成する'}
+                            {isBusy ? '生成中...' : '生成する'}
                         </button>
                     </div>
                 </div>
@@ -301,7 +330,10 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
                                                         onClick={() =>
                                                             handleDelete(c.id)
                                                         }
-                                                        disabled={isPending}
+                                                        disabled={
+                                                            isRefreshing ||
+                                                            deletingId === c.id
+                                                        }
                                                         className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
                                                     >
                                                         削除
@@ -349,7 +381,10 @@ export default function AccessCodeAdminPanel({ codes }: Props) {
                                                 onClick={() =>
                                                     handleDelete(c.id)
                                                 }
-                                                disabled={isPending}
+                                                disabled={
+                                                    isRefreshing ||
+                                                    deletingId === c.id
+                                                }
                                                 className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
                                             >
                                                 削除

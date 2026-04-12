@@ -7,14 +7,22 @@ jest.mock('@frontend/app/actions/access-codes', () => ({
     deleteAccessCodeAction: jest.fn(),
 }));
 
+jest.mock('next/navigation', () => ({
+    useRouter: jest.fn(),
+}));
+
 const actions =
     require('@frontend/app/actions/access-codes') as typeof import('@frontend/app/actions/access-codes');
 const AccessCodeAdminPanel =
     require('@frontend/app/admin/access-codes/AccessCodeAdminPanel')
         .default as typeof import('@frontend/app/admin/access-codes/AccessCodeAdminPanel').default;
+const navigation =
+    require('next/navigation') as typeof import('next/navigation');
 
 const mockCreate = jest.mocked(actions.createAccessCodeAction);
 const mockDelete = jest.mocked(actions.deleteAccessCodeAction);
+const mockUseRouter = jest.mocked(navigation.useRouter);
+let mockRefresh: jest.Mock;
 
 const now = new Date();
 const past = (days: number) =>
@@ -49,6 +57,8 @@ const MOCK_CODES = [
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockRefresh = jest.fn();
+    mockUseRouter.mockReturnValue({ refresh: mockRefresh } as never);
 });
 
 describe('AccessCodeAdminPanel', () => {
@@ -126,6 +136,7 @@ describe('AccessCodeAdminPanel', () => {
                     eventName: 'テストイベント',
                 }),
             );
+            expect(mockRefresh).toHaveBeenCalled();
         });
     });
 
@@ -176,6 +187,7 @@ describe('AccessCodeAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('1');
+            expect(mockRefresh).toHaveBeenCalled();
         });
     });
 
@@ -208,5 +220,18 @@ describe('AccessCodeAdminPanel', () => {
                 '削除に失敗しました',
             );
         });
+    });
+
+    it('initialError があれば一覧上部に表示する', () => {
+        render(
+            <AccessCodeAdminPanel
+                codes={[]}
+                initialError='取得に失敗しました'
+            />,
+        );
+
+        expect(
+            screen.getByText('取得に失敗しました'),
+        ).toBeInTheDocument();
     });
 });
