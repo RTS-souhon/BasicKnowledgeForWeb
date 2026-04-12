@@ -68,9 +68,7 @@ export default function AccessCodeAdminPanel({
     const [validFrom, setValidFrom] = useState('');
     const [validTo, setValidTo] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
-    const [globalError, setGlobalError] = useState<string | null>(
-        initialError,
-    );
+    const [globalError, setGlobalError] = useState<string | null>(initialError);
     const [isFormSubmitting, setIsFormSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isRefreshing, startTransition] = useTransition();
