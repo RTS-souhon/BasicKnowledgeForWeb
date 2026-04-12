@@ -44,6 +44,16 @@ export default function UserRolePanel({ initialUsers }: Props) {
             setPendingId(null);
             if (!result.success) {
                 setError(result.error);
+                const actualRole = users.find((u) => u.id === userId)?.role as
+                    | 'user'
+                    | 'admin'
+                    | undefined;
+                if (actualRole) {
+                    setSelectedRoles((prev) => ({
+                        ...prev,
+                        [userId]: actualRole,
+                    }));
+                }
             } else {
                 setUsers((prev) =>
                     prev.map((u) =>

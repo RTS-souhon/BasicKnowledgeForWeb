@@ -1,7 +1,7 @@
 'use client';
 
 import { changePasswordAction } from '@frontend/app/actions/dashboard';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 
 export default function PasswordChangeForm() {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -9,9 +9,9 @@ export default function PasswordChangeForm() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [isPending, startTransition] = useTransition();
+    const [isPending, setIsPending] = useState(false);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         setError(null);
         setSuccess(false);
 
@@ -28,7 +28,8 @@ export default function PasswordChangeForm() {
             return;
         }
 
-        startTransition(async () => {
+        setIsPending(true);
+        try {
             const result = await changePasswordAction({
                 currentPassword,
                 newPassword,
@@ -41,7 +42,9 @@ export default function PasswordChangeForm() {
                 setNewPassword('');
                 setConfirmPassword('');
             }
-        });
+        } finally {
+            setIsPending(false);
+        }
     };
 
     return (
