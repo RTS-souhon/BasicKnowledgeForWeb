@@ -24,6 +24,12 @@
                     "custom_domain": true
                 }
             ],
+            "services": [
+                {
+                    "binding": "BACKEND",
+                    "service": "basic-knowledge-for-web-backend-dev"
+                }
+            ],
             "r2_buckets": [
                 {
                     "binding": "NEXT_INC_CACHE_R2_BUCKET",
@@ -51,6 +57,12 @@
                 {
                     "pattern": "reitaisai.info",
                     "custom_domain": true
+                }
+            ],
+            "services": [
+                {
+                    "binding": "BACKEND",
+                    "service": "basic-knowledge-for-web-backend"
                 }
             ],
             "r2_buckets": [

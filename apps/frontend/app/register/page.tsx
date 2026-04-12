@@ -13,6 +13,7 @@ import {
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -91,6 +92,12 @@ export default function RegisterPage() {
                 <Card className='w-full max-w-md'>
                     <CardContent className='pt-6 text-center'>
                         <p className='text-green-600'>{successMessage}</p>
+                        <Link
+                            href='/login'
+                            className='mt-4 inline-flex items-center justify-center text-primary underline'
+                        >
+                            ログインページへ移動する
+                        </Link>
                     </CardContent>
                 </Card>
             </div>
