@@ -202,4 +202,22 @@ describe('UserRepository', () => {
             expect(result).toBeNull();
         });
     });
+
+    describe('updatePassword', () => {
+        it('パスワードを更新する', async () => {
+            const whereMock = jest
+                .fn()
+                .mockImplementation(() => Promise.resolve([]));
+            const db = {
+                update: jest.fn().mockReturnValue({
+                    set: jest.fn().mockReturnValue({ where: whereMock }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            await repository.updatePassword(mockUser.id, 'hashedpassword');
+
+            expect(whereMock).toHaveBeenCalledTimes(1);
+        });
+    });
 });

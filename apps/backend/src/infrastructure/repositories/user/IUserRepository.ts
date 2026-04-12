@@ -17,4 +17,5 @@ export interface IUserRepository {
     findByEmail(email: string): Promise<User | null>;
     create(input: NewUser): Promise<User>;
     updateRole(id: string, role: string): Promise<User | null>;
+    updatePassword(id: string, hashedPassword: string): Promise<void>;
 }
