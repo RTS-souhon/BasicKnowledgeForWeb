@@ -76,10 +76,10 @@ jobs:
         run: |
           cd apps/frontend
           rm -f .env .env.local .env.production .env.development
-          cat <<EOF > .env.development
-NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-EOF
+          {
+            echo "NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}"
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+          } > .env.development
           bun run build:cloudflare
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
