@@ -31,8 +31,16 @@ export const contentAccessMiddleware = createMiddleware<{
                 await next();
                 return;
             }
-        } catch {
-            // 次の認証方法へ
+            console.log('[contentAccess] access_token event_id mismatch', {
+                path: c.req.path,
+                tokenEventId: payload.event_id,
+                headerEventId: xEventId,
+            });
+        } catch (err) {
+            console.log('[contentAccess] access_token verification failed', {
+                path: c.req.path,
+                error: err instanceof Error ? err.message : String(err),
+            });
         }
     }
 
@@ -45,9 +53,22 @@ export const contentAccessMiddleware = createMiddleware<{
                 await next();
                 return;
             }
-        } catch {
-            // 次の処理へ
+            console.log('[contentAccess] auth_token role not admin', {
+                path: c.req.path,
+                role,
+            });
+        } catch (err) {
+            console.log('[contentAccess] auth_token verification failed', {
+                path: c.req.path,
+                error: err instanceof Error ? err.message : String(err),
+            });
         }
+    }
+
+    if (!accessToken && !authToken) {
+        console.log('[contentAccess] Unauthorized: no tokens present', {
+            path: c.req.path,
+        });
     }
 
     return c.json({ error: 'Unauthorized' }, 401);

@@ -26,6 +26,10 @@ export const contentEditMiddleware = createMiddleware<{
 
     const token = getCookie(c, 'auth_token');
     if (!token) {
+        console.log('[contentEdit] Unauthorized: auth_token cookie missing', {
+            method: c.req.method,
+            path: c.req.path,
+        });
         return c.json({ error: 'Unauthorized' }, 401);
     }
 
@@ -37,6 +41,11 @@ export const contentEditMiddleware = createMiddleware<{
         )) as AuthUser & { role?: string };
         const role = payload.role;
         if (role !== 'admin') {
+            console.log('[contentEdit] Forbidden: role is not admin', {
+                method: c.req.method,
+                path: c.req.path,
+                role,
+            });
             return c.json({ error: 'Forbidden' }, 403);
         }
 
@@ -49,7 +58,12 @@ export const contentEditMiddleware = createMiddleware<{
         c.set('user', user);
         c.set('eventId', headerResult.data['x-event-id']);
         await next();
-    } catch {
+    } catch (err) {
+        console.log('[contentEdit] Unauthorized: token verification failed', {
+            method: c.req.method,
+            path: c.req.path,
+            error: err instanceof Error ? err.message : String(err),
+        });
         return c.json({ error: 'Unauthorized' }, 401);
     }
 });

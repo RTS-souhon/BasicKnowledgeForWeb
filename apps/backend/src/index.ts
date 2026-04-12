@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
 import type { Env } from './db/connection';
 import { createAccessCodeRoutes } from './presentation/routes/accessCodeRoutes';
 import { createAuthRoutes } from './presentation/routes/authRoutes';
@@ -13,6 +14,8 @@ import { createTimetableRoutes } from './presentation/routes/timetableRoutes';
 import { createUserRoutes } from './presentation/routes/userRoutes';
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.use('*', logger());
 
 app.use(
     '*',

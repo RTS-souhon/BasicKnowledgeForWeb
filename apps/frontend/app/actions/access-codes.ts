@@ -1,5 +1,6 @@
 'use server';
 
+import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
@@ -21,8 +22,9 @@ export async function createAccessCodeAction(data: {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/access-codes`;
     try {
-        const res = await fetch(`${API_URL}/api/access-codes`, {
+        const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -30,6 +32,7 @@ export async function createAccessCodeAction(data: {
             },
             body: JSON.stringify(data),
         });
+        logAction('createAccessCodeAction', 'POST', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -39,7 +42,8 @@ export async function createAccessCodeAction(data: {
         }
         revalidatePath('/admin/access-codes');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('createAccessCodeAction', 'POST', url, err);
         return { success: false, error: 'コードの作成に失敗しました' };
     }
 }
@@ -50,11 +54,13 @@ export async function deleteAccessCodeAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/access-codes/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/access-codes/${id}`, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: { Cookie: `auth_token=${authToken}` },
         });
+        logAction('deleteAccessCodeAction', 'DELETE', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -64,7 +70,8 @@ export async function deleteAccessCodeAction(
         }
         revalidatePath('/admin/access-codes');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('deleteAccessCodeAction', 'DELETE', url, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }

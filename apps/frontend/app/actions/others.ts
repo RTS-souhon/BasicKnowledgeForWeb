@@ -1,5 +1,6 @@
 'use server';
 
+import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
@@ -19,8 +20,9 @@ export async function createOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/others`;
     try {
-        const res = await fetch(`${API_URL}/api/others`, {
+        const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -29,6 +31,7 @@ export async function createOtherItemAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
+        logAction('createOtherItemAction', 'POST', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -38,7 +41,8 @@ export async function createOtherItemAction(
         }
         revalidatePath('/others');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('createOtherItemAction', 'POST', url, err);
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -51,8 +55,9 @@ export async function updateOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/others/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/others/${id}`, {
+        const res = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -61,6 +66,7 @@ export async function updateOtherItemAction(
             },
             body: JSON.stringify(data),
         });
+        logAction('updateOtherItemAction', 'PUT', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -70,7 +76,8 @@ export async function updateOtherItemAction(
         }
         revalidatePath('/others');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('updateOtherItemAction', 'PUT', url, err);
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -82,14 +89,16 @@ export async function deleteOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/others/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/others/${id}`, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
+        logAction('deleteOtherItemAction', 'DELETE', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -99,7 +108,8 @@ export async function deleteOtherItemAction(
         }
         revalidatePath('/others');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('deleteOtherItemAction', 'DELETE', url, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }
