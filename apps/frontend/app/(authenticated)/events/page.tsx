@@ -1,3 +1,4 @@
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import {
     buildContentFetchHeaders,
     resolveAuth,
@@ -41,9 +42,8 @@ async function fetchPrograms(
     accessToken: string | null,
     role: string,
 ): Promise<Program[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/programs`, {
+        const res = await fetchFromBackend('/api/programs', {
             headers: buildContentFetchHeaders(
                 eventId,
                 authToken,

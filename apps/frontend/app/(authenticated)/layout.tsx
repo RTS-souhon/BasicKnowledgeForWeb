@@ -1,5 +1,6 @@
 import { AuthProvider } from '@frontend/app/(authenticated)/auth-context';
 import { logoutAction } from '@frontend/app/actions/auth';
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import {
     type AccessPayload,
     type AuthPayload,
@@ -13,9 +14,8 @@ import { Suspense } from 'react';
 type AccessCode = { id: string; eventName: string };
 
 async function fetchAccessCodes(authToken: string): Promise<AccessCode[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/access-codes`, {
+        const res = await fetchFromBackend('/api/access-codes', {
             headers: { Cookie: `auth_token=${authToken}` },
             cache: 'no-store',
         });
@@ -31,9 +31,8 @@ async function fetchAccessCode(
     accessToken: string,
     eventId: string,
 ): Promise<string | null> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/access-codes/${eventId}`, {
+        const res = await fetchFromBackend(`/api/access-codes/${eventId}`, {
             headers: {
                 Cookie: `access_token=${accessToken}`,
                 'x-event-id': eventId,

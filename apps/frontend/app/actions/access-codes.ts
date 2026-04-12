@@ -1,10 +1,9 @@
 'use server';
 
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -22,9 +21,9 @@ export async function createAccessCodeAction(data: {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/access-codes`;
+    const endpoint = '/api/access-codes';
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -32,7 +31,7 @@ export async function createAccessCodeAction(data: {
             },
             body: JSON.stringify(data),
         });
-        logAction('createAccessCodeAction', 'POST', url, res.status);
+        logAction('createAccessCodeAction', 'POST', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -43,7 +42,7 @@ export async function createAccessCodeAction(data: {
         revalidatePath('/admin/access-codes');
         return { success: true };
     } catch (err) {
-        logActionError('createAccessCodeAction', 'POST', url, err);
+        logActionError('createAccessCodeAction', 'POST', endpoint, err);
         return { success: false, error: 'コードの作成に失敗しました' };
     }
 }
@@ -54,13 +53,13 @@ export async function deleteAccessCodeAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/access-codes/${id}`;
+    const endpoint = `/api/access-codes/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'DELETE',
             headers: { Cookie: `auth_token=${authToken}` },
         });
-        logAction('deleteAccessCodeAction', 'DELETE', url, res.status);
+        logAction('deleteAccessCodeAction', 'DELETE', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -71,7 +70,7 @@ export async function deleteAccessCodeAction(
         revalidatePath('/admin/access-codes');
         return { success: true };
     } catch (err) {
-        logActionError('deleteAccessCodeAction', 'DELETE', url, err);
+        logActionError('deleteAccessCodeAction', 'DELETE', endpoint, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }

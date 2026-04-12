@@ -93,7 +93,12 @@ export default function Home() {
 import type { AppType } from 'backend/src';
 import { hc } from 'hono/client';
 
-export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL!, {
+const apiBaseUrl =
+  typeof window === 'undefined'
+    ? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+    : '';
+
+export const client = hc<AppType>(apiBaseUrl, {
   init: { credentials: 'include' },
 });
 ```
@@ -196,7 +201,8 @@ bun run deploy
 
 ```bash
 # 本番環境変数
-NEXT_PUBLIC_API_URL=your_api_url
+# Cloudflare ではサービスバインディング経由で API を呼び出すため、NEXT_PUBLIC_API_URL は任意です
+NEXT_PUBLIC_API_URL=http://localhost:8080
 JWT_SECRET=shared_jwt_secret
 ```
 

@@ -1,8 +1,7 @@
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import { resolveAuth } from '@frontend/app/lib/serverAuth';
 import { redirect } from 'next/navigation';
 import AccessCodeAdminPanel from './AccessCodeAdminPanel';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type AccessCode = {
     id: string;
@@ -17,7 +16,7 @@ type FetchResult = { codes: AccessCode[]; error: string | null };
 async function fetchAccessCodes(authToken: string): Promise<FetchResult> {
     let res: Response;
     try {
-        res = await fetch(`${API_URL}/api/access-codes`, {
+        res = await fetchFromBackend('/api/access-codes', {
             headers: { Cookie: `auth_token=${authToken}` },
             cache: 'no-store',
         });

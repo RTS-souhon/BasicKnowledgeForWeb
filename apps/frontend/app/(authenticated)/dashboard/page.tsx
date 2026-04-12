@@ -1,3 +1,4 @@
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import {
     type AuthPayload,
     decodeJwtPayload,
@@ -6,8 +7,6 @@ import {
 import { redirect } from 'next/navigation';
 import PasswordChangeForm from './PasswordChangeForm';
 import UserRolePanel from './UserRolePanel';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type UserEntry = { id: string; name: string; email: string; role: string };
 
@@ -18,7 +17,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 async function fetchUsers(authToken: string): Promise<UserEntry[]> {
     try {
-        const res = await fetch(`${API_URL}/api/users`, {
+        const res = await fetchFromBackend('/api/users', {
             headers: { Cookie: `auth_token=${authToken}` },
             cache: 'no-store',
         });

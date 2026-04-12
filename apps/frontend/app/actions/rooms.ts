@@ -1,10 +1,9 @@
 'use server';
 
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -29,9 +28,9 @@ export async function createRoomAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/rooms`;
+    const endpoint = '/api/rooms';
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,7 +39,7 @@ export async function createRoomAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
-        logAction('createRoomAction', 'POST', url, res.status);
+        logAction('createRoomAction', 'POST', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -51,7 +50,7 @@ export async function createRoomAction(
         revalidatePath('/rooms');
         return { success: true };
     } catch (err) {
-        logActionError('createRoomAction', 'POST', url, err);
+        logActionError('createRoomAction', 'POST', endpoint, err);
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -73,9 +72,9 @@ export async function updateRoomAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/rooms/${id}`;
+    const endpoint = `/api/rooms/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -84,7 +83,7 @@ export async function updateRoomAction(
             },
             body: JSON.stringify(data),
         });
-        logAction('updateRoomAction', 'PUT', url, res.status);
+        logAction('updateRoomAction', 'PUT', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -95,7 +94,7 @@ export async function updateRoomAction(
         revalidatePath('/rooms');
         return { success: true };
     } catch (err) {
-        logActionError('updateRoomAction', 'PUT', url, err);
+        logActionError('updateRoomAction', 'PUT', endpoint, err);
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -107,16 +106,16 @@ export async function deleteRoomAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/rooms/${id}`;
+    const endpoint = `/api/rooms/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
-        logAction('deleteRoomAction', 'DELETE', url, res.status);
+        logAction('deleteRoomAction', 'DELETE', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -127,7 +126,7 @@ export async function deleteRoomAction(
         revalidatePath('/rooms');
         return { success: true };
     } catch (err) {
-        logActionError('deleteRoomAction', 'DELETE', url, err);
+        logActionError('deleteRoomAction', 'DELETE', endpoint, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }

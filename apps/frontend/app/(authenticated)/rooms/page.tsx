@@ -1,3 +1,4 @@
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import {
     buildContentFetchHeaders,
     resolveAuth,
@@ -24,9 +25,8 @@ async function fetchRooms(
     accessToken: string | null,
     role: string,
 ): Promise<RoomWithDepartments[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/rooms`, {
+        const res = await fetchFromBackend('/api/rooms', {
             headers: buildContentFetchHeaders(
                 eventId,
                 authToken,

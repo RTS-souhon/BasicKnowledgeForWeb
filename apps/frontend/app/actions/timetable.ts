@@ -1,10 +1,9 @@
 'use server';
 
+import { fetchFromBackend } from '@frontend/app/lib/apiClient';
 import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -26,9 +25,9 @@ export async function createTimetableItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/timetable`;
+    const endpoint = '/api/timetable';
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -37,7 +36,7 @@ export async function createTimetableItemAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
-        logAction('createTimetableItemAction', 'POST', url, res.status);
+        logAction('createTimetableItemAction', 'POST', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -48,7 +47,7 @@ export async function createTimetableItemAction(
         revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
-        logActionError('createTimetableItemAction', 'POST', url, err);
+        logActionError('createTimetableItemAction', 'POST', endpoint, err);
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -67,9 +66,9 @@ export async function updateTimetableItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/timetable/${id}`;
+    const endpoint = `/api/timetable/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,7 +77,7 @@ export async function updateTimetableItemAction(
             },
             body: JSON.stringify(data),
         });
-        logAction('updateTimetableItemAction', 'PUT', url, res.status);
+        logAction('updateTimetableItemAction', 'PUT', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -89,7 +88,7 @@ export async function updateTimetableItemAction(
         revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
-        logActionError('updateTimetableItemAction', 'PUT', url, err);
+        logActionError('updateTimetableItemAction', 'PUT', endpoint, err);
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -101,16 +100,16 @@ export async function deleteTimetableItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/timetable/${id}`;
+    const endpoint = `/api/timetable/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
-        logAction('deleteTimetableItemAction', 'DELETE', url, res.status);
+        logAction('deleteTimetableItemAction', 'DELETE', endpoint, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -121,7 +120,7 @@ export async function deleteTimetableItemAction(
         revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
-        logActionError('deleteTimetableItemAction', 'DELETE', url, err);
+        logActionError('deleteTimetableItemAction', 'DELETE', endpoint, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }
