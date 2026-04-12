@@ -1,10 +1,12 @@
 'use server';
 
 import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
+import {
+    buildBackendUrl,
+    fetchFromBackend,
+} from '@frontend/app/lib/backendFetch';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -26,9 +28,9 @@ export async function createProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/programs`;
+    const endpoint = '/api/programs';
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -37,7 +39,12 @@ export async function createProgramAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
-        logAction('createProgramAction', 'POST', url, res.status);
+        logAction(
+            'createProgramAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -48,7 +55,12 @@ export async function createProgramAction(
         revalidatePath('/events');
         return { success: true };
     } catch (err) {
-        logActionError('createProgramAction', 'POST', url, err);
+        logActionError(
+            'createProgramAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -67,9 +79,9 @@ export async function updateProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/programs/${id}`;
+    const endpoint = `/api/programs/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -78,7 +90,12 @@ export async function updateProgramAction(
             },
             body: JSON.stringify(data),
         });
-        logAction('updateProgramAction', 'PUT', url, res.status);
+        logAction(
+            'updateProgramAction',
+            'PUT',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -89,7 +106,12 @@ export async function updateProgramAction(
         revalidatePath('/events');
         return { success: true };
     } catch (err) {
-        logActionError('updateProgramAction', 'PUT', url, err);
+        logActionError(
+            'updateProgramAction',
+            'PUT',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -101,16 +123,21 @@ export async function deleteProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/programs/${id}`;
+    const endpoint = `/api/programs/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
-        logAction('deleteProgramAction', 'DELETE', url, res.status);
+        logAction(
+            'deleteProgramAction',
+            'DELETE',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -121,7 +148,12 @@ export async function deleteProgramAction(
         revalidatePath('/events');
         return { success: true };
     } catch (err) {
-        logActionError('deleteProgramAction', 'DELETE', url, err);
+        logActionError(
+            'deleteProgramAction',
+            'DELETE',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '削除に失敗しました' };
     }
 }

@@ -1,3 +1,4 @@
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import {
     buildContentFetchHeaders,
     resolveAuth,
@@ -17,9 +18,8 @@ async function fetchOtherItems(
     accessToken: string | null,
     role: string,
 ): Promise<OtherItem[]> {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     try {
-        const res = await fetch(`${apiUrl}/api/others`, {
+        const res = await fetchFromBackend('/api/others', {
             headers: buildContentFetchHeaders(
                 eventId,
                 authToken,

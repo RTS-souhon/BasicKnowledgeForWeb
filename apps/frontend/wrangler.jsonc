@@ -6,6 +6,12 @@
     "compatibility_flags": [
         "nodejs_compat"
     ],
+    "services": [
+        {
+            "binding": "BACKEND",
+            "service": "basic-knowledge-for-web-backend"
+        }
+    ],
     "secrets": {
         "required": [
             "JWT_SECRET"
@@ -22,6 +28,12 @@
                 {
                     "pattern": "dev.reitaisai.info",
                     "custom_domain": true
+                }
+            ],
+            "services": [
+                {
+                    "binding": "BACKEND",
+                    "service": "basic-knowledge-for-web-backend-dev"
                 }
             ],
             "r2_buckets": [
@@ -51,6 +63,12 @@
                 {
                     "pattern": "reitaisai.info",
                     "custom_domain": true
+                }
+            ],
+            "services": [
+                {
+                    "binding": "BACKEND",
+                    "service": "basic-knowledge-for-web-backend"
                 }
             ],
             "r2_buckets": [

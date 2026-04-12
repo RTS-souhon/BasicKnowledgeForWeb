@@ -1,10 +1,12 @@
 'use server';
 
 import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
+import {
+    buildBackendUrl,
+    fetchFromBackend,
+} from '@frontend/app/lib/backendFetch';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -20,9 +22,9 @@ export async function createOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/others`;
+    const endpoint = '/api/others';
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -31,7 +33,12 @@ export async function createOtherItemAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
-        logAction('createOtherItemAction', 'POST', url, res.status);
+        logAction(
+            'createOtherItemAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -42,7 +49,12 @@ export async function createOtherItemAction(
         revalidatePath('/others');
         return { success: true };
     } catch (err) {
-        logActionError('createOtherItemAction', 'POST', url, err);
+        logActionError(
+            'createOtherItemAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -55,9 +67,9 @@ export async function updateOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/others/${id}`;
+    const endpoint = `/api/others/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -66,7 +78,12 @@ export async function updateOtherItemAction(
             },
             body: JSON.stringify(data),
         });
-        logAction('updateOtherItemAction', 'PUT', url, res.status);
+        logAction(
+            'updateOtherItemAction',
+            'PUT',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -77,7 +94,12 @@ export async function updateOtherItemAction(
         revalidatePath('/others');
         return { success: true };
     } catch (err) {
-        logActionError('updateOtherItemAction', 'PUT', url, err);
+        logActionError(
+            'updateOtherItemAction',
+            'PUT',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -89,16 +111,21 @@ export async function deleteOtherItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
-    const url = `${API_URL}/api/others/${id}`;
+    const endpoint = `/api/others/${id}`;
     try {
-        const res = await fetch(url, {
+        const res = await fetchFromBackend(endpoint, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
-        logAction('deleteOtherItemAction', 'DELETE', url, res.status);
+        logAction(
+            'deleteOtherItemAction',
+            'DELETE',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -109,7 +136,12 @@ export async function deleteOtherItemAction(
         revalidatePath('/others');
         return { success: true };
     } catch (err) {
-        logActionError('deleteOtherItemAction', 'DELETE', url, err);
+        logActionError(
+            'deleteOtherItemAction',
+            'DELETE',
+            buildBackendUrl(endpoint),
+            err,
+        );
         return { success: false, error: '削除に失敗しました' };
     }
 }
