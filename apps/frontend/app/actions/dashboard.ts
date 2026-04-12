@@ -87,7 +87,7 @@ export async function updateUserRoleAction(
                 error: body.error ?? 'ロールの変更に失敗しました',
             };
         }
-        revalidatePath('/dashboard');
+        await revalidatePath('/dashboard');
         return { success: true };
     } catch (err) {
         logActionError(

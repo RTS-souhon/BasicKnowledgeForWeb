@@ -9,13 +9,8 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
-type UploadUrlResult =
-    | {
-          success: true;
-          uploadUrl: string;
-          imageKey: string;
-          headers: Record<string, string>;
-      }
+type UploadImageResult =
+    | { success: true; imageKey: string }
     | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
@@ -23,31 +18,25 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
-export async function getShopItemUploadUrlAction(
+export async function uploadShopItemImageAction(
     eventId: string,
-    fileName?: string,
-    contentType?: string,
-): Promise<UploadUrlResult> {
+    formData: FormData,
+): Promise<UploadImageResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const endpoint = '/api/shop-items/upload';
     try {
-        const endpoint = '/api/shop-items/upload-url';
-        const payload: Record<string, string> = {};
-        if (fileName) payload.file_name = fileName;
-        if (contentType) payload.content_type = contentType;
-
         const res = await fetchFromBackend(endpoint, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
-            body: JSON.stringify(payload),
+            body: formData,
         });
         logAction(
-            'getShopItemUploadUrlAction',
+            'uploadShopItemImageAction',
             'POST',
             buildBackendUrl(endpoint),
             res.status,
@@ -56,31 +45,19 @@ export async function getShopItemUploadUrlAction(
             const body = (await res.json()) as { error?: string };
             return {
                 success: false,
-                error: body.error ?? 'アップロードURLの取得に失敗しました',
+                error: body.error ?? '画像のアップロードに失敗しました',
             };
         }
-        const body = (await res.json()) as {
-            uploadUrl: string;
-            imageKey: string;
-            headers: Record<string, string>;
-        };
-        return {
-            success: true,
-            uploadUrl: body.uploadUrl,
-            imageKey: body.imageKey,
-            headers: body.headers,
-        };
+        const body = (await res.json()) as { imageKey: string };
+        return { success: true, imageKey: body.imageKey };
     } catch (err) {
         logActionError(
-            'getShopItemUploadUrlAction',
+            'uploadShopItemImageAction',
             'POST',
-            buildBackendUrl('/api/shop-items/upload-url'),
+            buildBackendUrl(endpoint),
             err,
         );
-        return {
-            success: false,
-            error: 'アップロードURLの取得に失敗しました',
-        };
+        return { success: false, error: '画像のアップロードに失敗しました' };
     }
 }
 

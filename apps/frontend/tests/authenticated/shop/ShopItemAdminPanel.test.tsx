@@ -6,7 +6,7 @@ jest.mock('@frontend/app/actions/shop-items', () => ({
     createShopItemAction: jest.fn(),
     updateShopItemAction: jest.fn(),
     deleteShopItemAction: jest.fn(),
-    getShopItemUploadUrlAction: jest.fn(),
+    uploadShopItemImageAction: jest.fn(),
 }));
 
 // next/image はテスト環境では通常の img タグにフォールバック
@@ -27,7 +27,7 @@ const ShopItemAdminPanel =
 const mockCreate = jest.mocked(actions.createShopItemAction);
 const mockUpdate = jest.mocked(actions.updateShopItemAction);
 const mockDelete = jest.mocked(actions.deleteShopItemAction);
-const mockGetUploadUrl = jest.mocked(actions.getShopItemUploadUrlAction);
+const mockUploadImage = jest.mocked(actions.uploadShopItemImageAction);
 
 const MOCK_ITEMS = [
     {

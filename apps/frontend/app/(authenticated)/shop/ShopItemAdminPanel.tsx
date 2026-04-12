@@ -3,8 +3,8 @@
 import {
     createShopItemAction,
     deleteShopItemAction,
-    getShopItemUploadUrlAction,
     updateShopItemAction,
+    uploadShopItemImageAction,
 } from '@frontend/app/actions/shop-items';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
@@ -145,28 +145,15 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         const file = fileInputRef.current?.files?.[0];
         if (!file) return null;
 
-        const uploadResult = await getShopItemUploadUrlAction(
-            eventId,
-            file.name,
-            file.type,
-        );
-        if (!uploadResult.success) {
-            throw new Error(uploadResult.error);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const result = await uploadShopItemImageAction(eventId, formData);
+        if (!result.success) {
+            throw new Error(result.error);
         }
 
-        const uploadRes = await fetch(uploadResult.uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type,
-                ...uploadResult.headers,
-            },
-        });
-        if (!uploadRes.ok) {
-            throw new Error('画像のアップロードに失敗しました');
-        }
-
-        return uploadResult.imageKey;
+        return result.imageKey;
     };
 
     const handleSubmit = () => {

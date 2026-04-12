@@ -52,7 +52,7 @@ export async function createTimetableItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        revalidatePath('/timetable');
+        await revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -103,7 +103,7 @@ export async function updateTimetableItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        revalidatePath('/timetable');
+        await revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -145,7 +145,7 @@ export async function deleteTimetableItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/timetable');
+        await revalidatePath('/timetable');
         return { success: true };
     } catch (err) {
         logActionError(
