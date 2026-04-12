@@ -29,6 +29,10 @@ const DashboardPage =
 const mockResolveAuth = jest.mocked(serverAuth.resolveAuth);
 const mockRedirect = navigation.redirect as ReturnType<typeof jest.fn>;
 
+const buildPageProps = (params?: { event_id?: string }) => ({
+    searchParams: Promise.resolve(params ?? {}),
+});
+
 // テスト用の偽 JWT を生成（decodeJwtPayload が payload を取得できる形式）
 function createMockJwt(payload: object): string {
     const json = JSON.stringify(payload);
@@ -83,7 +87,9 @@ describe('DashboardPage', () => {
             role: 'user',
         });
 
-        await expect(DashboardPage()).rejects.toThrow('NEXT_REDIRECT:/login');
+        await expect(DashboardPage(buildPageProps())).rejects.toThrow(
+            'NEXT_REDIRECT:/login',
+        );
     });
 
     it('JWT が不正な場合 /login にリダイレクトする', async () => {
@@ -94,7 +100,9 @@ describe('DashboardPage', () => {
             role: 'user',
         });
 
-        await expect(DashboardPage()).rejects.toThrow('NEXT_REDIRECT:/login');
+        await expect(DashboardPage(buildPageProps())).rejects.toThrow(
+            'NEXT_REDIRECT:/login',
+        );
     });
 
     it('プロフィール情報（名前・メール・ロール）を表示する', async () => {
@@ -105,7 +113,7 @@ describe('DashboardPage', () => {
             role: 'user',
         });
 
-        const element = await DashboardPage();
+        const element = await DashboardPage(buildPageProps());
         render(element);
 
         expect(screen.getByText('山田太郎')).toBeInTheDocument();
@@ -121,7 +129,7 @@ describe('DashboardPage', () => {
             role: 'user',
         });
 
-        const element = await DashboardPage();
+        const element = await DashboardPage(buildPageProps());
         render(element);
 
         expect(screen.getByLabelText('現在のパスワード')).toBeInTheDocument();
@@ -140,7 +148,7 @@ describe('DashboardPage', () => {
             role: 'user',
         });
 
-        const element = await DashboardPage();
+        const element = await DashboardPage(buildPageProps());
         render(element);
 
         expect(screen.queryByText('ユーザー管理')).not.toBeInTheDocument();
@@ -163,7 +171,7 @@ describe('DashboardPage', () => {
             }),
         );
 
-        const element = await DashboardPage();
+        const element = await DashboardPage(buildPageProps());
         render(element);
 
         expect(screen.getByText('ユーザー管理')).toBeInTheDocument();
@@ -186,7 +194,7 @@ describe('DashboardPage', () => {
             }),
         );
 
-        const element = await DashboardPage();
+        const element = await DashboardPage(buildPageProps());
         render(element);
 
         expect(screen.getAllByText('山田太郎').length).toBeGreaterThan(0);
