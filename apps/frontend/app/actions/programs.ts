@@ -52,7 +52,7 @@ export async function createProgramAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        revalidatePath('/events');
+        await revalidatePath('/events');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -103,7 +103,7 @@ export async function updateProgramAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        revalidatePath('/events');
+        await revalidatePath('/events');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -145,7 +145,7 @@ export async function deleteProgramAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/events');
+        await revalidatePath('/events');
         return { success: true };
     } catch (err) {
         logActionError(

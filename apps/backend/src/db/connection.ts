@@ -5,6 +5,11 @@ interface Hyperdrive {
     connectionString: string;
 }
 
+export interface R2ObjectBody {
+    body: ReadableStream;
+    httpMetadata?: { contentType?: string };
+}
+
 export interface R2Bucket {
     put(
         key: string,
@@ -17,7 +22,7 @@ export interface R2Bucket {
             | Blob,
         options?: object,
     ): Promise<object>;
-    get(key: string): Promise<unknown>;
+    get(key: string): Promise<R2ObjectBody | null>;
     delete(key: string): Promise<void>;
 }
 

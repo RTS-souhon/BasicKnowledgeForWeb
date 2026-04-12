@@ -3,13 +3,14 @@
 import {
     createShopItemAction,
     deleteShopItemAction,
-    getShopItemUploadUrlAction,
     updateShopItemAction,
+    uploadShopItemImageAction,
 } from '@frontend/app/actions/shop-items';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { type CSSProperties, useRef, useState, useTransition } from 'react';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
@@ -110,6 +111,7 @@ function ShopItemImage({
 type Props = { items: ShopItem[]; eventId: string };
 
 export default function ShopItemAdminPanel({ items, eventId }: Props) {
+    const router = useRouter();
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -145,28 +147,15 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         const file = fileInputRef.current?.files?.[0];
         if (!file) return null;
 
-        const uploadResult = await getShopItemUploadUrlAction(
-            eventId,
-            file.name,
-            file.type,
-        );
-        if (!uploadResult.success) {
-            throw new Error(uploadResult.error);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const result = await uploadShopItemImageAction(eventId, formData);
+        if (!result.success) {
+            throw new Error(result.error);
         }
 
-        const uploadRes = await fetch(uploadResult.uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type,
-                ...uploadResult.headers,
-            },
-        });
-        if (!uploadRes.ok) {
-            throw new Error('画像のアップロードに失敗しました');
-        }
-
-        return uploadResult.imageKey;
+        return result.imageKey;
     };
 
     const handleSubmit = () => {
@@ -210,7 +199,10 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                         editingItem.id,
                         updateData,
                     );
-                    if (!result.success) setError(result.error);
+                    if (!result.success) {
+                        setError(result.error);
+                        return;
+                    }
                 } else {
                     const result = await createShopItemAction(eventId, {
                         name,
@@ -219,8 +211,13 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                         image_key: imageKey!,
                         description: formData.description.trim() || null,
                     });
-                    if (!result.success) setError(result.error);
+                    if (!result.success) {
+                        setError(result.error);
+                        return;
+                    }
                 }
+                closeForm();
+                router.refresh();
             } catch (err) {
                 setError(
                     err instanceof Error ? err.message : '操作に失敗しました',
@@ -233,7 +230,11 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         if (!confirm(`「${item.name}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteShopItemAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            router.refresh();
         });
     };
 

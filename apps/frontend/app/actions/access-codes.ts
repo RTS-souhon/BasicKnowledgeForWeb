@@ -47,7 +47,7 @@ export async function createAccessCodeAction(data: {
                 error: body.error ?? 'コードの作成に失敗しました',
             };
         }
-        revalidatePath('/admin/access-codes');
+        await revalidatePath('/admin/access-codes');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -85,7 +85,7 @@ export async function deleteAccessCodeAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/admin/access-codes');
+        await revalidatePath('/admin/access-codes');
         return { success: true };
     } catch (err) {
         logActionError(

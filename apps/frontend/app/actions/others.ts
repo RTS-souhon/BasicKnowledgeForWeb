@@ -46,7 +46,7 @@ export async function createOtherItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        revalidatePath('/others');
+        await revalidatePath('/others');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -91,7 +91,7 @@ export async function updateOtherItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        revalidatePath('/others');
+        await revalidatePath('/others');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -133,7 +133,7 @@ export async function deleteOtherItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/others');
+        await revalidatePath('/others');
         return { success: true };
     } catch (err) {
         logActionError(

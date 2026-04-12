@@ -3,19 +3,19 @@ import type { IShopItemRepository } from '@backend/src/infrastructure/repositori
 import { ShopItemRepository } from '@backend/src/infrastructure/repositories/shop-item/ShopItemRepository';
 import {
     createShopItem,
-    createShopItemUploadUrl,
     deleteShopItem,
     getShopItems,
     updateShopItem,
+    uploadShopItemImage,
 } from '@backend/src/presentation/controllers/shopItemController';
 import { contentAccessMiddleware } from '@backend/src/presentation/middleware/contentAccessMiddleware';
 import { contentEditMiddleware } from '@backend/src/presentation/middleware/contentEditMiddleware';
 import { roleGuard } from '@backend/src/presentation/middleware/roleGuard';
 import { CreateShopItemUseCase } from '@backend/src/use-cases/shop-item/CreateShopItemUseCase';
 import { DeleteShopItemUseCase } from '@backend/src/use-cases/shop-item/DeleteShopItemUseCase';
-import { GenerateShopItemUploadUrlUseCase } from '@backend/src/use-cases/shop-item/GenerateShopItemUploadUrlUseCase';
 import { GetShopItemsUseCase } from '@backend/src/use-cases/shop-item/GetShopItemsUseCase';
 import { UpdateShopItemUseCase } from '@backend/src/use-cases/shop-item/UpdateShopItemUseCase';
+import { UploadShopItemImageUseCase } from '@backend/src/use-cases/shop-item/UploadShopItemImageUseCase';
 import { Hono } from 'hono';
 import type { ContentEditVariables } from '../middleware/contentEditMiddleware';
 
@@ -74,14 +74,14 @@ export function createShopItemRoutes(
     );
 
     app.post(
-        '/shop-items/upload-url',
+        '/shop-items/upload',
         contentEditMiddleware,
         roleGuard(ADMIN_ROLES),
         async (c) => {
-            const useCase = new GenerateShopItemUploadUrlUseCase(
+            const useCase = new UploadShopItemImageUseCase(
                 c.env.SHOP_ITEM_ASSET_BUCKET,
             );
-            return createShopItemUploadUrl(c, useCase);
+            return uploadShopItemImage(c, useCase);
         },
     );
 

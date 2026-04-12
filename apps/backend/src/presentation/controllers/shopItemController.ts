@@ -2,14 +2,13 @@ import type { Env } from '@backend/src/db/connection';
 import { eventIdHeaderSchema } from '@backend/src/infrastructure/validators/eventIdValidator';
 import {
     createShopItemSchema,
-    createShopItemUploadUrlSchema,
     updateShopItemSchema,
 } from '@backend/src/infrastructure/validators/shopItemValidator';
 import type { ICreateShopItemUseCase } from '@backend/src/use-cases/shop-item/ICreateShopItemUseCase';
 import type { IDeleteShopItemUseCase } from '@backend/src/use-cases/shop-item/IDeleteShopItemUseCase';
-import type { IGenerateShopItemUploadUrlUseCase } from '@backend/src/use-cases/shop-item/IGenerateShopItemUploadUrlUseCase';
 import type { IGetShopItemsUseCase } from '@backend/src/use-cases/shop-item/IGetShopItemsUseCase';
 import type { IUpdateShopItemUseCase } from '@backend/src/use-cases/shop-item/IUpdateShopItemUseCase';
+import type { IUploadShopItemImageUseCase } from '@backend/src/use-cases/shop-item/IUploadShopItemImageUseCase';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
@@ -132,23 +131,28 @@ export async function deleteShopItem(
     return c.json({ id: result.data.id }, 200);
 }
 
-export async function createShopItemUploadUrl(
+export async function uploadShopItemImage(
     c: AdminContext,
-    useCase: IGenerateShopItemUploadUrlUseCase,
+    useCase: IUploadShopItemImageUseCase,
 ) {
-    const body = await c.req.json().catch(() => ({}));
-    const parsed = createShopItemUploadUrlSchema.safeParse(body ?? {});
-    if (!parsed.success) {
-        return c.json(
-            { error: 'バリデーションエラー', details: parsed.error.issues },
-            400,
-        );
+    let formData: FormData;
+    try {
+        formData = await c.req.formData();
+    } catch {
+        return c.json({ error: 'フォームデータの解析に失敗しました' }, 400);
     }
 
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+        return c.json({ error: 'file フィールドが必要です' }, 400);
+    }
+
+    const body = await file.arrayBuffer();
     const result = await useCase.execute({
         eventId: c.get('eventId'),
-        fileName: parsed.data.file_name,
-        contentType: parsed.data.content_type,
+        body,
+        contentType: file.type || 'application/octet-stream',
+        fileName: file.name,
     });
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
