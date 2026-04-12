@@ -1,5 +1,6 @@
 'use server';
 
+import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
@@ -34,15 +35,14 @@ export async function getShopItemUploadUrlAction(
         if (contentType) params.set('content_type', contentType);
         const query = params.size > 0 ? `?${params}` : '';
 
-        const res = await fetch(
-            `${API_URL}/api/shop-items/upload-url${query}`,
-            {
-                headers: {
-                    Cookie: `auth_token=${authToken}`,
-                    'x-event-id': eventId,
-                },
+        const url = `${API_URL}/api/shop-items/upload-url${query}`;
+        const res = await fetch(url, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
             },
-        );
+        });
+        logAction('getShopItemUploadUrlAction', 'GET', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -61,7 +61,13 @@ export async function getShopItemUploadUrlAction(
             imageKey: body.imageKey,
             headers: body.headers,
         };
-    } catch {
+    } catch (err) {
+        logActionError(
+            'getShopItemUploadUrlAction',
+            'GET',
+            `${API_URL}/api/shop-items/upload-url`,
+            err,
+        );
         return {
             success: false,
             error: 'アップロードURLの取得に失敗しました',
@@ -82,8 +88,9 @@ export async function createShopItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/shop-items`;
     try {
-        const res = await fetch(`${API_URL}/api/shop-items`, {
+        const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -92,6 +99,7 @@ export async function createShopItemAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
+        logAction('createShopItemAction', 'POST', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -101,7 +109,8 @@ export async function createShopItemAction(
         }
         revalidatePath('/shop');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('createShopItemAction', 'POST', url, err);
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -120,8 +129,9 @@ export async function updateShopItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/shop-items/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/shop-items/${id}`, {
+        const res = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -130,6 +140,7 @@ export async function updateShopItemAction(
             },
             body: JSON.stringify(data),
         });
+        logAction('updateShopItemAction', 'PUT', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -139,7 +150,8 @@ export async function updateShopItemAction(
         }
         revalidatePath('/shop');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('updateShopItemAction', 'PUT', url, err);
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -151,14 +163,16 @@ export async function deleteShopItemAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/shop-items/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/shop-items/${id}`, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
+        logAction('deleteShopItemAction', 'DELETE', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -168,7 +182,8 @@ export async function deleteShopItemAction(
         }
         revalidatePath('/shop');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('deleteShopItemAction', 'DELETE', url, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { logAction, logActionError } from '@frontend/app/lib/actionLogger';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
@@ -25,8 +26,9 @@ export async function createProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/programs`;
     try {
-        const res = await fetch(`${API_URL}/api/programs`, {
+        const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -35,6 +37,7 @@ export async function createProgramAction(
             },
             body: JSON.stringify({ event_id: eventId, ...data }),
         });
+        logAction('createProgramAction', 'POST', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -44,7 +47,8 @@ export async function createProgramAction(
         }
         revalidatePath('/events');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('createProgramAction', 'POST', url, err);
         return { success: false, error: '登録に失敗しました' };
     }
 }
@@ -63,8 +67,9 @@ export async function updateProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/programs/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/programs/${id}`, {
+        const res = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -73,6 +78,7 @@ export async function updateProgramAction(
             },
             body: JSON.stringify(data),
         });
+        logAction('updateProgramAction', 'PUT', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -82,7 +88,8 @@ export async function updateProgramAction(
         }
         revalidatePath('/events');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('updateProgramAction', 'PUT', url, err);
         return { success: false, error: '更新に失敗しました' };
     }
 }
@@ -94,14 +101,16 @@ export async function deleteProgramAction(
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
+    const url = `${API_URL}/api/programs/${id}`;
     try {
-        const res = await fetch(`${API_URL}/api/programs/${id}`, {
+        const res = await fetch(url, {
             method: 'DELETE',
             headers: {
                 Cookie: `auth_token=${authToken}`,
                 'x-event-id': eventId,
             },
         });
+        logAction('deleteProgramAction', 'DELETE', url, res.status);
         if (!res.ok) {
             const body = (await res.json()) as { error?: string };
             return {
@@ -111,7 +120,8 @@ export async function deleteProgramAction(
         }
         revalidatePath('/events');
         return { success: true };
-    } catch {
+    } catch (err) {
+        logActionError('deleteProgramAction', 'DELETE', url, err);
         return { success: false, error: '削除に失敗しました' };
     }
 }
