@@ -46,7 +46,7 @@ export async function createDepartmentAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        await revalidatePath('/departments');
+        revalidatePath('/departments');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -91,7 +91,7 @@ export async function updateDepartmentAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        await revalidatePath('/departments');
+        revalidatePath('/departments');
         return { success: true };
     } catch (err) {
         logActionError(
@@ -133,7 +133,7 @@ export async function deleteDepartmentAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        await revalidatePath('/departments');
+        revalidatePath('/departments');
         return { success: true };
     } catch (err) {
         logActionError(
