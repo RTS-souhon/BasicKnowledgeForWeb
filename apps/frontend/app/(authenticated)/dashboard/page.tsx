@@ -4,6 +4,7 @@ import {
     decodeJwtPayload,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PasswordChangeForm from './PasswordChangeForm';
 import UserRolePanel from './UserRolePanel';
@@ -29,8 +30,21 @@ async function fetchUsers(authToken: string): Promise<UserEntry[]> {
     }
 }
 
-export default async function DashboardPage() {
-    const { authToken, role } = await resolveAuth();
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ event_id?: string }>;
+}) {
+    const resolvedParams = (await searchParams) ?? {};
+    const preservedQuery = new URLSearchParams();
+    if (resolvedParams.event_id) {
+        preservedQuery.set('event_id', resolvedParams.event_id);
+    }
+    const queryString = preservedQuery.toString();
+    const buildHref = (href: string) =>
+        queryString ? `${href}?${queryString}` : href;
+
+    const { authToken, role } = await resolveAuth(resolvedParams.event_id);
 
     if (!authToken) {
         redirect('/login');
@@ -103,18 +117,18 @@ export default async function DashboardPage() {
                     </h2>
                     <div className='rounded-lg border border-border bg-card p-6'>
                         <div className='flex flex-col gap-3'>
-                            <a
-                                href='/admin/access-codes'
+                            <Link
+                                href={buildHref('/admin/access-codes')}
                                 className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
                             >
                                 アクセスコード管理 →
-                            </a>
-                            <a
-                                href='/departments'
+                            </Link>
+                            <Link
+                                href={buildHref('/departments')}
                                 className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
                             >
                                 部署管理 →
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 </section>

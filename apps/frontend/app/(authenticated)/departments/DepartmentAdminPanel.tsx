@@ -152,7 +152,13 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                             placeholder='例: 企画部'
                             className='mt-1'
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSubmit();
+                                if (e.key !== 'Enter') return;
+                                if ((e.nativeEvent as KeyboardEvent).isComposing) {
+                                    // IME 変換確定 Enter のみ無視
+                                    return;
+                                }
+                                e.preventDefault();
+                                handleSubmit();
                             }}
                         />
                     </div>
