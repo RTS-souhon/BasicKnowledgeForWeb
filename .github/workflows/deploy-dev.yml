@@ -79,7 +79,7 @@ jobs:
           {
             echo "NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}"
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
-          } > .env.development
+          } > .env.production
           bun run build:cloudflare
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
