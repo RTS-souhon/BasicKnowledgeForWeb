@@ -15,11 +15,8 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
-function revalidateTimetablePage(eventId: string) {
-    revalidatePath(
-        `/timetable?event_id=${encodeURIComponent(eventId)}`,
-        'page',
-    );
+function revalidateTimetablePage(_eventId: string) {
+    revalidatePath('/timetable', 'layout');
 }
 
 export async function createTimetableItemAction(

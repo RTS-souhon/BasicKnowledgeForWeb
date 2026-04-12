@@ -15,8 +15,8 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
-function revalidateRoomsPage(eventId: string) {
-    revalidatePath(`/rooms?event_id=${encodeURIComponent(eventId)}`, 'page');
+function revalidateRoomsPage(_eventId: string) {
+    revalidatePath('/rooms', 'layout');
 }
 
 export async function createRoomAction(

@@ -15,8 +15,8 @@ async function getAuthToken(): Promise<string | null> {
     return store.get('auth_token')?.value ?? null;
 }
 
-function revalidateEventsPage(eventId: string) {
-    revalidatePath(`/events?event_id=${encodeURIComponent(eventId)}`, 'page');
+function revalidateEventsPage(_eventId: string) {
+    revalidatePath('/events', 'layout');
 }
 
 export async function createProgramAction(

@@ -13,8 +13,8 @@ type UploadImageResult =
     | { success: true; imageKey: string }
     | { success: false; error: string };
 
-function revalidateShopPage(eventId: string) {
-    revalidatePath(`/shop?event_id=${encodeURIComponent(eventId)}`, 'page');
+function revalidateShopPage(_eventId: string) {
+    revalidatePath('/shop', 'layout');
 }
 
 async function getAuthToken(): Promise<string | null> {
