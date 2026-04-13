@@ -1,15 +1,10 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-
-type RouterMock = {
-    push: jest.Mock;
-    replace: jest.Mock;
-    refresh: jest.Mock;
-    back: jest.Mock;
-    forward: jest.Mock;
-    prefetch: jest.Mock;
-};
+import {
+    createRouterMock,
+    type RouterMock,
+} from '@frontend/tests/utils/mockRouter';
 
 const mockUseRouter = jest.fn<RouterMock, []>();
 
@@ -32,17 +27,6 @@ const TimetableAdminPanel =
 const mockCreate = jest.mocked(actions.createTimetableItemAction);
 const mockUpdate = jest.mocked(actions.updateTimetableItemAction);
 const mockDelete = jest.mocked(actions.deleteTimetableItemAction);
-function createRouterMock(): RouterMock {
-    return {
-        push: jest.fn(),
-        replace: jest.fn(),
-        refresh: jest.fn(),
-        back: jest.fn(),
-        forward: jest.fn(),
-        prefetch: jest.fn().mockResolvedValue(undefined),
-    };
-}
-
 const MOCK_ITEMS = [
     {
         id: '1',
