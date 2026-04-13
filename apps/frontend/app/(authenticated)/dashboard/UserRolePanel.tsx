@@ -25,9 +25,10 @@ export default function UserRolePanel({ initialUsers }: Props) {
     const [selectedRoles, setSelectedRoles] = useState<
         Record<string, 'user' | 'admin'>
     >(
-        Object.fromEntries(
-            initialUsers.map((u) => [u.id, u.role]),
-        ) as Record<string, 'user' | 'admin'>,
+        Object.fromEntries(initialUsers.map((u) => [u.id, u.role])) as Record<
+            string,
+            'user' | 'admin'
+        >,
     );
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);

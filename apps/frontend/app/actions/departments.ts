@@ -190,9 +190,7 @@ async function fetchDepartmentsSnapshot(
             const errorBody = body as { error?: string } | null;
             return {
                 success: false,
-                error:
-                    errorBody?.error ??
-                    '最新の部署一覧の取得に失敗しました',
+                error: errorBody?.error ?? '最新の部署一覧の取得に失敗しました',
             };
         }
         const list = (body as { departments?: Department[] } | null)

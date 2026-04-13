@@ -9,7 +9,12 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
-type UserEntry = { id: string; name: string; email: string; role: 'user' | 'admin' };
+type UserEntry = {
+    id: string;
+    name: string;
+    email: string;
+    role: 'user' | 'admin';
+};
 type UserRoleResult =
     | { success: true; data: UserEntry[] }
     | { success: false; error: string };
@@ -135,8 +140,7 @@ async function fetchUsersSnapshot(authToken: string): Promise<UserRoleResult> {
             return {
                 success: false,
                 error:
-                    errorBody?.error ??
-                    '最新ユーザー一覧の取得に失敗しました',
+                    errorBody?.error ?? '最新ユーザー一覧の取得に失敗しました',
             };
         }
         const list = (body as { users?: UserEntry[] } | null)?.users;
