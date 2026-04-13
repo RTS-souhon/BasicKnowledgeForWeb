@@ -8,7 +8,17 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
+type AccessCode = {
+    id: string;
+    code: string;
+    eventName: string;
+    validFrom: string;
+    validTo: string;
+};
+
+type ActionResult =
+    | { success: true; data: AccessCode[] }
+    | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
@@ -51,8 +61,12 @@ export async function createAccessCodeAction(data: {
                 error: body.error ?? 'コードの作成に失敗しました',
             };
         }
+        const snapshot = await fetchAccessCodesSnapshot(authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateAccessCodesPage();
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'createAccessCodeAction',
@@ -89,8 +103,12 @@ export async function deleteAccessCodeAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
+        const snapshot = await fetchAccessCodesSnapshot(authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateAccessCodesPage();
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteAccessCodeAction',
@@ -99,5 +117,56 @@ export async function deleteAccessCodeAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchAccessCodesSnapshot(
+    authToken: string,
+): Promise<ActionResult> {
+    const endpoint = '/api/access-codes';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: { Cookie: `auth_token=${authToken}` },
+        });
+        logAction(
+            'fetchAccessCodesSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error:
+                    errorBody?.error ??
+                    '最新のアクセスコード取得に失敗しました',
+            };
+        }
+        const list = (body as { codes?: AccessCode[] } | null)?.codes;
+        if (!Array.isArray(list)) {
+            return {
+                success: false,
+                error: '最新のアクセスコード取得に失敗しました',
+            };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchAccessCodesSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return {
+            success: false,
+            error: '最新のアクセスコード取得に失敗しました',
+        };
     }
 }

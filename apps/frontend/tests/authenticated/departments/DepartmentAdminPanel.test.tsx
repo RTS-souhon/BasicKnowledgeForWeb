@@ -127,7 +127,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('フォーム送信で createDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -144,7 +147,13 @@ describe('DepartmentAdminPanel', () => {
 
     it('編集フォーム送信で updateDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
+        mockUpdate.mockResolvedValue({
+            success: true,
+            data: [
+                { id: '1', name: '変更後部署名' },
+                MOCK_DEPARTMENTS[1],
+            ],
+        });
         render(
             <DepartmentAdminPanel
                 departments={MOCK_DEPARTMENTS}
@@ -172,7 +181,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: MOCK_DEPARTMENTS.slice(1),
+        });
         render(
             <DepartmentAdminPanel
                 departments={MOCK_DEPARTMENTS}
@@ -241,7 +253,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('成功時に成功メッセージを表示しフォームを閉じる', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -261,7 +276,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('IME 変換中の Enter では送信しない', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -277,7 +295,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('IME 変換確定後の Enter では送信される', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
