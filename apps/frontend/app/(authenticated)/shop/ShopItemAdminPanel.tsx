@@ -110,14 +110,19 @@ function ShopItemImage({
 
 type Props = { items: ShopItem[]; eventId: string };
 
-export default function ShopItemAdminPanel({ items, eventId }: Props) {
+export default function ShopItemAdminPanel({
+    items: initialItems,
+    eventId,
+}: Props) {
     const router = useRouter();
+    const [items, setItems] = useState(initialItems);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
     const [editingItem, setEditingItem] = useState<ShopItem | null>(null);
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +130,7 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
     };
 
@@ -132,6 +138,7 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -179,6 +186,8 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
             return;
         }
 
+        const description = formData.description.trim() || null;
+
         startTransition(async () => {
             try {
                 const imageKey = await uploadImageIfSelected();
@@ -190,7 +199,7 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                         name,
                         price,
                         stock_status: formData.stock_status,
-                        description: formData.description.trim() || null,
+                        description,
                     };
                     if (imageKey) updateData.image_key = imageKey;
 
@@ -203,19 +212,46 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                         setError(result.error);
                         return;
                     }
+                    setItems((prev) =>
+                        prev.map((i) =>
+                            i.id === editingItem.id
+                                ? {
+                                      ...i,
+                                      name,
+                                      price,
+                                      stockStatus: formData.stock_status,
+                                      description,
+                                  }
+                                : i,
+                        ),
+                    );
                 } else {
                     const result = await createShopItemAction(eventId, {
                         name,
                         price,
                         stock_status: formData.stock_status,
                         image_key: imageKey!,
-                        description: formData.description.trim() || null,
+                        description,
                     });
                     if (!result.success) {
                         setError(result.error);
                         return;
                     }
+                    const newItem: ShopItem = {
+                        id: crypto.randomUUID(),
+                        name,
+                        price,
+                        stockStatus: formData.stock_status,
+                        description,
+                        imageUrl: '',
+                    };
+                    setItems((prev) => [...prev, newItem]);
                 }
+                setInfoMessage(
+                    formMode === 'adding'
+                        ? '販売物を追加しました'
+                        : '販売物を更新しました',
+                );
                 closeForm();
                 router.refresh();
             } catch (err) {
@@ -234,6 +270,8 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                 setError(result.error);
                 return;
             }
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            setInfoMessage('販売物を削除しました');
             router.refresh();
         });
     };
@@ -254,6 +292,15 @@ export default function ShopItemAdminPanel({ items, eventId }: Props) {
                     </Button>
                 )}
             </div>
+
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
 
             {error && (
                 <p

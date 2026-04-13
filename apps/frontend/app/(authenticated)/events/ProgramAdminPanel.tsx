@@ -9,6 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -85,19 +86,26 @@ function describeSchedule(startIso: string, endIso: string) {
 
 type Props = { items: Program[]; eventId: string };
 
-export default function ProgramAdminPanel({ items, eventId }: Props) {
+export default function ProgramAdminPanel({
+    items: initialItems,
+    eventId,
+}: Props) {
+    const router = useRouter();
+    const [items, setItems] = useState(initialItems);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
     const [editingItem, setEditingItem] = useState<Program | null>(null);
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
     };
 
@@ -105,6 +113,7 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
     };
 
@@ -125,6 +134,8 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
         const start_time = new Date(formData.start_time).toISOString();
         const end_time = new Date(formData.end_time).toISOString();
 
+        const description = formData.description.trim() || null;
+
         startTransition(async () => {
             const result =
                 formMode === 'editing' && editingItem
@@ -133,19 +144,55 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                           location,
                           start_time,
                           end_time,
-                          description: formData.description.trim() || null,
+                          description,
                       })
                     : await createProgramAction(eventId, {
                           name,
                           location,
                           start_time,
                           end_time,
-                          description: formData.description.trim() || null,
+                          description,
                       });
 
             if (!result.success) {
                 setError(result.error);
+                return;
             }
+
+            if (formMode === 'adding') {
+                const newItem: Program = {
+                    id: crypto.randomUUID(),
+                    name,
+                    location,
+                    startTime: start_time,
+                    endTime: end_time,
+                    description,
+                };
+                setItems((prev) => [...prev, newItem]);
+            } else if (editingItem) {
+                setItems((prev) =>
+                    prev.map((i) =>
+                        i.id === editingItem.id
+                            ? {
+                                  ...i,
+                                  name,
+                                  location,
+                                  startTime: start_time,
+                                  endTime: end_time,
+                                  description,
+                              }
+                            : i,
+                    ),
+                );
+            }
+
+            setInfoMessage(
+                formMode === 'adding'
+                    ? '企画を追加しました'
+                    : '企画を更新しました',
+            );
+            closeForm();
+            router.refresh();
         });
     };
 
@@ -153,7 +200,13 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
         if (!confirm(`「${item.name}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteProgramAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            setInfoMessage('企画を削除しました');
+            router.refresh();
         });
     };
 
@@ -174,6 +227,15 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                     </Button>
                 )}
             </div>
+
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
 
             {error && (
                 <p

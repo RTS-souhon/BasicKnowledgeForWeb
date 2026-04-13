@@ -36,8 +36,12 @@ function itemToForm(item: OtherItem): FormData {
 
 type Props = { items: OtherItem[]; eventId: string };
 
-export default function OtherItemAdminPanel({ items, eventId }: Props) {
+export default function OtherItemAdminPanel({
+    items: initialItems,
+    eventId,
+}: Props) {
     const router = useRouter();
+    const [items, setItems] = useState(initialItems);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -101,6 +105,29 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
                 return;
             }
 
+            if (formMode === 'adding') {
+                const newItem: OtherItem = {
+                    id: crypto.randomUUID(),
+                    title,
+                    content,
+                    displayOrder: display_order,
+                };
+                setItems((prev) => [...prev, newItem]);
+            } else if (editingItem) {
+                setItems((prev) =>
+                    prev.map((i) =>
+                        i.id === editingItem.id
+                            ? {
+                                  ...i,
+                                  title,
+                                  content,
+                                  displayOrder: display_order,
+                              }
+                            : i,
+                    ),
+                );
+            }
+
             setInfoMessage(
                 formMode === 'adding'
                     ? '情報を追加しました'
@@ -119,6 +146,7 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
                 setError(result.error);
                 return;
             }
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
             setInfoMessage('情報を削除しました');
             router.refresh();
         });
