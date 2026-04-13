@@ -2,6 +2,21 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+type RouterMock = {
+    push: jest.Mock;
+    replace: jest.Mock;
+    refresh: jest.Mock;
+    back: jest.Mock;
+    forward: jest.Mock;
+    prefetch: jest.Mock;
+};
+
+const mockUseRouter = jest.fn<RouterMock, []>();
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockUseRouter(),
+}));
+
 jest.mock('@frontend/app/actions/timetable', () => ({
     createTimetableItemAction: jest.fn(),
     updateTimetableItemAction: jest.fn(),
@@ -17,6 +32,16 @@ const TimetableAdminPanel =
 const mockCreate = jest.mocked(actions.createTimetableItemAction);
 const mockUpdate = jest.mocked(actions.updateTimetableItemAction);
 const mockDelete = jest.mocked(actions.deleteTimetableItemAction);
+function createRouterMock(): RouterMock {
+    return {
+        push: jest.fn(),
+        replace: jest.fn(),
+        refresh: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+        prefetch: jest.fn().mockResolvedValue(undefined),
+    };
+}
 
 const MOCK_ITEMS = [
     {
@@ -47,11 +72,13 @@ const CREATED_ITEM = {
 };
 
 beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
     mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
     mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
     mockDelete.mockResolvedValue({ success: true });
+    mockUseRouter.mockReturnValue(createRouterMock());
 });
 
 describe('TimetableAdminPanel', () => {

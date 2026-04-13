@@ -11,7 +11,13 @@ import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { type CSSProperties, useEffect, useRef, useState, useTransition } from 'react';
+import {
+    type CSSProperties,
+    useEffect,
+    useRef,
+    useState,
+    useTransition,
+} from 'react';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
 

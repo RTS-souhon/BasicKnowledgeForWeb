@@ -2,6 +2,21 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+type RouterMock = {
+    push: jest.Mock;
+    replace: jest.Mock;
+    refresh: jest.Mock;
+    back: jest.Mock;
+    forward: jest.Mock;
+    prefetch: jest.Mock;
+};
+
+const mockUseRouter = jest.fn<RouterMock, []>();
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockUseRouter(),
+}));
+
 jest.mock('@frontend/app/actions/rooms', () => ({
     createRoomAction: jest.fn(),
     updateRoomAction: jest.fn(),
@@ -17,6 +32,16 @@ const RoomAdminPanel =
 const mockCreate = jest.mocked(actions.createRoomAction);
 const mockUpdate = jest.mocked(actions.updateRoomAction);
 const mockDelete = jest.mocked(actions.deleteRoomAction);
+function createRouterMock(): RouterMock {
+    return {
+        push: jest.fn(),
+        replace: jest.fn(),
+        refresh: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+        prefetch: jest.fn().mockResolvedValue(undefined),
+    };
+}
 
 const MOCK_DEPARTMENTS = [
     { id: 'dept-1', name: '運営部' },
@@ -67,11 +92,13 @@ const CREATED_ROOM = {
 };
 
 beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
     mockCreate.mockResolvedValue({ success: true, data: CREATED_ROOM });
     mockUpdate.mockResolvedValue({ success: true, data: MOCK_ROOMS[0] });
     mockDelete.mockResolvedValue({ success: true });
+    mockUseRouter.mockReturnValue(createRouterMock());
 });
 
 describe('RoomAdminPanel', () => {

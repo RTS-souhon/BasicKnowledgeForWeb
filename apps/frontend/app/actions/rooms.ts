@@ -8,8 +8,6 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
-
 type RoomData = {
     id: string;
     buildingName: string;
@@ -27,6 +25,8 @@ type RoomData = {
 type MutationResult =
     | { success: true; data: RoomData }
     | { success: false; error: string };
+
+type ActionResult = { success: true } | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
@@ -104,7 +104,7 @@ export async function updateRoomAction(
         pre_day_purpose?: string | null;
         notes?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -132,8 +132,9 @@ export async function updateRoomAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
+        const body = (await res.json()) as { room: RoomData };
         revalidateRoomsPage(eventId);
-        return { success: true };
+        return { success: true, data: body.room };
     } catch (err) {
         logActionError(
             'updateRoomAction',
