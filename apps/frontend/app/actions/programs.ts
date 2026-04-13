@@ -10,6 +10,19 @@ import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
+type ProgramData = {
+    id: string;
+    name: string;
+    location: string;
+    startTime: string;
+    endTime: string;
+    description: string | null;
+};
+
+type MutationResult =
+    | { success: true; data: ProgramData }
+    | { success: false; error: string };
+
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
@@ -28,7 +41,7 @@ export async function createProgramAction(
         end_time: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -56,8 +69,9 @@ export async function createProgramAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
+        const body = (await res.json()) as { program: ProgramData };
         revalidateEventsPage(eventId);
-        return { success: true };
+        return { success: true, data: body.program };
     } catch (err) {
         logActionError(
             'createProgramAction',
@@ -79,7 +93,7 @@ export async function updateProgramAction(
         end_time?: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -107,8 +121,9 @@ export async function updateProgramAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
+        const body = (await res.json()) as { program: ProgramData };
         revalidateEventsPage(eventId);
-        return { success: true };
+        return { success: true, data: body.program };
     } catch (err) {
         logActionError(
             'updateProgramAction',

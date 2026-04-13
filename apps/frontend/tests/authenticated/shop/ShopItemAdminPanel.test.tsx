@@ -53,12 +53,24 @@ const MOCK_ITEMS = [
     },
 ];
 
+const CREATED_ITEM = {
+    id: 'created-id',
+    name: '新商品',
+    price: 0,
+    stockStatus: 'available' as const,
+    description: null,
+    imageUrl: 'https://assets.example.com/new.webp',
+};
+
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
     global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
         new Response(null, { status: 200 }),
     );
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
 });
 
 describe('ShopItemAdminPanel', () => {
@@ -68,7 +80,6 @@ describe('ShopItemAdminPanel', () => {
             success: true,
             imageKey: 'shop-items/event-1/new.webp',
         });
-        mockCreate.mockResolvedValue({ success: true });
         render(<ShopItemAdminPanel items={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -186,7 +197,6 @@ describe('ShopItemAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteShopItemAction を呼びリフレッシュする', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });

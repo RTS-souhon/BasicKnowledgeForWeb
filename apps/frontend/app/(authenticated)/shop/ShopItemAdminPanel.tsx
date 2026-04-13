@@ -11,7 +11,7 @@ import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { type CSSProperties, useRef, useState, useTransition } from 'react';
+import { type CSSProperties, useEffect, useRef, useState, useTransition } from 'react';
 
 type StockStatus = 'available' | 'low' | 'sold_out';
 
@@ -116,6 +116,9 @@ export default function ShopItemAdminPanel({
 }: Props) {
     const router = useRouter();
     const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -212,18 +215,9 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
+                    const saved = result.data;
                     setItems((prev) =>
-                        prev.map((i) =>
-                            i.id === editingItem.id
-                                ? {
-                                      ...i,
-                                      name,
-                                      price,
-                                      stockStatus: formData.stock_status,
-                                      description,
-                                  }
-                                : i,
-                        ),
+                        prev.map((i) => (i.id === saved.id ? saved : i)),
                     );
                 } else {
                     const result = await createShopItemAction(eventId, {
@@ -237,15 +231,7 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
-                    const newItem: ShopItem = {
-                        id: crypto.randomUUID(),
-                        name,
-                        price,
-                        stockStatus: formData.stock_status,
-                        description,
-                        imageUrl: '',
-                    };
-                    setItems((prev) => [...prev, newItem]);
+                    setItems((prev) => [...prev, result.data]);
                 }
                 setInfoMessage(
                     formMode === 'adding'

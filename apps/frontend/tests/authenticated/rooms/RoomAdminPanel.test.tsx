@@ -2,17 +2,6 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({
-        refresh: jest.fn(),
-        prefetch: jest.fn(),
-        push: jest.fn(),
-        replace: jest.fn(),
-        back: jest.fn(),
-        forward: jest.fn(),
-    }),
-}));
-
 jest.mock('@frontend/app/actions/rooms', () => ({
     createRoomAction: jest.fn(),
     updateRoomAction: jest.fn(),
@@ -63,9 +52,26 @@ const MOCK_ROOMS = [
     },
 ];
 
+const CREATED_ROOM = {
+    id: 'created-id',
+    buildingName: 'B棟',
+    floor: '1F',
+    roomName: '控室',
+    preDayManagerId: null,
+    preDayManagerName: null,
+    preDayPurpose: null,
+    dayManagerId: 'dept-2',
+    dayManagerName: '企画部',
+    dayPurpose: '準備',
+    notes: null,
+};
+
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_ROOM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ROOMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
 });
 
 describe('RoomAdminPanel', () => {
@@ -140,7 +146,6 @@ describe('RoomAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteRoomAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<RoomAdminPanel rooms={MOCK_ROOMS} departments={MOCK_DEPARTMENTS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });

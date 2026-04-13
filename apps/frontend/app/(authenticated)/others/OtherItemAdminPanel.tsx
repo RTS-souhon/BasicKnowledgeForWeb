@@ -9,7 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type OtherItem = {
     id: string;
@@ -42,6 +42,9 @@ export default function OtherItemAdminPanel({
 }: Props) {
     const router = useRouter();
     const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -105,28 +108,12 @@ export default function OtherItemAdminPanel({
                 return;
             }
 
-            if (formMode === 'adding') {
-                const newItem: OtherItem = {
-                    id: crypto.randomUUID(),
-                    title,
-                    content,
-                    displayOrder: display_order,
-                };
-                setItems((prev) => [...prev, newItem]);
-            } else if (editingItem) {
-                setItems((prev) =>
-                    prev.map((i) =>
-                        i.id === editingItem.id
-                            ? {
-                                  ...i,
-                                  title,
-                                  content,
-                                  displayOrder: display_order,
-                              }
-                            : i,
-                    ),
-                );
-            }
+            const saved = result.data;
+            setItems((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((i) => (i.id === saved.id ? saved : i)),
+            );
 
             setInfoMessage(
                 formMode === 'adding'

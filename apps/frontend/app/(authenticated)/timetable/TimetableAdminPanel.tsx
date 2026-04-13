@@ -9,7 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -105,6 +105,9 @@ export default function TimetableAdminPanel({
 }: Props) {
     const router = useRouter();
     const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -172,32 +175,12 @@ export default function TimetableAdminPanel({
                 return;
             }
 
-            if (formMode === 'adding') {
-                const newItem: TimetableItem = {
-                    id: crypto.randomUUID(),
-                    title,
-                    startTime: start_time,
-                    endTime: end_time,
-                    location,
-                    description,
-                };
-                setItems((prev) => [...prev, newItem]);
-            } else if (editingItem) {
-                setItems((prev) =>
-                    prev.map((i) =>
-                        i.id === editingItem.id
-                            ? {
-                                  ...i,
-                                  title,
-                                  startTime: start_time,
-                                  endTime: end_time,
-                                  location,
-                                  description,
-                              }
-                            : i,
-                    ),
-                );
-            }
+            const saved = result.data;
+            setItems((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((i) => (i.id === saved.id ? saved : i)),
+            );
 
             setInfoMessage(
                 formMode === 'adding'

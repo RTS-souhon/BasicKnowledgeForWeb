@@ -9,7 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type RoomWithDepartments = {
     id: string;
@@ -75,6 +75,9 @@ export default function RoomAdminPanel({
 }: Props) {
     const router = useRouter();
     const [rooms, setRooms] = useState(initialRooms);
+    useEffect(() => {
+        setRooms(initialRooms);
+    }, [initialRooms]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -159,47 +162,12 @@ export default function RoomAdminPanel({
                 return;
             }
 
-            const dayDept = departments.find((d) => d.id === day_manager_id);
-            const preDayDept = pre_day_manager_id
-                ? departments.find((d) => d.id === pre_day_manager_id)
-                : null;
-
-            if (formMode === 'adding') {
-                const newRoom: RoomWithDepartments = {
-                    id: crypto.randomUUID(),
-                    buildingName: building_name,
-                    floor,
-                    roomName: room_name,
-                    dayManagerId: day_manager_id,
-                    dayManagerName: dayDept?.name ?? '',
-                    dayPurpose: day_purpose,
-                    preDayManagerId: pre_day_manager_id,
-                    preDayManagerName: preDayDept?.name ?? null,
-                    preDayPurpose: pre_day_purpose,
-                    notes,
-                };
-                setRooms((prev) => [...prev, newRoom]);
-            } else if (editingItem) {
-                setRooms((prev) =>
-                    prev.map((r) =>
-                        r.id === editingItem.id
-                            ? {
-                                  ...r,
-                                  buildingName: building_name,
-                                  floor,
-                                  roomName: room_name,
-                                  dayManagerId: day_manager_id,
-                                  dayManagerName: dayDept?.name ?? '',
-                                  dayPurpose: day_purpose,
-                                  preDayManagerId: pre_day_manager_id,
-                                  preDayManagerName: preDayDept?.name ?? null,
-                                  preDayPurpose: pre_day_purpose,
-                                  notes,
-                              }
-                            : r,
-                    ),
-                );
-            }
+            const saved = result.data;
+            setRooms((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((r) => (r.id === saved.id ? saved : r)),
+            );
 
             setInfoMessage(
                 formMode === 'adding'

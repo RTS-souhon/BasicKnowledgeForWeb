@@ -10,7 +10,7 @@ import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -92,6 +92,9 @@ export default function ProgramAdminPanel({
 }: Props) {
     const router = useRouter();
     const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -159,32 +162,12 @@ export default function ProgramAdminPanel({
                 return;
             }
 
-            if (formMode === 'adding') {
-                const newItem: Program = {
-                    id: crypto.randomUUID(),
-                    name,
-                    location,
-                    startTime: start_time,
-                    endTime: end_time,
-                    description,
-                };
-                setItems((prev) => [...prev, newItem]);
-            } else if (editingItem) {
-                setItems((prev) =>
-                    prev.map((i) =>
-                        i.id === editingItem.id
-                            ? {
-                                  ...i,
-                                  name,
-                                  location,
-                                  startTime: start_time,
-                                  endTime: end_time,
-                                  description,
-                              }
-                            : i,
-                    ),
-                );
-            }
+            const saved = result.data;
+            setItems((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((i) => (i.id === saved.id ? saved : i)),
+            );
 
             setInfoMessage(
                 formMode === 'adding'

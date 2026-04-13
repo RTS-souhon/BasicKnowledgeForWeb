@@ -10,6 +10,24 @@ import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
+type RoomData = {
+    id: string;
+    buildingName: string;
+    floor: string;
+    roomName: string;
+    preDayManagerId: string | null;
+    preDayManagerName: string | null;
+    preDayPurpose: string | null;
+    dayManagerId: string;
+    dayManagerName: string;
+    dayPurpose: string;
+    notes: string | null;
+};
+
+type MutationResult =
+    | { success: true; data: RoomData }
+    | { success: false; error: string };
+
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
@@ -31,7 +49,7 @@ export async function createRoomAction(
         pre_day_purpose?: string | null;
         notes?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -59,8 +77,9 @@ export async function createRoomAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
+        const body = (await res.json()) as { room: RoomData };
         revalidateRoomsPage(eventId);
-        return { success: true };
+        return { success: true, data: body.room };
     } catch (err) {
         logActionError(
             'createRoomAction',

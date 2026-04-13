@@ -2,17 +2,6 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({
-        refresh: jest.fn(),
-        prefetch: jest.fn(),
-        push: jest.fn(),
-        replace: jest.fn(),
-        back: jest.fn(),
-        forward: jest.fn(),
-    }),
-}));
-
 jest.mock('@frontend/app/actions/programs', () => ({
     createProgramAction: jest.fn(),
     updateProgramAction: jest.fn(),
@@ -48,9 +37,21 @@ const MOCK_ITEMS = [
     },
 ];
 
+const CREATED_PROGRAM = {
+    id: 'created-id',
+    name: '新規企画',
+    location: 'サブホール',
+    startTime: '2025-08-02T01:00:00.000Z',
+    endTime: '2025-08-02T02:00:00.000Z',
+    description: null,
+};
+
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_PROGRAM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
 });
 
 describe('ProgramAdminPanel', () => {
@@ -158,7 +159,6 @@ describe('ProgramAdminPanel', () => {
 
     it('編集フォーム送信で updateProgramAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
         render(<ProgramAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const editButtons = screen.getAllByRole('button', { name: '編集' });

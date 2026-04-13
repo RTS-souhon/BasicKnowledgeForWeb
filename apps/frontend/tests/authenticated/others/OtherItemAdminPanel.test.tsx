@@ -34,9 +34,19 @@ const MOCK_ITEMS = [
     { id: '2', title: 'Wi-Fi情報', content: 'SSID: EventStaff', displayOrder: 2 },
 ];
 
+const CREATED_ITEM = {
+    id: 'created-id',
+    title: '新しいタイトル',
+    content: '新しい内容',
+    displayOrder: 999,
+};
+
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
 });
 
 describe('OtherItemAdminPanel', () => {
@@ -101,7 +111,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('フォーム送信で createOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -125,7 +134,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('編集フォーム送信で updateOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const editButtons = screen.getAllByRole('button', { name: '編集' });
@@ -150,7 +158,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });
