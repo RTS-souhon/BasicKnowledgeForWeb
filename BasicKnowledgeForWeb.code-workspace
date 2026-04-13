@@ -19,7 +19,8 @@
             ".env*",
             ".open-next/**",
             "mcp.json",
-            ".gitignore"
+            ".gitignore",
+            "settings.local.json"
         ],
         "cSpell.ignoreWords": [
             "reitaisai"

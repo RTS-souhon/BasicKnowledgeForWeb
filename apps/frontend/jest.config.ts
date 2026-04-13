@@ -26,6 +26,7 @@ const customJestConfig: Config = {
         '^@asamuzakjp/css-color/(.*)$': '<rootDir>/tests/mocks/css-color.js',
     },
     testMatch: ['<rootDir>/tests/**/*.test.{ts,tsx}'],
+    modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/.open-next/'],
 };
 
 // createJestConfig は transformIgnorePatterns を next/jest デフォルトで上書きするため、

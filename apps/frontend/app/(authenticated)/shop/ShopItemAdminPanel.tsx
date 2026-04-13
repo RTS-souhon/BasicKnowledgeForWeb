@@ -221,10 +221,7 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
-                    const saved = result.data;
-                    setItems((prev) =>
-                        prev.map((i) => (i.id === saved.id ? saved : i)),
-                    );
+                    setItems(result.data);
                 } else {
                     const result = await createShopItemAction(eventId, {
                         name,
@@ -237,7 +234,7 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
-                    setItems((prev) => [...prev, result.data]);
+                    setItems(result.data);
                 }
                 setInfoMessage(
                     formMode === 'adding'
@@ -262,7 +259,7 @@ export default function ShopItemAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            setItems(result.data);
             setInfoMessage('販売物を削除しました');
             router.refresh();
         });

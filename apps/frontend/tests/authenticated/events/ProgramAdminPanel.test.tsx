@@ -59,9 +59,15 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockCreate.mockResolvedValue({ success: true, data: CREATED_PROGRAM });
-    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
-    mockDelete.mockResolvedValue({ success: true });
+    mockCreate.mockResolvedValue({
+        success: true,
+        data: [...MOCK_ITEMS, CREATED_PROGRAM],
+    });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS });
+    mockDelete.mockResolvedValue({
+        success: true,
+        data: MOCK_ITEMS.slice(1),
+    });
     mockUseRouter.mockReturnValue(createRouterMock());
 });
 
@@ -138,7 +144,10 @@ describe('ProgramAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteProgramAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: MOCK_ITEMS.slice(1),
+        });
         render(<ProgramAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });

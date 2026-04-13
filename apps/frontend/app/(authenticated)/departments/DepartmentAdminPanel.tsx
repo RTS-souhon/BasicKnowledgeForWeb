@@ -9,7 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type Department = {
     id: string;
@@ -20,6 +20,10 @@ type Props = { departments: Department[]; eventId: string };
 
 export default function DepartmentAdminPanel({ departments, eventId }: Props) {
     const router = useRouter();
+    const [departmentList, setDepartmentList] = useState(departments);
+    useEffect(() => {
+        setDepartmentList(departments);
+    }, [departments]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -76,6 +80,7 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                     ? '部署を追加しました'
                     : '部署を更新しました',
             );
+            setDepartmentList(result.data);
             closeForm();
             router.refresh();
         });
@@ -90,6 +95,7 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                 return;
             }
             setInfoMessage('部署を削除しました');
+            setDepartmentList(result.data);
             router.refresh();
         });
     };
@@ -184,13 +190,13 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                 </div>
             )}
 
-            {departments.length === 0 ? (
+            {departmentList.length === 0 ? (
                 <p className='text-muted-foreground text-sm'>
                     登録されている部署はありません
                 </p>
             ) : (
                 <div className='space-y-2'>
-                    {departments.map((dept) => (
+                    {departmentList.map((dept) => (
                         <div
                             key={dept.id}
                             className='flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 shadow-sm'

@@ -5,7 +5,7 @@ import {
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type AccessCode = {
     id: string;
@@ -63,6 +63,10 @@ export default function AccessCodeAdminPanel({
     initialError = null,
 }: Props) {
     const router = useRouter();
+    const [codeList, setCodeList] = useState(codes);
+    useEffect(() => {
+        setCodeList(codes);
+    }, [codes]);
     const [eventName, setEventName] = useState('');
     const [code, setCode] = useState('');
     const [validFrom, setValidFrom] = useState('');
@@ -104,6 +108,7 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setFormError(result.error);
             } else {
+                setCodeList(result.data);
                 setEventName('');
                 setCode('');
                 setValidFrom('');
@@ -127,6 +132,7 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setGlobalError(result.error);
             } else {
+                setCodeList(result.data);
                 refreshCodes();
             }
             setDeletingId(null);
@@ -275,7 +281,7 @@ export default function AccessCodeAdminPanel({
                     </p>
                 )}
 
-                {codes.length === 0 ? (
+                {codeList.length === 0 ? (
                     <p className='text-muted-foreground text-sm'>
                         登録されているコードはありません
                     </p>
@@ -307,7 +313,7 @@ export default function AccessCodeAdminPanel({
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-border bg-card'>
-                                    {codes.map((c) => {
+                                    {codeList.map((c) => {
                                         const status = getStatus(
                                             c.validFrom,
                                             c.validTo,
@@ -357,7 +363,7 @@ export default function AccessCodeAdminPanel({
 
                         {/* Mobile cards */}
                         <div className='space-y-3 md:hidden'>
-                            {codes.map((c) => {
+                            {codeList.map((c) => {
                                 const status = getStatus(
                                     c.validFrom,
                                     c.validTo,

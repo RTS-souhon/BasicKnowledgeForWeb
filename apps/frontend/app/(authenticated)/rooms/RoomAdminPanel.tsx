@@ -162,13 +162,7 @@ export default function RoomAdminPanel({
                 return;
             }
 
-            const saved = result.data;
-            setRooms((prev) =>
-                formMode === 'adding'
-                    ? [...prev, saved]
-                    : prev.map((r) => (r.id === saved.id ? saved : r)),
-            );
-
+            setRooms(result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '部屋割りを追加しました'
@@ -187,7 +181,7 @@ export default function RoomAdminPanel({
                 setError(result.error);
                 return;
             }
-            setRooms((prev) => prev.filter((r) => r.id !== item.id));
+            setRooms(result.data);
             setInfoMessage('部屋割りを削除しました');
             router.refresh();
         });

@@ -8,7 +8,6 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
 type UploadImageResult =
     | { success: true; imageKey: string }
     | { success: false; error: string };
@@ -22,8 +21,8 @@ type ShopItemData = {
     imageUrl: string;
 };
 
-type MutationResult =
-    | { success: true; data: ShopItemData }
+type ShopItemsResult =
+    | { success: true; data: ShopItemData[] }
     | { success: false; error: string };
 
 function revalidateShopPage(_eventId: string) {
@@ -87,7 +86,7 @@ export async function createShopItemAction(
         image_key: string;
         description?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<ShopItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -115,9 +114,12 @@ export async function createShopItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        const body = (await res.json()) as { item: ShopItemData };
+        const snapshot = await fetchShopItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateShopPage(eventId);
-        return { success: true, data: body.item };
+        return snapshot;
     } catch (err) {
         logActionError(
             'createShopItemAction',
@@ -139,7 +141,7 @@ export async function updateShopItemAction(
         image_key?: string;
         description?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<ShopItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -167,9 +169,12 @@ export async function updateShopItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        const body = (await res.json()) as { item: ShopItemData };
+        const snapshot = await fetchShopItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateShopPage(eventId);
-        return { success: true, data: body.item };
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateShopItemAction',
@@ -184,7 +189,7 @@ export async function updateShopItemAction(
 export async function deleteShopItemAction(
     eventId: string,
     id: string,
-): Promise<ActionResult> {
+): Promise<ShopItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -210,8 +215,12 @@ export async function deleteShopItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
+        const snapshot = await fetchShopItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateShopPage(eventId);
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteShopItemAction',
@@ -220,5 +229,52 @@ export async function deleteShopItemAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchShopItemsSnapshot(
+    eventId: string,
+    authToken: string,
+): Promise<ShopItemsResult> {
+    const endpoint = '/api/shop-items';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+        });
+        logAction(
+            'fetchShopItemsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error: errorBody?.error ?? '最新データの取得に失敗しました',
+            };
+        }
+        const list = (body as { items?: ShopItemData[] } | null)?.items;
+        if (!Array.isArray(list)) {
+            return { success: false, error: '最新データの取得に失敗しました' };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchShopItemsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '最新データの取得に失敗しました' };
     }
 }

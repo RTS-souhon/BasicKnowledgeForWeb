@@ -22,11 +22,9 @@ type RoomData = {
     notes: string | null;
 };
 
-type MutationResult =
-    | { success: true; data: RoomData }
+type RoomsResult =
+    | { success: true; data: RoomData[] }
     | { success: false; error: string };
-
-type ActionResult = { success: true } | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
@@ -49,7 +47,7 @@ export async function createRoomAction(
         pre_day_purpose?: string | null;
         notes?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<RoomsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -77,9 +75,12 @@ export async function createRoomAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        const body = (await res.json()) as { room: RoomData };
+        const snapshot = await fetchRoomsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateRoomsPage(eventId);
-        return { success: true, data: body.room };
+        return snapshot;
     } catch (err) {
         logActionError(
             'createRoomAction',
@@ -104,7 +105,7 @@ export async function updateRoomAction(
         pre_day_purpose?: string | null;
         notes?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<RoomsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -132,9 +133,12 @@ export async function updateRoomAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        const body = (await res.json()) as { room: RoomData };
+        const snapshot = await fetchRoomsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateRoomsPage(eventId);
-        return { success: true, data: body.room };
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateRoomAction',
@@ -149,7 +153,7 @@ export async function updateRoomAction(
 export async function deleteRoomAction(
     eventId: string,
     id: string,
-): Promise<ActionResult> {
+): Promise<RoomsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -175,8 +179,12 @@ export async function deleteRoomAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
+        const snapshot = await fetchRoomsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateRoomsPage(eventId);
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteRoomAction',
@@ -185,5 +193,52 @@ export async function deleteRoomAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchRoomsSnapshot(
+    eventId: string,
+    authToken: string,
+): Promise<RoomsResult> {
+    const endpoint = '/api/rooms';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+        });
+        logAction(
+            'fetchRoomsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error: errorBody?.error ?? '最新データの取得に失敗しました',
+            };
+        }
+        const list = (body as { rooms?: RoomData[] } | null)?.rooms;
+        if (!Array.isArray(list)) {
+            return { success: false, error: '最新データの取得に失敗しました' };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchRoomsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '最新データの取得に失敗しました' };
     }
 }

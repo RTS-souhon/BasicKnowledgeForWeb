@@ -108,13 +108,7 @@ export default function OtherItemAdminPanel({
                 return;
             }
 
-            const saved = result.data;
-            setItems((prev) =>
-                formMode === 'adding'
-                    ? [...prev, saved]
-                    : prev.map((i) => (i.id === saved.id ? saved : i)),
-            );
-
+            setItems(result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '情報を追加しました'
@@ -133,7 +127,7 @@ export default function OtherItemAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            setItems(result.data);
             setInfoMessage('情報を削除しました');
             router.refresh();
         });

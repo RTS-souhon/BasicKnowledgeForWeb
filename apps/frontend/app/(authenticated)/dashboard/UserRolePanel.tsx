@@ -1,13 +1,13 @@
 'use client';
 
 import { updateUserRoleAction } from '@frontend/app/actions/dashboard';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type User = {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: 'user' | 'admin';
 };
 
 type Props = {
@@ -25,13 +25,23 @@ export default function UserRolePanel({ initialUsers }: Props) {
     const [selectedRoles, setSelectedRoles] = useState<
         Record<string, 'user' | 'admin'>
     >(
-        Object.fromEntries(
-            initialUsers.map((u) => [u.id, u.role as 'user' | 'admin']),
-        ),
+        Object.fromEntries(initialUsers.map((u) => [u.id, u.role])) as Record<
+            string,
+            'user' | 'admin'
+        >,
     );
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [, startTransition] = useTransition();
+
+    useEffect(() => {
+        setUsers(initialUsers);
+        setSelectedRoles(
+            Object.fromEntries(
+                initialUsers.map((u) => [u.id, u.role]),
+            ) as Record<string, 'user' | 'admin'>,
+        );
+    }, [initialUsers]);
 
     const handleRoleChange = (userId: string) => {
         const newRole = selectedRoles[userId];
@@ -57,10 +67,11 @@ export default function UserRolePanel({ initialUsers }: Props) {
                     }));
                 }
             } else {
-                setUsers((prev) =>
-                    prev.map((u) =>
-                        u.id === userId ? { ...u, role: newRole } : u,
-                    ),
+                setUsers(result.data);
+                setSelectedRoles(
+                    Object.fromEntries(
+                        result.data.map((u) => [u.id, u.role]),
+                    ) as Record<string, 'user' | 'admin'>,
                 );
                 setInfoMessage('ユーザーのロールを更新しました');
             }

@@ -117,7 +117,19 @@ describe('AccessCodeAdminPanel', () => {
 
     it('正常に新規コードを生成できる', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        const createdList = [
+            {
+                id: 'new',
+                code: 'TEST01',
+                eventName: 'テストイベント',
+                validFrom: new Date('2025-07-01').toISOString(),
+                validTo: new Date('2025-08-01').toISOString(),
+            },
+        ];
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: createdList,
+        });
         render(<AccessCodeAdminPanel codes={[]} />);
 
         await user.type(screen.getByLabelText('イベント名'), 'テストイベント');
@@ -136,6 +148,11 @@ describe('AccessCodeAdminPanel', () => {
                     eventName: 'テストイベント',
                 }),
             );
+        });
+        await waitFor(() => {
+            expect(
+                screen.getAllByText('テストイベント').length,
+            ).toBeGreaterThan(0);
             expect(mockRefresh).toHaveBeenCalled();
         });
     });
@@ -177,7 +194,11 @@ describe('AccessCodeAdminPanel', () => {
 
     it('削除ボタン + confirm で deleteAccessCodeAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
+        const remaining = MOCK_CODES.slice(1);
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: remaining,
+        });
         render(<AccessCodeAdminPanel codes={MOCK_CODES} />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });
@@ -187,6 +208,9 @@ describe('AccessCodeAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('1');
+        });
+        await waitFor(() => {
+            expect(screen.queryByText('2025夏イベント')).not.toBeInTheDocument();
             expect(mockRefresh).toHaveBeenCalled();
         });
     });

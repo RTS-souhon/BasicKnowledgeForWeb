@@ -26,6 +26,9 @@ export async function getPrograms(c: Context, useCase: IGetProgramsUseCase) {
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
+    c.header('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
     return c.json({ programs: result.data }, 200);
 }
 

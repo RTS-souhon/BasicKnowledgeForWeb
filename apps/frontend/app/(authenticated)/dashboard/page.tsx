@@ -9,7 +9,12 @@ import { redirect } from 'next/navigation';
 import PasswordChangeForm from './PasswordChangeForm';
 import UserRolePanel from './UserRolePanel';
 
-type UserEntry = { id: string; name: string; email: string; role: string };
+type UserEntry = {
+    id: string;
+    name: string;
+    email: string;
+    role: 'user' | 'admin';
+};
 
 const ROLE_LABELS: Record<string, string> = {
     user: 'スタッフ',
@@ -23,8 +28,13 @@ async function fetchUsers(authToken: string): Promise<UserEntry[]> {
             cache: 'no-store',
         });
         if (!res.ok) return [];
-        const data = (await res.json()) as { users: UserEntry[] };
-        return data.users ?? [];
+        const data = (await res.json()) as {
+            users: Array<Omit<UserEntry, 'role'> & { role: string }>;
+        };
+        return (data.users ?? []).map((user) => ({
+            ...user,
+            role: user.role === 'admin' ? 'admin' : 'user',
+        }));
     } catch {
         return [];
     }
