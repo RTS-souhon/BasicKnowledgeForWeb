@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen, within } from '@testing-library/react';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
