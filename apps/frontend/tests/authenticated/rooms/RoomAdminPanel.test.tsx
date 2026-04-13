@@ -1,6 +1,16 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+    createRouterMock,
+    type RouterMock,
+} from '@frontend/tests/utils/mockRouter';
+
+const mockUseRouter = jest.fn<RouterMock, []>();
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockUseRouter(),
+}));
 
 jest.mock('@frontend/app/actions/rooms', () => ({
     createRoomAction: jest.fn(),
@@ -17,7 +27,6 @@ const RoomAdminPanel =
 const mockCreate = jest.mocked(actions.createRoomAction);
 const mockUpdate = jest.mocked(actions.updateRoomAction);
 const mockDelete = jest.mocked(actions.deleteRoomAction);
-
 const MOCK_DEPARTMENTS = [
     { id: 'dept-1', name: '運営部' },
     { id: 'dept-2', name: '企画部' },
@@ -52,9 +61,28 @@ const MOCK_ROOMS = [
     },
 ];
 
+const CREATED_ROOM = {
+    id: 'created-id',
+    buildingName: 'B棟',
+    floor: '1F',
+    roomName: '控室',
+    preDayManagerId: null,
+    preDayManagerName: null,
+    preDayPurpose: null,
+    dayManagerId: 'dept-2',
+    dayManagerName: '企画部',
+    dayPurpose: '準備',
+    notes: null,
+};
+
 beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_ROOM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ROOMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
+    mockUseRouter.mockReturnValue(createRouterMock());
 });
 
 describe('RoomAdminPanel', () => {
@@ -129,7 +157,6 @@ describe('RoomAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteRoomAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<RoomAdminPanel rooms={MOCK_ROOMS} departments={MOCK_DEPARTMENTS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });

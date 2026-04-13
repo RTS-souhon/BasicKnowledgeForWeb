@@ -1,6 +1,16 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+    createRouterMock,
+    type RouterMock,
+} from '@frontend/tests/utils/mockRouter';
+
+const mockUseRouter = jest.fn<RouterMock, []>();
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockUseRouter(),
+}));
 
 jest.mock('@frontend/app/actions/timetable', () => ({
     createTimetableItemAction: jest.fn(),
@@ -17,7 +27,6 @@ const TimetableAdminPanel =
 const mockCreate = jest.mocked(actions.createTimetableItemAction);
 const mockUpdate = jest.mocked(actions.updateTimetableItemAction);
 const mockDelete = jest.mocked(actions.deleteTimetableItemAction);
-
 const MOCK_ITEMS = [
     {
         id: '1',
@@ -37,9 +46,23 @@ const MOCK_ITEMS = [
     },
 ];
 
+const CREATED_ITEM = {
+    id: 'created-id',
+    title: '閉会式',
+    startTime: '2025-08-02T00:00:00.000Z',
+    endTime: '2025-08-02T00:30:00.000Z',
+    location: '大ホール',
+    description: null,
+};
+
 beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
+    mockDelete.mockResolvedValue({ success: true });
+    mockUseRouter.mockReturnValue(createRouterMock());
 });
 
 describe('TimetableAdminPanel', () => {
@@ -116,7 +139,6 @@ describe('TimetableAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteTimetableItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<TimetableAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });
@@ -162,7 +184,6 @@ describe('TimetableAdminPanel', () => {
 
     it('編集フォーム送信で updateTimetableItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
         render(<TimetableAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const editButtons = screen.getAllByRole('button', { name: '編集' });

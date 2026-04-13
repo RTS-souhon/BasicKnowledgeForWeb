@@ -8,7 +8,8 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 
 type RoomWithDepartments = {
     id: string;
@@ -67,7 +68,16 @@ type Props = {
     eventId: string;
 };
 
-export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
+export default function RoomAdminPanel({
+    rooms: initialRooms,
+    departments,
+    eventId,
+}: Props) {
+    const router = useRouter();
+    const [rooms, setRooms] = useState(initialRooms);
+    useEffect(() => {
+        setRooms(initialRooms);
+    }, [initialRooms]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -76,12 +86,14 @@ export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
     );
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
     };
 
@@ -89,6 +101,7 @@ export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
     };
 
@@ -146,7 +159,23 @@ export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
 
             if (!result.success) {
                 setError(result.error);
+                return;
             }
+
+            const saved = result.data;
+            setRooms((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((r) => (r.id === saved.id ? saved : r)),
+            );
+
+            setInfoMessage(
+                formMode === 'adding'
+                    ? '部屋割りを追加しました'
+                    : '部屋割りを更新しました',
+            );
+            closeForm();
+            router.refresh();
         });
     };
 
@@ -154,7 +183,13 @@ export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
         if (!confirm(`「${item.roomName}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteRoomAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            setRooms((prev) => prev.filter((r) => r.id !== item.id));
+            setInfoMessage('部屋割りを削除しました');
+            router.refresh();
         });
     };
 
@@ -187,6 +222,15 @@ export default function RoomAdminPanel({ rooms, departments, eventId }: Props) {
                     </Button>
                 )}
             </div>
+
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
 
             {error && (
                 <p

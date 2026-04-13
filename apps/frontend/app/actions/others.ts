@@ -10,6 +10,17 @@ import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
 
+type OtherItemData = {
+    id: string;
+    title: string;
+    content: string;
+    displayOrder: number;
+};
+
+type MutationResult =
+    | { success: true; data: OtherItemData }
+    | { success: false; error: string };
+
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
@@ -22,7 +33,7 @@ function revalidateOthersPage(_eventId: string) {
 export async function createOtherItemAction(
     eventId: string,
     data: { title: string; content: string; display_order: number },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -50,8 +61,9 @@ export async function createOtherItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
+        const body = (await res.json()) as { item: OtherItemData };
         revalidateOthersPage(eventId);
-        return { success: true };
+        return { success: true, data: body.item };
     } catch (err) {
         logActionError(
             'createOtherItemAction',
@@ -67,7 +79,7 @@ export async function updateOtherItemAction(
     eventId: string,
     id: string,
     data: { title?: string; content?: string; display_order?: number },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -95,8 +107,9 @@ export async function updateOtherItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
+        const body = (await res.json()) as { item: OtherItemData };
         revalidateOthersPage(eventId);
-        return { success: true };
+        return { success: true, data: body.item };
     } catch (err) {
         logActionError(
             'updateOtherItemAction',

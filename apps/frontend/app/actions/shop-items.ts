@@ -13,6 +13,19 @@ type UploadImageResult =
     | { success: true; imageKey: string }
     | { success: false; error: string };
 
+type ShopItemData = {
+    id: string;
+    name: string;
+    price: number;
+    stockStatus: 'available' | 'low' | 'sold_out';
+    description: string | null;
+    imageUrl: string;
+};
+
+type MutationResult =
+    | { success: true; data: ShopItemData }
+    | { success: false; error: string };
+
 function revalidateShopPage(_eventId: string) {
     revalidatePath('/shop', 'layout');
 }
@@ -74,7 +87,7 @@ export async function createShopItemAction(
         image_key: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -102,8 +115,9 @@ export async function createShopItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
+        const body = (await res.json()) as { item: ShopItemData };
         revalidateShopPage(eventId);
-        return { success: true };
+        return { success: true, data: body.item };
     } catch (err) {
         logActionError(
             'createShopItemAction',
@@ -125,7 +139,7 @@ export async function updateShopItemAction(
         image_key?: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<MutationResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -153,8 +167,9 @@ export async function updateShopItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
+        const body = (await res.json()) as { item: ShopItemData };
         revalidateShopPage(eventId);
-        return { success: true };
+        return { success: true, data: body.item };
     } catch (err) {
         logActionError(
             'updateShopItemAction',

@@ -1,3 +1,8 @@
+---
+name: frontend-overview
+description: apps/frontend (Next.js 15 + OpenNext) の構成とワークフローを俯瞰し、開発・テスト・認証連携の要点をまとめる。
+---
+
 # Skill: frontend-overview
 
 ## Overview

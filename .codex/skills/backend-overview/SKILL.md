@@ -1,3 +1,8 @@
+---
+name: backend-overview
+description: apps/backend (Hono + CockroachDB) のレイヤー構造と開発手順を俯瞰し、テストやミドルウェアの注意点を示す。
+---
+
 # Skill: backend-overview
 
 ## Overview

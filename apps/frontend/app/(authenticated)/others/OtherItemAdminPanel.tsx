@@ -9,7 +9,7 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type OtherItem = {
     id: string;
@@ -36,8 +36,15 @@ function itemToForm(item: OtherItem): FormData {
 
 type Props = { items: OtherItem[]; eventId: string };
 
-export default function OtherItemAdminPanel({ items, eventId }: Props) {
+export default function OtherItemAdminPanel({
+    items: initialItems,
+    eventId,
+}: Props) {
     const router = useRouter();
+    const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -101,6 +108,13 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
                 return;
             }
 
+            const saved = result.data;
+            setItems((prev) =>
+                formMode === 'adding'
+                    ? [...prev, saved]
+                    : prev.map((i) => (i.id === saved.id ? saved : i)),
+            );
+
             setInfoMessage(
                 formMode === 'adding'
                     ? '情報を追加しました'
@@ -119,6 +133,7 @@ export default function OtherItemAdminPanel({ items, eventId }: Props) {
                 setError(result.error);
                 return;
             }
+            setItems((prev) => prev.filter((i) => i.id !== item.id));
             setInfoMessage('情報を削除しました');
             router.refresh();
         });
