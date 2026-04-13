@@ -8,8 +8,6 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
-
 type ProgramData = {
     id: string;
     name: string;
@@ -19,8 +17,8 @@ type ProgramData = {
     description: string | null;
 };
 
-type MutationResult =
-    | { success: true; data: ProgramData }
+type ProgramsResult =
+    | { success: true; data: ProgramData[] }
     | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
@@ -41,7 +39,7 @@ export async function createProgramAction(
         end_time: string;
         description?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<ProgramsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -69,9 +67,12 @@ export async function createProgramAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        const body = (await res.json()) as { program: ProgramData };
+        const snapshot = await fetchProgramsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateEventsPage(eventId);
-        return { success: true, data: body.program };
+        return snapshot;
     } catch (err) {
         logActionError(
             'createProgramAction',
@@ -93,7 +94,7 @@ export async function updateProgramAction(
         end_time?: string;
         description?: string | null;
     },
-): Promise<MutationResult> {
+): Promise<ProgramsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -121,9 +122,12 @@ export async function updateProgramAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        const body = (await res.json()) as { program: ProgramData };
+        const snapshot = await fetchProgramsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateEventsPage(eventId);
-        return { success: true, data: body.program };
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateProgramAction',
@@ -138,7 +142,7 @@ export async function updateProgramAction(
 export async function deleteProgramAction(
     eventId: string,
     id: string,
-): Promise<ActionResult> {
+): Promise<ProgramsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -164,8 +168,12 @@ export async function deleteProgramAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
+        const snapshot = await fetchProgramsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateEventsPage(eventId);
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteProgramAction',
@@ -174,5 +182,52 @@ export async function deleteProgramAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchProgramsSnapshot(
+    eventId: string,
+    authToken: string,
+): Promise<ProgramsResult> {
+    const endpoint = '/api/programs';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+        });
+        logAction(
+            'fetchProgramsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error: errorBody?.error ?? '最新データの取得に失敗しました',
+            };
+        }
+        const list = (body as { programs?: ProgramData[] } | null)?.programs;
+        if (!Array.isArray(list)) {
+            return { success: false, error: '最新データの取得に失敗しました' };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchProgramsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '最新データの取得に失敗しました' };
     }
 }

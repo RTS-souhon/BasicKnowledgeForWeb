@@ -8,8 +8,6 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
-
 type OtherItemData = {
     id: string;
     title: string;
@@ -17,8 +15,8 @@ type OtherItemData = {
     displayOrder: number;
 };
 
-type MutationResult =
-    | { success: true; data: OtherItemData }
+type OtherItemsResult =
+    | { success: true; data: OtherItemData[] }
     | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
@@ -33,7 +31,7 @@ function revalidateOthersPage(_eventId: string) {
 export async function createOtherItemAction(
     eventId: string,
     data: { title: string; content: string; display_order: number },
-): Promise<MutationResult> {
+): Promise<OtherItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -61,9 +59,12 @@ export async function createOtherItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        const body = (await res.json()) as { item: OtherItemData };
+        const snapshot = await fetchOtherItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateOthersPage(eventId);
-        return { success: true, data: body.item };
+        return snapshot;
     } catch (err) {
         logActionError(
             'createOtherItemAction',
@@ -79,7 +80,7 @@ export async function updateOtherItemAction(
     eventId: string,
     id: string,
     data: { title?: string; content?: string; display_order?: number },
-): Promise<MutationResult> {
+): Promise<OtherItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -107,9 +108,12 @@ export async function updateOtherItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        const body = (await res.json()) as { item: OtherItemData };
+        const snapshot = await fetchOtherItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateOthersPage(eventId);
-        return { success: true, data: body.item };
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateOtherItemAction',
@@ -124,7 +128,7 @@ export async function updateOtherItemAction(
 export async function deleteOtherItemAction(
     eventId: string,
     id: string,
-): Promise<ActionResult> {
+): Promise<OtherItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -150,8 +154,12 @@ export async function deleteOtherItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
+        const snapshot = await fetchOtherItemsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateOthersPage(eventId);
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteOtherItemAction',
@@ -160,5 +168,52 @@ export async function deleteOtherItemAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchOtherItemsSnapshot(
+    eventId: string,
+    authToken: string,
+): Promise<OtherItemsResult> {
+    const endpoint = '/api/others';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+        });
+        logAction(
+            'fetchOtherItemsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error: errorBody?.error ?? '最新データの取得に失敗しました',
+            };
+        }
+        const list = (body as { items?: OtherItemData[] } | null)?.items;
+        if (!Array.isArray(list)) {
+            return { success: false, error: '最新データの取得に失敗しました' };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchOtherItemsSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '最新データの取得に失敗しました' };
     }
 }
