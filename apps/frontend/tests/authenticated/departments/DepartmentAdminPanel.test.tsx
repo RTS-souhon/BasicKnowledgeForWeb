@@ -1,4 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+    act,
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -250,6 +256,40 @@ describe('DepartmentAdminPanel', () => {
                 '部署を追加しました',
             );
             expect(screen.queryByText('新しい部署を追加')).not.toBeInTheDocument();
+        });
+    });
+
+    it('IME 変換中の Enter では送信しない', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({ success: true });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        const input = screen.getByLabelText(/部署名/);
+        await user.type(input, '新部署');
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        });
+
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('IME 変換確定後の Enter では送信される', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({ success: true });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        const input = screen.getByLabelText(/部署名/);
+        await user.type(input, '新部署');
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Enter', isComposing: false });
+        });
+
+        await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalledWith('event-1', { name: '新部署' });
         });
     });
 });
