@@ -1,0 +1,5 @@
+ALTER TABLE "other_items" ADD CONSTRAINT "other_items_event_id_access_codes_id_fkey" FOREIGN KEY ("event_id") REFERENCES "access_codes"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "programs" ADD CONSTRAINT "programs_event_id_access_codes_id_fkey" FOREIGN KEY ("event_id") REFERENCES "access_codes"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "rooms" ADD CONSTRAINT "rooms_event_id_access_codes_id_fkey" FOREIGN KEY ("event_id") REFERENCES "access_codes"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "shop_items" ADD CONSTRAINT "shop_items_event_id_access_codes_id_fkey" FOREIGN KEY ("event_id") REFERENCES "access_codes"("id") ON DELETE RESTRICT;--> statement-breakpoint
+ALTER TABLE "timetable_items" ADD CONSTRAINT "timetable_items_event_id_access_codes_id_fkey" FOREIGN KEY ("event_id") REFERENCES "access_codes"("id") ON DELETE RESTRICT;

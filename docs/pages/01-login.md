@@ -67,7 +67,7 @@
 ### JWT payload
 
 ```json
-{ "sub": "<user_id>", "role": "user|admin|developer", "exp": <timestamp> }
+{ "sub": "<user_id>", "role": "user|admin", "exp": <timestamp> }
 ```
 
 Cookie 有効期限: 24 時間
@@ -94,7 +94,7 @@ src/presentation/
   routes/authRoutes.ts
   middleware/
     authMiddleware.ts    ← Cookie の JWT を検証し c.set('user', payload)
-    roleGuard.ts         ← role: ['admin','developer'] チェック
+    roleGuard.ts         ← role: ['admin'] チェック
 ```
 
 ### authController.ts の責務

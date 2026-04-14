@@ -1,6 +1,9 @@
 import type { AppType } from '@backend/src';
+import { getPublicApiBaseUrl } from '@frontend/app/lib/backendFetch';
 import { hc } from 'hono/client';
 
-export const client = hc<AppType>(
-    process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080',
-);
+export const client = hc<AppType>(getPublicApiBaseUrl(), {
+    init: {
+        credentials: 'include',
+    },
+});

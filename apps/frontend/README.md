@@ -42,6 +42,10 @@ app/
    cp .env.example .env
    ```
 
+   `JWT_SECRET` は frontend / backend で同じ値を使ってください。
+   Cloudflare Workers では `wrangler secret put JWT_SECRET` で設定し、
+   ローカル開発では `.env` または `.dev.vars` に設定します。
+
 3. **開発サーバーを起動**
    ```bash
    bun run dev
@@ -89,7 +93,9 @@ export default function Home() {
 import type { AppType } from 'backend/src';
 import { hc } from 'hono/client';
 
-export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL!);
+export const client = hc<AppType>(process.env.NEXT_PUBLIC_API_URL!, {
+  init: { credentials: 'include' },
+});
 ```
 
 ### API呼び出し例
@@ -191,6 +197,7 @@ bun run deploy
 ```bash
 # 本番環境変数
 NEXT_PUBLIC_API_URL=your_api_url
+JWT_SECRET=shared_jwt_secret
 ```
 
 ## 🔧 開発ガイドライン
@@ -260,6 +267,38 @@ xl: 1280px  /* 大画面 */
   </div>
 </div>
 ```
+
+## 🔑 JWT_SECRET のセットアップ
+
+**frontend と backend の両 Worker に同じ `JWT_SECRET` を設定する必要があります。**  
+`middleware.ts` が JWT を検証する際に使う秘密鍵は、backend が発行するトークンと一致していなければなりません。
+
+### ローカル開発
+
+`.dev.vars`（または `.env`）に設定します。Wrangler は `.dev.vars` を優先的に読み込みます。
+
+```bash
+# apps/frontend/.dev.vars
+JWT_SECRET=your-local-secret-value
+```
+
+### デプロイ前チェック（Cloudflare Workers）
+
+```bash
+# frontend Worker に設定
+wrangler secret put JWT_SECRET --name basic-knowledge-for-web-frontend
+
+# dev 環境の場合
+wrangler secret put JWT_SECRET --name basic-knowledge-for-web-frontend-dev
+
+# 設定済み secrets を確認
+wrangler secret list --name basic-knowledge-for-web-frontend
+```
+
+> **注意**: backend Worker にも同じ値で設定が必要です。  
+> 詳細は `apps/backend/README.md` の「JWT_SECRET のセットアップ」を参照してください。
+
+---
 
 ## 🔐 セキュリティ
 

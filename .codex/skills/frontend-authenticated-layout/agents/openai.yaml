@@ -1,0 +1,4 @@
+display_name: Authenticated Layout
+short_description: `(authenticated)` ルートグループの共通ヘッダーと会期セレクター実装手順
+default_prompt: |
+  認証済みページ用の `(authenticated)` レイアウトを整備したいので、共通ヘッダー/ナビ/会期セレクター/モバイル対応/テストの手順を指示してください。

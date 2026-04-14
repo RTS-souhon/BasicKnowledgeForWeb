@@ -13,7 +13,7 @@ Admin/Developer はインライン編集・追加・削除が可能。
 | 条件 | 挙動 |
 |---|---|
 | access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin/developer） | 閲覧 + 編集 |
+| auth_token 有効（admin） | 閲覧 + 編集 |
 | それ以外 | `/access` へリダイレクト |
 
 ---
@@ -23,35 +23,41 @@ Admin/Developer はインライン編集・追加・削除が可能。
 ### 閲覧（全ユーザー）— デスクトップ
 
 ```
-┌────────────────────────────────────────┐
-│  販売物一覧                              │
-│                                        │
-│  商品名       価格    在庫              │
-│  ─────────────────────────────         │
-│  グッズ A     ¥500    在庫あり          │
-│  グッズ B     ¥1,000  残りわずか        │
-│  グッズ C     ¥200    完売             │
-│  ...                                   │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│  販売物一覧                                          │
+│                                                    │
+│  画像        商品名       価格    在庫              │
+│  ──────────────────────────────────────────────── │
+│ [img]      グッズ A     ¥500    在庫あり            │
+│ [img]      グッズ B     ¥1,000  残りわずか          │
+│ [img]      グッズ C     ¥200    完売               │
+│  ...                                               │
+└────────────────────────────────────────────────────┘
 ```
+
+- 各行の先頭に 1:1 のサムネイル画像（100px 四方）を表示する。画像は Cloudflare R2 に保存された公開 URL（`image_url`）を使用。
+- Alt テキストは `商品名` をそのまま利用する。
 
 ### 閲覧（全ユーザー）— スマートフォン
 
-3列テーブルはモバイルで崩れるためカードレイアウトに切り替える。
+3列テーブルはモバイルで崩れるためカードレイアウトに切り替える。カード上部に必ず商品画像をフル幅で表示する。
 
 ```
 ┌──────────────────────┐
 │  販売物一覧           │
 │                      │
 │  ┌──────────────────┐│
+│  │ [img]             ││  ← 角丸 8px の画像（アスペクト 4:3）
 │  │ グッズ A          ││  ← 商品名
 │  │ ¥500    [在庫あり]││  ← 価格と在庫バッジを横並び
 │  └──────────────────┘│
 │  ┌──────────────────┐│
+│  │ [img]             ││
 │  │ グッズ B          ││
 │  │ ¥1,000 [残りわずか]││
 │  └──────────────────┘│
 │  ┌──────────────────┐│
+│  │ [img]             ││
 │  │ グッズ C          ││
 │  │ ¥200   [完売]     ││
 │  └──────────────────┘│
@@ -105,8 +111,16 @@ type ShopItem = {
     price: number
     stock_status: 'available' | 'low' | 'sold_out'
     description: string | null
+    image_key: string // R2 上のオブジェクトキー (例: shop-items/<event_id>/<uuid>.webp)
+    image_url: string // CDN 経由で参照可能な公開 URL
 }
 ```
+
+**画像要件**
+
+- すべての販売物は Cloudflare R2 バケット（`SHOP_ITEM_ASSET_BUCKET`）に保存された画像を持つ。
+- `image_key` は backend が権限制御のために保持し、`image_url` は閲覧専用 API が返す表示用 URL。
+- 画像は WebP 推奨、最大 2MB、長辺 2000px 以下。取り込み時に 4:3 比率へ調整する。
 
 ---
 
@@ -117,9 +131,10 @@ type ShopItem = {
 - `event_id` の解決:
   - User: `access_token` Cookie の `event_id` を自動付与
   - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
-- レスポンス: `{ items: ShopItem[] }`（`name` 昇順）
+- レスポンス: `{ items: ShopItem[] }`（`name` 昇順）。各アイテムで `image_url` が必須、未設定の場合は 400 を返す。
+- `image_url` は R2 の公開ホスト（例: `https://assets.reitaisai.info/<image_key>`）を backend で組み立てて返却する。公開ホストは `SHOP_ITEM_ASSET_BASE_URL` 環境変数で統一管理する。
 
-### POST `/api/shop-items` （admin/developer）
+### POST `/api/shop-items` （admin）
 
 ```json
 {
@@ -127,13 +142,30 @@ type ShopItem = {
     "name": "...",
     "price": 500,
     "stock_status": "available",
-    "description": "..."
+    "description": "...",
+    "image_key": "shop-items/<event_id>/<uuid>.webp"
 }
 ```
 
-### PUT `/api/shop-items/:id` （admin/developer）
+- 認可: `auth_token` + admin。`x-event-id` ヘッダーと body.`event_id` が一致しない場合は 400。
+- `image_key` は `shop-items/<event_id>/...` で始まる必要があり、`image_url` は backend が `SHOP_ITEM_ASSET_BASE_URL` から組み立てる（リクエスト値を無視）。
+- レスポンス: `201 { item: ShopItem }`。
 
-### DELETE `/api/shop-items/:id` （admin/developer）
+### PUT `/api/shop-items/:id` （admin）
+
+- 認可は POST と同じ。部分更新で 1 項目以上が必須。`image_key` を変更した場合は自動で `image_url` も更新される。
+- レスポンス: `200 { item: ShopItem }`。対象なしは 404。
+
+### DELETE `/api/shop-items/:id` （admin）
+
+- 認可は POST と同じ。`id` の UUID 検証に失敗すると 400。
+- レスポンス: `200 { id: string }`。
+
+### POST `/api/shop-items/upload-url` （admin）
+
+- 目的: Cloudflare R2 への署名付き PUT URL を取得してからフロントがアップロードする。
+- リクエスト body は `{ "file_name": "xxx.webp", "content_type": "image/webp" }`（任意）。
+- レスポンス: `{ upload_url, image_key, headers }`。`image_key` はそのまま POST/PUT API に渡す。
 
 ---
 

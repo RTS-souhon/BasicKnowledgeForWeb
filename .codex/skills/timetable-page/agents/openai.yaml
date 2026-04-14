@@ -1,0 +1,4 @@
+display_name: Timetable ページ
+short_description: `/timetable` のUI・API・編集導線を実装するチェックリスト
+default_prompt: |
+  タイムテーブルページを実装・改修したいので、backend API とフロントUI/編集フロー/テストまでの工程を順番に教えてください。

@@ -18,27 +18,33 @@ const mockUser: User = {
 
 describe('UserRepository', () => {
     describe('findAll', () => {
-        it('全ユーザーを返す', async () => {
-            const fromMock = jest
+        it('全ユーザーを created_at DESC 順で返す', async () => {
+            const orderByMock = jest
                 .fn()
                 .mockImplementation(() => Promise.resolve([mockUser]));
             const db = {
-                select: jest.fn().mockReturnValue({ from: fromMock }),
+                select: jest.fn().mockReturnValue({
+                    from: jest
+                        .fn()
+                        .mockReturnValue({ orderBy: orderByMock }),
+                }),
             } as unknown as DatabaseClient;
             const repository = new UserRepository(db);
 
             const result = await repository.findAll();
 
             expect(result).toEqual([mockUser]);
-            expect(db.select).toHaveBeenCalledTimes(1);
+            expect(orderByMock).toHaveBeenCalledTimes(1);
         });
 
         it('ユーザーが存在しない場合、空配列を返す', async () => {
             const db = {
                 select: jest.fn().mockReturnValue({
-                    from: jest
-                        .fn()
-                        .mockImplementation(() => Promise.resolve([])),
+                    from: jest.fn().mockReturnValue({
+                        orderBy: jest
+                            .fn()
+                            .mockImplementation(() => Promise.resolve([])),
+                    }),
                 }),
             } as unknown as DatabaseClient;
             const repository = new UserRepository(db);
@@ -46,6 +52,46 @@ describe('UserRepository', () => {
             const result = await repository.findAll();
 
             expect(result).toEqual([]);
+        });
+    });
+
+    describe('findById', () => {
+        it('ID が一致するユーザーを返す', async () => {
+            const limitMock = jest
+                .fn()
+                .mockImplementation(() => Promise.resolve([mockUser]));
+            const db = {
+                select: jest.fn().mockReturnValue({
+                    from: jest.fn().mockReturnValue({
+                        where: jest.fn().mockReturnValue({ limit: limitMock }),
+                    }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            const result = await repository.findById(mockUser.id);
+
+            expect(result).toEqual(mockUser);
+            expect(limitMock).toHaveBeenCalledWith(1);
+        });
+
+        it('ユーザーが存在しない場合、null を返す', async () => {
+            const db = {
+                select: jest.fn().mockReturnValue({
+                    from: jest.fn().mockReturnValue({
+                        where: jest.fn().mockReturnValue({
+                            limit: jest
+                                .fn()
+                                .mockImplementation(() => Promise.resolve([])),
+                        }),
+                    }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            const result = await repository.findById('nonexistent-id');
+
+            expect(result).toBeNull();
         });
     });
 
@@ -111,6 +157,67 @@ describe('UserRepository', () => {
 
             expect(result).toEqual(mockUser);
             expect(valuesMock).toHaveBeenCalledWith(input);
+        });
+    });
+
+    describe('updateRole', () => {
+        it('ロールを更新して返す', async () => {
+            const updatedUser = { ...mockUser, role: 'admin' };
+            const returningMock = jest
+                .fn()
+                .mockImplementation(() => Promise.resolve([updatedUser]));
+            const db = {
+                update: jest.fn().mockReturnValue({
+                    set: jest.fn().mockReturnValue({
+                        where: jest
+                            .fn()
+                            .mockReturnValue({ returning: returningMock }),
+                    }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            const result = await repository.updateRole(mockUser.id, 'admin');
+
+            expect(result).toEqual(updatedUser);
+            expect(returningMock).toHaveBeenCalledTimes(1);
+        });
+
+        it('対象ユーザーが存在しない場合、null を返す', async () => {
+            const db = {
+                update: jest.fn().mockReturnValue({
+                    set: jest.fn().mockReturnValue({
+                        where: jest.fn().mockReturnValue({
+                            returning: jest
+                                .fn()
+                                .mockImplementation(() => Promise.resolve([])),
+                        }),
+                    }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            const result = await repository.updateRole('nonexistent', 'admin');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('updatePassword', () => {
+        it('パスワードを更新する', async () => {
+            const whereMock = jest
+                .fn()
+                .mockImplementation(() => Promise.resolve([]));
+            const db = {
+                update: jest.fn().mockReturnValue({
+                    set: jest.fn().mockReturnValue({ where: whereMock }),
+                }),
+            } as unknown as DatabaseClient;
+            const repository = new UserRepository(db);
+
+            await repository.updatePassword(mockUser.id, 'hashedpassword');
+
+            expect(whereMock).toHaveBeenCalledTimes(1);
         });
     });
 });

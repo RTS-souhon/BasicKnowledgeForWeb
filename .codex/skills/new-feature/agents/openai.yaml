@@ -1,0 +1,4 @@
+display_name: New Feature フロー
+short_description: developブランチからbackend→frontendで機能を実装する手順書
+default_prompt: |
+  新機能を追加するので、ブランチ作成からバックエンド/フロントエンド実装、チェック、PR作成までのフローを順番に案内してください。

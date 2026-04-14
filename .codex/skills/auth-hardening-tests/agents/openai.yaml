@@ -1,0 +1,4 @@
+display_name: Auth Hardening Tests
+short_description: フロントmiddlewareと backend auth/access-code ルートのテスト追加手順
+default_prompt: |
+  認証基盤のハードニングタスクを進めたいので、frontend middleware テスト、backend auth/access-code feature テスト、JWT secret ドキュメント更新の手順を順番に案内してください。

@@ -6,11 +6,25 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"vars": {
+		"SHOP_ITEM_ASSET_BASE_URL": "http://localhost:8080/assets"
+	},
+	"secrets": {
+		"required": [
+			"JWT_SECRET"
+		]
+	},
 	"hyperdrive": [
 		{
 			"binding": "HYPERDRIVE",
 			"id": "00000000000000000000000000000000",
 			"localConnectionString": "postgresql://root:root@localhost:26257/basic-knowledge-for-web?sslmode=disable"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "SHOP_ITEM_ASSET_BUCKET",
+			"bucket_name": "dev-basicknowledgeforweb"
 		}
 	],
 	"env": {
@@ -22,12 +36,35 @@
 					"zone_name": "reitaisai.info"
 				}
 			],
+			"vars": {
+				"SHOP_ITEM_ASSET_BASE_URL": "https://assets.dev.reitaisai.info"
+			},
 			"hyperdrive": [
 				{
 					"binding": "HYPERDRIVE",
 					"id": "f7f0ede9c7464673ab6f5bdcf0753218"
 				}
-			]
+			],
+			"r2_buckets": [
+				{
+					"binding": "SHOP_ITEM_ASSET_BUCKET",
+					"bucket_name": "dev-basicknowledgeforweb"
+				}
+			],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
 		},
 		"prod": {
 			"name": "basic-knowledge-for-web-backend",
@@ -37,12 +74,35 @@
 					"zone_name": "reitaisai.info"
 				}
 			],
+			"vars": {
+				"SHOP_ITEM_ASSET_BASE_URL": "https://assets.reitaisai.info"
+			},
 			"hyperdrive": [
 				{
 					"binding": "HYPERDRIVE",
 					"id": "5a36ae3ca5ed4a4697040c00685f213e"
 				}
-			]
+			],
+			"r2_buckets": [
+				{
+					"binding": "SHOP_ITEM_ASSET_BUCKET",
+					"bucket_name": "basicknowledgeforweb"
+				}
+			],
+            "secrets": {
+                "required": [
+                    "JWT_SECRET"
+                ]
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
 		}
 	}
 }

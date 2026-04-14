@@ -13,7 +13,7 @@
 |---|---|
 | 誰でもアクセス可 | 表示 |
 | access_token 有効 | `/` へリダイレクト |
-| auth_token 有効（admin/developer） | `/` へリダイレクト |
+| auth_token 有効（admin） | `/` へリダイレクト |
 
 ---
 

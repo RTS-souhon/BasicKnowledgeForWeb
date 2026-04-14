@@ -1,0 +1,316 @@
+import {
+    act,
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
+jest.mock('@frontend/app/actions/departments', () => ({
+    createDepartmentAction: jest.fn(),
+    updateDepartmentAction: jest.fn(),
+    deleteDepartmentAction: jest.fn(),
+}));
+
+const actions =
+    require('@frontend/app/actions/departments') as typeof import('@frontend/app/actions/departments');
+const DepartmentAdminPanel =
+    require('@frontend/app/(authenticated)/departments/DepartmentAdminPanel')
+        .default as typeof import('@frontend/app/(authenticated)/departments/DepartmentAdminPanel').default;
+
+const mockCreate = jest.mocked(actions.createDepartmentAction);
+const mockUpdate = jest.mocked(actions.updateDepartmentAction);
+const mockDelete = jest.mocked(actions.deleteDepartmentAction);
+
+const MOCK_DEPARTMENTS = [
+    { id: '1', name: '企画部' },
+    { id: '2', name: '運営部' },
+];
+
+beforeEach(() => {
+    jest.resetAllMocks();
+    global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+});
+
+describe('DepartmentAdminPanel', () => {
+    it('部署一覧を表示する', () => {
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        expect(screen.getByText('企画部')).toBeInTheDocument();
+        expect(screen.getByText('運営部')).toBeInTheDocument();
+    });
+
+    it('各部署に編集・削除ボタンを表示する', () => {
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        expect(screen.getAllByRole('button', { name: '編集' })).toHaveLength(2);
+        expect(screen.getAllByRole('button', { name: '削除' })).toHaveLength(2);
+    });
+
+    it('部署がない場合に空メッセージを表示する', () => {
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        expect(
+            screen.getByText('登録されている部署はありません'),
+        ).toBeInTheDocument();
+    });
+
+    it('+ 追加 ボタンクリックでフォームを表示する', async () => {
+        const user = userEvent.setup();
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+
+        expect(screen.getByText('新しい部署を追加')).toBeInTheDocument();
+        expect(screen.getByLabelText(/部署名/)).toBeInTheDocument();
+    });
+
+    it('キャンセルボタンでフォームを閉じる', async () => {
+        const user = userEvent.setup();
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        expect(screen.getByText('新しい部署を追加')).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+        expect(screen.queryByText('新しい部署を追加')).not.toBeInTheDocument();
+    });
+
+    it('編集ボタンで既存の部署名がフォームに入力済みになる', async () => {
+        const user = userEvent.setup();
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        const editButtons = screen.getAllByRole('button', { name: '編集' });
+        await user.click(editButtons[0]);
+
+        expect(screen.getByText('部署を編集')).toBeInTheDocument();
+        expect(screen.getByLabelText(/部署名/)).toHaveValue('企画部');
+    });
+
+    it('フォーム送信で createDepartmentAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/部署名/), '新部署');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalledWith('event-1', { name: '新部署' });
+        });
+    });
+
+    it('編集フォーム送信で updateDepartmentAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        mockUpdate.mockResolvedValue({
+            success: true,
+            data: [
+                { id: '1', name: '変更後部署名' },
+                MOCK_DEPARTMENTS[1],
+            ],
+        });
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        const editButtons = screen.getAllByRole('button', { name: '編集' });
+        await user.click(editButtons[0]);
+
+        const input = screen.getByLabelText(/部署名/);
+        await user.clear(input);
+        await user.type(input, '変更後部署名');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockUpdate).toHaveBeenCalledWith('event-1', '1', {
+                name: '変更後部署名',
+            });
+        });
+    });
+
+    it('削除ボタンクリック + confirm で deleteDepartmentAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: MOCK_DEPARTMENTS.slice(1),
+        });
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        const deleteButtons = screen.getAllByRole('button', { name: '削除' });
+        await act(async () => {
+            await user.click(deleteButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(mockDelete).toHaveBeenCalledWith('event-1', '1');
+        });
+    });
+
+    it('confirm キャンセル時は deleteDepartmentAction を呼ばない', async () => {
+        const user = userEvent.setup();
+        global.confirm = jest.fn<typeof confirm>().mockReturnValue(false);
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        const deleteButtons = screen.getAllByRole('button', { name: '削除' });
+        await user.click(deleteButtons[0]);
+
+        expect(mockDelete).not.toHaveBeenCalled();
+    });
+
+    it('部署名が空の場合にバリデーションエラーを表示する', async () => {
+        const user = userEvent.setup();
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.click(screen.getByRole('button', { name: '保存' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('部署名は必須です');
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('アクション失敗時にエラーメッセージを表示する', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({
+            success: false,
+            error: '登録に失敗しました',
+        });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/部署名/), '失敗部署');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                '登録に失敗しました',
+            );
+        });
+    });
+
+    it('成功時に成功メッセージを表示しフォームを閉じる', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/部署名/), '新部署');
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(screen.getByRole('status')).toHaveTextContent(
+                '部署を追加しました',
+            );
+            expect(screen.queryByText('新しい部署を追加')).not.toBeInTheDocument();
+        });
+    });
+
+    it('IME 変換中の Enter では送信しない', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        const input = screen.getByLabelText(/部署名/);
+        await user.type(input, '新部署');
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        });
+
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('IME 変換確定後の Enter では送信される', async () => {
+        const user = userEvent.setup();
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
+        render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        const input = screen.getByLabelText(/部署名/);
+        await user.type(input, '新部署');
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Enter', isComposing: false });
+        });
+
+        await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalledWith('event-1', { name: '新部署' });
+        });
+    });
+});

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Overview
 
 Bun monorepo with two Cloudflare Workers apps:
-- `apps/backend` — Hono.js REST API with PostgreSQL + Drizzle ORM
+- `apps/backend` — Hono.js REST API with CockroachDB + Drizzle ORM
 - `apps/frontend` — Next.js 15 (App Router) + React 19 + Tailwind CSS v4, deployed via OpenNext
 
 ## Commands
@@ -30,6 +30,9 @@ bun run lint         # Biome lint
 bun run lint:fix     # Auto-fix
 bun run db:generate  # Generate Drizzle migrations
 bun run db:migrate   # Apply migrations
+bun run db:check     # Check migration state
+bun run db:up        # Run pending migrations
+bun run db:drop      # Drop migrations
 bun run db:studio    # Open Drizzle Studio
 bun run deploy       # Deploy to Cloudflare Workers (prod)
 bun run deploy:dev   # Deploy to Cloudflare Workers (dev)
@@ -45,6 +48,8 @@ bun run preview      # Local preview with Wrangler
 bun run type-check   # TypeScript validation
 bun run lint         # Biome lint
 bun run lint:fix     # Auto-fix
+bun run test         # Jest (--forceExit)
+bun run test:watch   # Jest watch mode
 bun run deploy       # Deploy to Cloudflare Workers (prod)
 bun run deploy:dev   # Deploy to Cloudflare Workers (dev)
 ```
@@ -52,10 +57,150 @@ bun run deploy:dev   # Deploy to Cloudflare Workers (dev)
 ### Local database
 
 ```bash
-cd apps/backend && docker compose up -d   # Start local PostgreSQL
+cd apps/backend
+docker compose up -d   # Start CockroachDB (compose.yaml)
+```
+
+`apps/backend/compose.yaml` settings:
+- Image: `cockroachdb/cockroach:latest`
+- Database: `basic-knowledge-for-web`, User: `root`
+- Ports: `26257` (SQL), `8888` (Admin UI — avoids conflict with backend dev server on `:8080`)
+- Persistence: `db_data` volume
+
+Set the following in `.env`, then run `bun run db:migrate`:
+
+```env
+DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable
+```
+
+## Code Modification Checklist
+
+**After every code change, follow this workflow before pushing.**
+
+**Implementation order rule:** For features that span both backend and frontend, always implement in this order:
+
+1. Backend implementation
+2. Backend tests
+3. Frontend implementation
+4. Frontend tests
+
+Do not start frontend implementation before the backend behavior and its tests are in place.
+
+### 1. Verify all checks pass
+
+```bash
+# When changing backend
+cd apps/backend
+bun run type-check   # No TypeScript errors
+bun run lint         # No Biome lint errors
+bun run test         # All tests PASS
+
+# When changing frontend
+cd apps/frontend
+bun run type-check   # No TypeScript errors
+bun run lint         # No Biome lint errors
+bun run test         # All tests PASS
+```
+
+Lint errors can often be auto-fixed with `bun run lint:fix`. Type errors and test failures must be fixed manually. The CI pipeline (`pull-request.yml`) runs the same checks — code that fails locally will fail in CI.
+
+### 2. Split commits into meaningful units
+
+Do **not** bundle unrelated changes into a single commit. Each commit should represent one logical change that can be reviewed and reverted independently.
+
+**Good examples:**
+- `feat(users): add GET /api/users endpoint` — new route only
+- `test(users): add feature tests for GET /api/users` — tests only
+- `feat(register): add registration form UI` — frontend only
+
+**Bad examples:**
+- One commit mixing schema changes, business logic, and UI updates
+- "WIP" or "fix" commits with unrelated changes lumped together
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`.
+
+**Commit messages must be written in Japanese.** The subject line follows the format `<prefix>(<scope>): <Japanese description>`.
+
+```
+# Good
+feat(users): GET /api/users エンドポイントを追加
+fix(auth): JWTトークン検証のバグを修正
+test(users): GET /api/users のフィーチャーテストを追加
+
+# Bad
+feat(users): add GET /api/users endpoint
+fix: fixed bug
+```
+
+### 3. Push and open a Pull Request
+
+After committing, push the branch and open a PR targeting `develop`:
+
+```bash
+git push -u origin <branch-name>
+gh pr create --base develop
+```
+
+Every change must go through a PR — do not push directly to `develop` or `main`.
+
+**PR title and description must be written in Japanese** and must follow the project template (`.github/pull_request_template.md`):
+
+```markdown
+# Pull Request
+
+## What's changed
+このプルリクは何をしたのかを記入してください。画像とテキストを使って説明するのがおすすめです。
+
+## Todo List
+今回のプルリクはまだやっていないことや、将来やる予定の事項を記入してください
+
+- [ ] テストケースを書きます
+
+## Remark
+補足事項があれば記入してください
+```
+
+Example `gh pr create` command:
+
+```bash
+gh pr create --base develop --title "feat(users): GET /api/users エンドポイントを追加" --body "$(cat <<'EOF'
+# Pull Request
+
+## What's changed
+
+`GET /api/users` エンドポイントを追加しました。
+
+- ユーザー一覧を返すAPIを実装
+- フィーチャーテストを追加
+
+## Todo List
+
+- [ ] 認証ミドルウェアの追加
+
+## Remark
+
+なし
+EOF
+)"
 ```
 
 ## Architecture
+
+### System Architecture
+
+```
+[ Browser ]
+    │
+    ├── reitaisai.info          → Cloudflare Workers: basic-knowledge-for-web-frontend
+    │       (OpenNext adapter)       Next.js 15 App Router
+    │                                R2 bucket: next-cache (ISR cache)
+    │
+    └── reitaisai.info/api/*    → Cloudflare Workers: basic-knowledge-for-web-backend
+            (Hono.js API)            Hyperdrive → CockroachDB (AWS ap-southeast-1)
+
+[ dev.reitaisai.info / dev.reitaisai.info/api/* ] — dev environment (auto-deployed on push to develop)
+[ reitaisai.info / reitaisai.info/api/* ]          — prod environment (auto-deployed on push to main)
+```
 
 ### Backend — Clean Architecture
 
@@ -75,7 +220,7 @@ src/
 │       └── {domain}/
 │           ├── I{Name}Repository.ts  # Repository interface
 │           └── {Name}Repository.ts   # Concrete Drizzle implementation
-└── index.ts              # Hono app entry point, binds routes
+└── index.ts              # Hono app entry point, binds routes; exports AppType
 ```
 
 **Dependency flow:** routes → controllers → use cases → repositories → db
@@ -86,6 +231,110 @@ src/
 - Use cases depend only on repository **interfaces** (e.g. `IUserRepository`), never Drizzle directly
 - Repository concrete classes are the only place that imports Drizzle (`sql`, `eq`, etc.)
 - Cloudflare Workers `Env` bindings (`c.env`) are accessed only in routes
+- `src/index.ts` exports `AppType` (the Hono app type) for frontend end-to-end type safety
+
+### Backend — Database Schema
+
+CockroachDB via Drizzle ORM (`src/db/schema.ts`):
+
+```
+users table:
+  id          uuid        primary key, auto-generated (defaultRandom)
+  name        varchar(255) not null
+  email       varchar(255) not null, unique
+  password    text         not null
+  role        varchar(50)  default 'user'
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+  deleted_at  timestamp    nullable (soft delete)
+
+access_codes table:
+  id          uuid        primary key
+  code        varchar(50)  not null, unique
+  event_name  varchar(255) not null
+  valid_from  timestamp    not null
+  valid_to    timestamp    not null
+  created_by  uuid         not null
+  created_at  timestamp    auto-populated
+
+departments table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  name        varchar(255) not null
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+  UNIQUE INDEX (event_id, id)  ← composite FK の参照元として必要
+
+user_departments table:
+  user_id       uuid        FK → users.id (RESTRICT)
+  event_id      uuid        FK → access_codes.id (RESTRICT)
+  department_id uuid        composite FK → departments(event_id, id) (RESTRICT)
+  PRIMARY KEY (user_id, event_id)
+
+timetable_items table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  title       varchar(255) not null
+  start_time  timestamp    not null
+  end_time    timestamp    not null
+  location    varchar(255) not null
+  description text
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+
+rooms table:
+  id                  uuid        primary key
+  event_id            uuid        FK → access_codes.id (RESTRICT)
+  building_name       varchar(255) not null
+  floor               varchar(50)  not null
+  room_name           varchar(255) not null
+  pre_day_manager_id  uuid        composite FK → departments(event_id, id) (RESTRICT), nullable
+  pre_day_purpose     varchar(255) nullable
+  day_manager_id      uuid        composite FK → departments(event_id, id) (RESTRICT), not null
+  day_purpose         varchar(255) not null
+  notes               text         nullable
+  created_at          timestamp    auto-populated
+  updated_at          timestamp    auto-populated
+
+programs table:
+  id          uuid        primary key
+  event_id    uuid        FK → access_codes.id (RESTRICT)
+  name        varchar(255) not null
+  location    varchar(255) not null
+  start_time  timestamp    not null
+  end_time    timestamp    not null
+  description text
+  created_at  timestamp    auto-populated
+  updated_at  timestamp    auto-populated
+
+shop_items table:
+  id           uuid        primary key
+  event_id     uuid        FK → access_codes.id (RESTRICT)
+  name         varchar(255) not null
+  price        int          not null
+  stock_status varchar(50)  not null, default 'available'  ← 'available' | 'low' | 'sold_out'
+  description  text
+  image_key    varchar(512) not null
+  image_url    text         not null
+  created_at   timestamp    auto-populated
+  updated_at   timestamp    auto-populated
+
+other_items table:
+  id            uuid        primary key
+  event_id      uuid        FK → access_codes.id (RESTRICT)
+  title         varchar(255) not null
+  content       text         not null
+  display_order int          not null
+  created_by    uuid         not null
+  created_at    timestamp    auto-populated
+  updated_at    timestamp    auto-populated
+```
+
+**⚠️ CockroachDB — 複合外部キーと migration 順序:**
+CockroachDB で複合 FK（例: `(event_id, manager_id) → departments(event_id, id)`）を追加するには、
+参照先の列の組み合わせに UNIQUE INDEX が先に存在していなければならない。
+migration ファイルでは `CREATE UNIQUE INDEX IF NOT EXISTS` を `ADD CONSTRAINT ... FOREIGN KEY` より前に記述すること。
+`IF NOT EXISTS` を付けることで migration の部分実行後の再試行でもエラーにならない。
 
 ### Backend — Test Structure
 
@@ -106,7 +355,7 @@ tests/
 
 - Test runner: **Jest** with `ts-jest`
 - Import source: `@jest/globals` (explicit imports, not globals)
-- Path alias: `@/` resolves to `src/` (e.g. `import ... from '@/use-cases/...'`)
+- Path alias: `@backend/*` resolves to `src/` (e.g. `import ... from '@backend/use-cases/...'`)
 
 ### Backend — Testing Strategy (Test Pyramid)
 
@@ -218,39 +467,341 @@ Keep them in separate tsconfig files.
 ```
 app/
 ├── layout.tsx            # Root layout (Geist font, global styles)
-├── page.tsx              # Home page
-├── globals.css           # Tailwind v4 global styles
-└── utils/client.ts       # Type-safe Hono API client (imports backend types)
+├── page.tsx              # Home page (client component, fetches /api/users)
+├── register/
+│   └── page.tsx          # User registration form (react-hook-form + zod)
+├── globals.css           # Tailwind v4 global styles (CSS variables, dark mode)
+├── utils/
+│   └── client.ts         # Type-safe Hono API client (imports AppType from backend)
+components/
+└── ui/                   # shadcn/ui components (button, card, input, label)
 ```
 
-The frontend imports Hono's type-safe client backed by backend route types, giving end-to-end TypeScript safety across the API boundary.
+**Key patterns:**
+- `app/utils/client.ts` creates `hc<AppType>(NEXT_PUBLIC_API_URL)` for end-to-end type safety
+- `register/page.tsx` imports `createUserSchema` directly from the backend package (shared validation)
+- Client components use `'use client'` directive; forms use `react-hook-form` + `zodResolver`
+
+### Frontend — Testing
+
+```
+tests/
+├── tsconfig.json
+├── mocks/
+│   ├── server.ts         # MSW server: setupServer(...handlers)
+│   └── handlers.ts       # HTTP request handlers for POST /api/users
+└── register/
+    └── page.test.tsx     # Component tests: render, validation, API success/error
+```
+
+**MSW v2 + Next.js 15 + jsdom setup (critical):**
+
+Three files are required for MSW to work with Jest + jsdom:
+
+1. **`jest.polyfills.ts`** — Web API polyfills (loaded via `setupFiles`):
+   ```typescript
+   // TextEncoder/TextDecoder, ReadableStream, WritableStream, TransformStream,
+   // MessagePort, MessageChannel, BroadcastChannel, fetch (via cross-fetch)
+   ```
+
+2. **`jest.setup.ts`** — MSW server lifecycle (loaded via `setupFilesAfterFramework`):
+   ```typescript
+   beforeAll(() => server.listen())
+   afterEach(() => server.resetHandlers())
+   afterAll(() => server.close())
+   ```
+
+3. **`jest.config.ts`** — Critical MSW ESM handling:
+   ```typescript
+   // Disable custom export conditions to prevent MSW browser bundle being used
+   // Add MSW packages to transformIgnorePatterns so Jest can transform them
+   ```
+
+**⚠️ Pitfalls:**
+- MSW v2 packages are pure ESM; they must be listed in `transformIgnorePatterns` to be transformed by `ts-jest`
+- `customExportConditions` must NOT include `browser`; otherwise MSW loads its browser bundle in Node
+- `cross-fetch/polyfill` must be loaded before MSW server starts
+
+### Frontend — TypeScript Configuration
+
+| File | Purpose |
+|---|---|
+| `tsconfig.json` | Production source. Excludes jest files and tests. Path aliases: `@frontend/*`, `@backend/*`. |
+| `tsconfig.test.json` | Used by Jest. Adds `@types/jest`, `@testing-library/jest-dom`. |
+| `tests/tsconfig.json` | Extends `tsconfig.test.json`. Picked up by VSCode for test files. |
+
+**Path aliases:**
+- `@frontend/*` → project root (e.g. `@frontend/app/utils/client`)
+- `@backend/*` → `../backend/*` (for importing backend types into frontend)
 
 ### Deployment
 
-Both apps deploy to Cloudflare Workers. `wrangler.jsonc` in each app configures the worker name, routes, and bindings. In production the backend uses Cloudflare Hyperdrive for database connectivity.
+Both apps deploy to Cloudflare Workers. `wrangler.jsonc` in each app configures the worker name, routes, and bindings.
+
+**Cloudflare resource bindings:**
+
+| Resource | Dev | Prod |
+|---|---|---|
+| Backend Worker | `basic-knowledge-for-web-backend-dev` | `basic-knowledge-for-web-backend` |
+| Frontend Worker | `basic-knowledge-for-web-frontend-dev` | `basic-knowledge-for-web-frontend` |
+| Hyperdrive ID | `f7f0ede9c7464673ab6f5bdcf0753218` | `5a36ae3ca5ed4a4697040c00685f213e` |
+| R2 Bucket | `basic-knowledge-for-web-next-cache-dev` | `basic-knowledge-for-web-next-cache` |
+| DB Name | `Dev-BasicKnowledgeForWeb` | `BasicKnowledgeForWeb` |
+
+- **Backend**: Uses Cloudflare Hyperdrive for database connectivity. Local dev uses `localConnectionString` in wrangler.jsonc (CockroachDB single-node).
+- **Frontend**: Uses `@opennextjs/cloudflare` adapter. Build output at `.open-next/`. Uses R2 buckets for Next.js ISR cache.
+- **API URL**: Configurable via `NEXT_PUBLIC_API_URL` env var (`http://localhost:8080` locally, `https://dev.reitaisai.info` or `https://reitaisai.info` in CI).
+
+## CI/CD — GitHub Actions
+
+### Workflows
+
+| Workflow | Trigger | Jobs |
+|---|---|---|
+| `pull-request.yml` | PR → `main` or `develop` | lint-and-test-backend, verify-migration-backend, lint-and-test-frontend |
+| `deploy-dev.yml` | push → `develop` | DB migrate → backend deploy → frontend deploy (env: dev) |
+| `deploy-prod.yml` | push → `main` | DB migrate → backend deploy → frontend deploy (env: prod) |
+| `security-scan.yml` | PR opened/sync | AikidoSec, Betterleaks, anti-trojan-source |
+
+### PR Checks (pull-request.yml) — 3 parallel jobs
+
+1. **lint-and-test-backend**: install → build → lint → type-check → jest
+2. **verify-migration-backend**: start CockroachDB in Docker → create database → `bun run db:migrate`
+3. **lint-and-test-frontend**: install → `build:cloudflare` → lint → type-check → jest
+
+**Dependabot auto-merge**: Automatically approved and merged when all jobs pass and the update is not a major version bump.
+
+### Required Secrets
+
+| Secret | Used in |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | deploy workflows |
+| `CLOUDFLARE_ACCOUNT_ID` | deploy workflows |
+| `DATABASE_URL` | deploy workflows (db:migrate) |
+
+## Environment Variables
+
+### Backend (`.env.example`)
+
+```env
+DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable
+NODE_ENV=local
+PORT=8080
+```
+
+### Frontend (`.env.example`)
+
+```env
+# local:      http://localhost:8080
+# dev env:    https://dev.reitaisai.info
+# prod env:   https://reitaisai.info
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
 
 ## Code Style
 
 - **Formatter/Linter**: Biome (configured in root `biome.json`)
 - Indent: 4 spaces, line width: 80, single quotes, semicolons required
 - `noUnusedImports` and `noUnusedVariables` are warnings
+- `noNonNullAssertion` is disabled
 - Strict TypeScript in both apps
-- Path alias: `@/` → `src/` (configured in all tsconfig files and `jest.config.ts`)
+- Path aliases: `@backend/*` → `src/` (backend), `@frontend/*` / `@backend/*` (frontend)
 
 ## MCP & Plugin Usage Policy
 
 **IMPORTANT: Always use MCP tools and Plugins proactively for every request.**
 
-### Serena MCP (code exploration and editing)
-- Always prefer Serena MCP symbol tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `replace_symbol_body`, etc.) for all code search and editing tasks
-- Reading entire files is a last resort; use Serena symbol tools to retrieve only the necessary parts first
+### Available MCP Tools
 
-### Context7 MCP (library documentation)
-- For any question or implementation involving a library or framework (Hono, Drizzle, Next.js, Tailwind, Cloudflare Workers, etc.), always fetch up-to-date docs via Context7 MCP (`resolve-library-id` → `query-docs`) before responding or writing code
+#### Serena MCP — Code Exploration & Editing
 
-### Chrome DevTools MCP (browser interaction and debugging)
-- Use Chrome DevTools MCP whenever browser automation, performance profiling, or debugging is required
+Explore and edit code at the symbol level. Always prefer symbol tools over reading entire files.
 
-### Plugins (skills)
-- When a matching skill exists, always invoke it via the Skill tool before starting the task
-- Examples: committing → `commit`, frontend implementation → `frontend-design`, feature development → `feature-dev`
+| Tool | Purpose |
+|---|---|
+| `get_symbols_overview` | List all symbols in a file |
+| `find_symbol` | Search for a symbol by name path and read its body |
+| `find_referencing_symbols` | Find all references to a symbol |
+| `replace_symbol_body` | Replace an entire symbol definition |
+| `insert_after_symbol` / `insert_before_symbol` | Insert code before or after a symbol |
+| `replace_content` | Regex-based in-file replacement |
+| `search_for_pattern` | Search across the entire codebase by pattern |
+
+**Principle**: Reading an entire file is a last resort. Start with `get_symbols_overview` to understand the file structure, then use `find_symbol` to read only the symbols you need.
+
+#### Context7 MCP — Library Documentation
+
+Always use this for any question or implementation involving a library or framework. Prefer up-to-date docs over pre-trained knowledge.
+
+```
+1. resolve-library-id  — get the library ID
+2. query-docs          — fetch the documentation
+```
+
+Applicable to: Hono, Drizzle ORM, Next.js, Tailwind CSS v4, Cloudflare Workers, OpenNext, MSW, react-hook-form, shadcn/ui, etc.
+
+#### Chrome DevTools MCP — Browser Automation & Debugging
+
+Use when browser automation, performance profiling, or debugging is required.
+
+| Tool | Purpose |
+|---|---|
+| `take_screenshot` | Capture the current page |
+| `navigate_page` | Navigate to a URL |
+| `click` / `fill` / `type_text` | Interact with UI elements |
+| `evaluate_script` | Run a script in the browser console |
+| `list_network_requests` | Inspect network traffic |
+| `lighthouse_audit` | Run a Lighthouse performance audit |
+| `performance_start_trace` / `performance_stop_trace` | Record a performance trace |
+
+#### Cloudflare MCP — Cloudflare Resource Management
+
+| Plugin | Purpose |
+|---|---|
+| `cloudflare-bindings` | CRUD operations for KV / D1 / R2 / Hyperdrive |
+| `cloudflare-builds` | Inspect Workers build logs and debug failures |
+| `cloudflare-observability` | Query production Workers logs and metrics |
+| `cloudflare-docs` | Search official Cloudflare documentation |
+| `cloudflare-api` | General-purpose Cloudflare API execution |
+
+**Common workflow**: On deploy failure → check build logs with `cloudflare-builds` → inspect production logs with `cloudflare-observability`.
+
+#### CockroachDB Cloud MCP — Direct Database Access
+
+Run queries directly against the CockroachDB Cloud cluster.
+
+| Tool | Purpose |
+|---|---|
+| `list_clusters` / `get_cluster` | Inspect cluster state |
+| `list_databases` / `list_tables` | List databases and tables |
+| `get_table_schema` | Inspect a table schema |
+| `select_query` | Execute a SELECT query |
+| `insert_rows` | Insert rows |
+| `explain_query` | View query execution plan |
+
+#### Playwright MCP — Browser Automation (fallback)
+
+Use Playwright for browser automation when Chrome DevTools MCP is unavailable.
+
+### Plugins (Skills)
+
+| Scenario | Skill to invoke |
+|---|---|
+| Create a commit | `commit` |
+| Frontend implementation | `frontend-design` |
+| Feature development | `feature-dev` |
+| Code review | `code-review` |
+| Commit + push + open PR | `commit-push-pr` |
+| Cloudflare Workers implementation | `cloudflare:workers-best-practices` |
+| Build an MCP server | `cloudflare:building-mcp-server-on-cloudflare` |
+
+When a matching skill exists, always invoke it via the `Skill` tool before starting the task.
+
+## Implementation Considerations
+
+### Branch Naming Convention
+
+| Prefix | When to use |
+|---|---|
+| `feature/` | New features or enhancements |
+| `fix/` | Bug fixes |
+| `docs/` | Documentation only changes |
+| `chore/` | Refactoring, tooling, dependency updates |
+
+Always branch off `develop`. PRs target `develop`; `develop` merges into `main` for production releases.
+
+### Authentication
+
+JWT-based authentication is implemented. Two token types are in use:
+
+| Token | Cookie name | Issued by | Payload | Scope |
+|---|---|---|---|---|
+| Access token | `access_token` | `POST /api/access-codes/verify` | `{ event_id, exp }` | イベント単位 |
+| Auth token | `auth_token` | `POST /api/auth/login` | `{ id, name, email, role, exp }` | ユーザー単位 |
+
+- JWT secret is stored as a Cloudflare Workers secret (`JWT_SECRET`), not in `wrangler.jsonc`
+- Token verification uses `hono/jwt` (`verify(token, secret, 'HS256')`)
+- Authentication logic lives in middleware (`src/presentation/middleware/`)
+
+### Content Access Middleware
+
+`contentAccessMiddleware` (`src/presentation/middleware/contentAccessMiddleware.ts`) は全コンテンツ GET API に適用する。
+
+以下のいずれかを満たすリクエストのみ通過させる:
+
+1. **access_token 認証**: `access_token` Cookie の JWT が有効、かつ `payload.event_id === x-event-id` ヘッダーの値
+2. **auth_token 認証**: `auth_token` Cookie の JWT が有効、かつ `payload.role === 'admin'`
+
+`role=user` の `auth_token` はコンテンツ API を通過できない。一般ユーザーは `access_token` が必要。
+どちらも満たさない場合は `401 Unauthorized` を返す。
+
+Feature テストでは `app.request(path, { headers }, mockEnv)` の第3引数で `{ JWT_SECRET }` を渡す。
+
+### Roles & RBAC
+
+The `users.role` field supports three roles:
+
+| Role | Description |
+|---|---|
+| `user` | Default role for registered users |
+| `admin` | Full administrative access |
+
+コンテンツ GET API では `contentAccessMiddleware` が role チェックを担う（admin のみ通過）。
+より細かい RBAC が必要な場合は use case 層に追加する。
+
+### Soft Delete (Planned)
+
+The `deleted_at` column exists on all tables. When implementing:
+- All `findAll` and `findByEmail` queries must add `.where(isNull(table.deletedAt))`
+- Deletion endpoints should `UPDATE ... SET deleted_at = now()` rather than `DELETE`
+- Never expose soft-deleted records in API responses
+
+### Checklist for adding a new domain
+
+Steps to add a new resource (e.g. `posts`) to the backend:
+
+1. **Schema** (`src/db/schema.ts`) — add the Drizzle table definition
+2. **Migration** — `bun run db:generate` → `bun run db:migrate`
+3. **Repository** — `IPostRepository.ts` (interface) + `PostRepository.ts` (Drizzle implementation)
+4. **Validator** — `src/infrastructure/validators/postValidator.ts` (Zod schema)
+5. **Use Cases** — `ICreatePostUseCase.ts` + `CreatePostUseCase.ts`, etc.
+6. **Controller** — `src/presentation/controllers/postController.ts`
+7. **Routes** — `src/presentation/routes/postRoutes.ts` (Composition Root)
+8. **Mount** — add `app.route('/api', createPostRoutes())` to `src/index.ts`
+9. **Tests** — add tests for each layer (feature → controller → use-case → repository → validator)
+
+### CORS
+
+CORS is configured in `src/index.ts`. Allowed origins:
+- `https://reitaisai.info`
+- `https://dev.reitaisai.info`
+- `http://localhost:8771`
+
+Update the CORS configuration in `src/index.ts` when a new origin is needed.
+
+### Shared Zod Schemas
+
+Validation schemas (e.g. `createUserSchema`) can be imported in the frontend as `@backend/infrastructure/validators/userValidator`. Reuse backend-defined schemas in the frontend to avoid duplication.
+
+### Password Hashing
+
+`bcryptjs` with salt rounds 12. Plain-text passwords received from the frontend are hashed inside `CreateUserUseCase`. Passwords must never appear in API responses.
+
+### Result Type (Discriminated Union)
+
+Use case return values must always follow the shape `{ success: true; data: T } | { success: false; error: string }`. Controllers branch on the `success` flag to determine the HTTP status code.
+
+### Cloudflare Workers Constraints
+
+- Module-level global state persists across requests within a single Worker instance. DB connections are created per-request by design (Hyperdrive manages the connection pool).
+- Including `bun-types` in the Workers tsconfig conflicts with `@cloudflare/workers-types` on `Response` / `Body`. Use only `@cloudflare/workers-types` in the production tsconfig.
+- The `nodejs_compat` compatibility flag is enabled, so Node.js built-ins (crypto, buffer, etc.) are available.
+
+### Security Scanning
+
+The following scans run automatically when a PR is opened:
+- **AikidoSec Safe Chain** — dependency vulnerability scanning
+- **Betterleaks** — secret leak detection
+- **anti-trojan-source** — detects code obfuscation via Unicode control characters
+
+Secrets (`.env`, `terraform.tfvars`, etc.) are excluded via `.gitignore`. Always run `git status` before committing to verify no secrets are staged.
