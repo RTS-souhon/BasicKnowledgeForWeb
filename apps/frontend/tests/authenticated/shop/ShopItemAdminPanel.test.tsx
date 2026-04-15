@@ -9,11 +9,6 @@ jest.mock('@frontend/app/actions/shop-items', () => ({
     uploadShopItemImageAction: jest.fn(),
 }));
 
-const mockRefresh = jest.fn();
-jest.mock('next/navigation', () => ({
-    useRouter: () => ({ refresh: mockRefresh }),
-}));
-
 // next/image はテスト環境では通常の img タグにフォールバック
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -80,7 +75,7 @@ beforeEach(() => {
 });
 
 describe('ShopItemAdminPanel', () => {
-    it('新規追加成功時にフォームを閉じてリフレッシュする', async () => {
+    it('新規追加成功時にフォームを閉じて一覧を更新する', async () => {
         const user = userEvent.setup();
         mockUploadImage.mockResolvedValue({
             success: true,
@@ -104,11 +99,11 @@ describe('ShopItemAdminPanel', () => {
                 image_key: 'shop-items/event-1/new.webp',
                 description: null,
             });
-            expect(mockRefresh).toHaveBeenCalled();
         });
         expect(
             screen.queryByText('新しい販売物を追加'),
         ).not.toBeInTheDocument();
+        expect(screen.getAllByText('新商品').length).toBeGreaterThan(0);
     });
 
     it('販売物一覧を表示する', () => {
@@ -201,7 +196,7 @@ describe('ShopItemAdminPanel', () => {
         );
     });
 
-    it('削除ボタンクリック + confirm で deleteShopItemAction を呼びリフレッシュする', async () => {
+    it('削除ボタンクリック + confirm で deleteShopItemAction を呼び一覧を更新する', async () => {
         const user = userEvent.setup();
         render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
@@ -212,8 +207,8 @@ describe('ShopItemAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('event-1', '1');
-            expect(mockRefresh).toHaveBeenCalled();
         });
+        expect(screen.queryByText('オリジナルTシャツ')).not.toBeInTheDocument();
     });
 
     it('confirm キャンセル時は deleteShopItemAction を呼ばない', async () => {

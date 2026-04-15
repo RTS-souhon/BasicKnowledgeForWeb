@@ -10,7 +10,6 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import {
     type CSSProperties,
     useEffect,
@@ -120,7 +119,6 @@ export default function ShopItemAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
-    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -242,7 +240,6 @@ export default function ShopItemAdminPanel({
                         : '販売物を更新しました',
                 );
                 closeForm();
-                router.refresh();
             } catch (err) {
                 setError(
                     err instanceof Error ? err.message : '操作に失敗しました',
@@ -261,7 +258,6 @@ export default function ShopItemAdminPanel({
             }
             setItems(result.data);
             setInfoMessage('販売物を削除しました');
-            router.refresh();
         });
     };
 

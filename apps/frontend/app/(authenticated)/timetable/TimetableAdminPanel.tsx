@@ -8,7 +8,6 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -103,7 +102,6 @@ export default function TimetableAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
-    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -183,7 +181,6 @@ export default function TimetableAdminPanel({
                     : 'タイムテーブルを更新しました',
             );
             closeForm();
-            router.refresh();
         });
     };
 
@@ -197,7 +194,6 @@ export default function TimetableAdminPanel({
             }
             setItems(result.data);
             setInfoMessage('タイムテーブルを削除しました');
-            router.refresh();
         });
     };
 

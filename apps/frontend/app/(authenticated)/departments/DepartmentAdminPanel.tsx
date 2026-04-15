@@ -8,7 +8,6 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type Department = {
@@ -19,7 +18,6 @@ type Department = {
 type Props = { departments: Department[]; eventId: string };
 
 export default function DepartmentAdminPanel({ departments, eventId }: Props) {
-    const router = useRouter();
     const [departmentList, setDepartmentList] = useState(departments);
     useEffect(() => {
         setDepartmentList(departments);
@@ -82,7 +80,6 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
             );
             setDepartmentList(result.data);
             closeForm();
-            router.refresh();
         });
     };
 
@@ -96,7 +93,6 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
             }
             setInfoMessage('部署を削除しました');
             setDepartmentList(result.data);
-            router.refresh();
         });
     };
 

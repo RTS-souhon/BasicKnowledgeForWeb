@@ -9,7 +9,6 @@ import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -90,7 +89,6 @@ export default function ProgramAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
-    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -169,7 +167,6 @@ export default function ProgramAdminPanel({
                     : '企画を更新しました',
             );
             closeForm();
-            router.refresh();
         });
     };
 
@@ -183,7 +180,6 @@ export default function ProgramAdminPanel({
             }
             setItems(result.data);
             setInfoMessage('企画を削除しました');
-            router.refresh();
         });
     };
 

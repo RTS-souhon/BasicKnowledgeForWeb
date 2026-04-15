@@ -4,8 +4,7 @@ import {
     createAccessCodeAction,
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 
 type AccessCode = {
     id: string;
@@ -62,7 +61,6 @@ export default function AccessCodeAdminPanel({
     codes,
     initialError = null,
 }: Props) {
-    const router = useRouter();
     const [codeList, setCodeList] = useState(codes);
     useEffect(() => {
         setCodeList(codes);
@@ -76,13 +74,6 @@ export default function AccessCodeAdminPanel({
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isFormSubmitting, setIsFormSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [isRefreshing, startTransition] = useTransition();
-
-    const refreshCodes = () => {
-        startTransition(() => {
-            router.refresh();
-        });
-    };
 
     const handleCreate = () => {
         setFormError(null);
@@ -114,7 +105,6 @@ export default function AccessCodeAdminPanel({
                 setValidFrom('');
                 setValidTo('');
                 setInfoMessage('アクセスコードを生成しました');
-                refreshCodes();
             }
             setIsFormSubmitting(false);
         })().catch(() => {
@@ -133,7 +123,6 @@ export default function AccessCodeAdminPanel({
                 setGlobalError(result.error);
             } else {
                 setCodeList(result.data);
-                refreshCodes();
             }
             setDeletingId(null);
         })().catch(() => {
@@ -141,7 +130,7 @@ export default function AccessCodeAdminPanel({
         });
     };
 
-    const isBusy = isFormSubmitting || isRefreshing;
+    const isBusy = isFormSubmitting;
 
     return (
         <div className='space-y-8'>
@@ -346,7 +335,7 @@ export default function AccessCodeAdminPanel({
                                                             handleDelete(c.id)
                                                         }
                                                         disabled={
-                                                            isRefreshing ||
+                                                            isBusy ||
                                                             deletingId === c.id
                                                         }
                                                         className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
@@ -397,7 +386,7 @@ export default function AccessCodeAdminPanel({
                                                     handleDelete(c.id)
                                                 }
                                                 disabled={
-                                                    isRefreshing ||
+                                                    isBusy ||
                                                     deletingId === c.id
                                                 }
                                                 className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
