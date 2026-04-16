@@ -5,9 +5,11 @@ import {
     deleteTimetableItemAction,
     updateTimetableItemAction,
 } from '@frontend/app/actions/timetable';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -20,6 +22,22 @@ type TimetableItem = {
     location: string;
     description: string | null;
 };
+
+async function fetchTimetableItemsFromApi(
+    eventId: string,
+): Promise<TimetableItem[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/timetable', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { items?: TimetableItem[] };
+        return Array.isArray(body.items) ? body.items : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     title: string;
@@ -102,6 +120,7 @@ export default function TimetableAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
+    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -173,13 +192,14 @@ export default function TimetableAdminPanel({
                 return;
             }
 
-            setItems(result.data);
-
             setInfoMessage(
                 formMode === 'adding'
                     ? 'タイムテーブルを追加しました'
                     : 'タイムテーブルを更新しました',
             );
+            const refreshed = await fetchTimetableItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
+            router.refresh();
             closeForm();
         });
     };
@@ -192,8 +212,10 @@ export default function TimetableAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems(result.data);
+            const refreshed = await fetchTimetableItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage('タイムテーブルを削除しました');
+            router.refresh();
         });
     };
 

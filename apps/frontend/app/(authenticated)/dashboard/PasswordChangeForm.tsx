@@ -1,7 +1,18 @@
 'use client';
 
 import { changePasswordAction } from '@frontend/app/actions/dashboard';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { useState } from 'react';
+
+async function refetchCurrentUser(): Promise<void> {
+    try {
+        await fetchFromBackend('/api/auth/me', {
+            credentials: 'include',
+        });
+    } catch {
+        // リフェッチ失敗時もパスワード変更結果は保持する
+    }
+}
 
 export default function PasswordChangeForm() {
     const [currentPassword, setCurrentPassword] = useState('');
@@ -37,6 +48,7 @@ export default function PasswordChangeForm() {
             if (!result.success) {
                 setError(result.error);
             } else {
+                await refetchCurrentUser();
                 setSuccess('パスワードを変更しました');
                 setCurrentPassword('');
                 setNewPassword('');

@@ -8,6 +8,14 @@ jest.mock('@frontend/app/lib/serverAuth', () => ({
 }));
 
 jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
     redirect: jest.fn().mockImplementation((url: string) => {
         throw new Error(`NEXT_REDIRECT:${url}`);
     }),

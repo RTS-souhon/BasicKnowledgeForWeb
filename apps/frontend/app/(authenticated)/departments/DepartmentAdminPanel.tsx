@@ -5,9 +5,11 @@ import {
     deleteDepartmentAction,
     updateDepartmentAction,
 } from '@frontend/app/actions/departments';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type Department = {
@@ -15,9 +17,26 @@ type Department = {
     name: string;
 };
 
+async function fetchDepartmentsFromApi(
+    eventId: string,
+): Promise<Department[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/departments', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { departments?: Department[] };
+        return Array.isArray(body.departments) ? body.departments : null;
+    } catch {
+        return null;
+    }
+}
+
 type Props = { departments: Department[]; eventId: string };
 
 export default function DepartmentAdminPanel({ departments, eventId }: Props) {
+    const router = useRouter();
     const [departmentList, setDepartmentList] = useState(departments);
     useEffect(() => {
         setDepartmentList(departments);
@@ -78,7 +97,9 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                     ? '部署を追加しました'
                     : '部署を更新しました',
             );
-            setDepartmentList(result.data);
+            const refreshed = await fetchDepartmentsFromApi(eventId);
+            setDepartmentList(refreshed ?? result.data);
+            router.refresh();
             closeForm();
         });
     };
@@ -92,7 +113,9 @@ export default function DepartmentAdminPanel({ departments, eventId }: Props) {
                 return;
             }
             setInfoMessage('部署を削除しました');
-            setDepartmentList(result.data);
+            const refreshed = await fetchDepartmentsFromApi(eventId);
+            setDepartmentList(refreshed ?? result.data);
+            router.refresh();
         });
     };
 

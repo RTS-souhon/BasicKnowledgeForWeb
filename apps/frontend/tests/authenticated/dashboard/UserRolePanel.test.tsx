@@ -2,6 +2,17 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/actions/dashboard', () => ({
     changePasswordAction: jest.fn(),
     updateUserRoleAction: jest.fn(),

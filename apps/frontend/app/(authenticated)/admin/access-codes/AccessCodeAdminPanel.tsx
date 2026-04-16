@@ -4,6 +4,8 @@ import {
     createAccessCodeAction,
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type AccessCode = {
@@ -18,6 +20,19 @@ type Props = {
     codes: AccessCode[];
     initialError?: string | null;
 };
+
+async function fetchAccessCodesFromApi(): Promise<AccessCode[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/access-codes', {
+            credentials: 'include',
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { codes?: AccessCode[] };
+        return Array.isArray(body.codes) ? body.codes : null;
+    } catch {
+        return null;
+    }
+}
 
 function getStatus(validFrom: string, validTo: string) {
     const now = Date.now();
@@ -61,6 +76,7 @@ export default function AccessCodeAdminPanel({
     codes,
     initialError = null,
 }: Props) {
+    const router = useRouter();
     const [codeList, setCodeList] = useState(codes);
     useEffect(() => {
         setCodeList(codes);
@@ -99,12 +115,14 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setFormError(result.error);
             } else {
-                setCodeList(result.data);
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
                 setEventName('');
                 setCode('');
                 setValidFrom('');
                 setValidTo('');
                 setInfoMessage('アクセスコードを生成しました');
+                router.refresh();
             }
             setIsFormSubmitting(false);
         })().catch(() => {
@@ -122,7 +140,9 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setGlobalError(result.error);
             } else {
-                setCodeList(result.data);
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
+                router.refresh();
             }
             setDeletingId(null);
         })().catch(() => {

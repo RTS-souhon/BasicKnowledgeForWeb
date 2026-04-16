@@ -6,10 +6,12 @@ import {
     updateShopItemAction,
     uploadShopItemImageAction,
 } from '@frontend/app/actions/shop-items';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
     type CSSProperties,
     useEffect,
@@ -28,6 +30,22 @@ type ShopItem = {
     description: string | null;
     imageUrl: string;
 };
+
+async function fetchShopItemsFromApi(
+    eventId: string,
+): Promise<ShopItem[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/shop-items', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { items?: ShopItem[] };
+        return Array.isArray(body.items) ? body.items : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     name: string;
@@ -119,6 +137,7 @@ export default function ShopItemAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
+    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -219,7 +238,8 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
-                    setItems(result.data);
+                    const refreshed = await fetchShopItemsFromApi(eventId);
+                    setItems(refreshed ?? result.data);
                 } else {
                     const result = await createShopItemAction(eventId, {
                         name,
@@ -232,13 +252,15 @@ export default function ShopItemAdminPanel({
                         setError(result.error);
                         return;
                     }
-                    setItems(result.data);
+                    const refreshed = await fetchShopItemsFromApi(eventId);
+                    setItems(refreshed ?? result.data);
                 }
                 setInfoMessage(
                     formMode === 'adding'
                         ? '販売物を追加しました'
                         : '販売物を更新しました',
                 );
+                router.refresh();
                 closeForm();
             } catch (err) {
                 setError(
@@ -256,8 +278,10 @@ export default function ShopItemAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems(result.data);
+            const refreshed = await fetchShopItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage('販売物を削除しました');
+            router.refresh();
         });
     };
 

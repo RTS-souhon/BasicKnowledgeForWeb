@@ -1,6 +1,8 @@
 'use client';
 
 import { updateUserRoleAction } from '@frontend/app/actions/dashboard';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type User = {
@@ -26,7 +28,21 @@ function buildSelectedRoles(users: User[]): Record<string, 'user' | 'admin'> {
     >;
 }
 
+async function fetchUsersFromApi(): Promise<User[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/users', {
+            credentials: 'include',
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { users?: User[] };
+        return Array.isArray(body.users) ? body.users : null;
+    } catch {
+        return null;
+    }
+}
+
 export default function UserRolePanel({ initialUsers }: Props) {
+    const router = useRouter();
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [pendingId, setPendingId] = useState<string | null>(null);
     const [selectedRoles, setSelectedRoles] = useState<
@@ -66,9 +82,12 @@ export default function UserRolePanel({ initialUsers }: Props) {
                 const nextUsers = result.data.map((user) =>
                     user.id === userId ? { ...user, role: newRole } : user,
                 );
-                setUsers(nextUsers);
-                setSelectedRoles(buildSelectedRoles(nextUsers));
+                const refreshed = await fetchUsersFromApi();
+                const sourceUsers = refreshed ?? nextUsers;
+                setUsers(sourceUsers);
+                setSelectedRoles(buildSelectedRoles(sourceUsers));
                 setInfoMessage('ユーザーのロールを更新しました');
+                router.refresh();
             }
         });
     };

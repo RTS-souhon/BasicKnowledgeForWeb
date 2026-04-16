@@ -5,9 +5,11 @@ import {
     deleteRoomAction,
     updateRoomAction,
 } from '@frontend/app/actions/rooms';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type RoomWithDepartments = {
@@ -23,6 +25,22 @@ type RoomWithDepartments = {
     dayPurpose: string;
     notes: string | null;
 };
+
+async function fetchRoomsFromApi(
+    eventId: string,
+): Promise<RoomWithDepartments[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/rooms', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { rooms?: RoomWithDepartments[] };
+        return Array.isArray(body.rooms) ? body.rooms : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     building_name: string;
@@ -72,6 +90,7 @@ export default function RoomAdminPanel({
     departments,
     eventId,
 }: Props) {
+    const router = useRouter();
     const [rooms, setRooms] = useState(initialRooms);
     useEffect(() => {
         setRooms(initialRooms);
@@ -160,12 +179,14 @@ export default function RoomAdminPanel({
                 return;
             }
 
-            setRooms(result.data);
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '部屋割りを追加しました'
                     : '部屋割りを更新しました',
             );
+            router.refresh();
             closeForm();
         });
     };
@@ -178,8 +199,10 @@ export default function RoomAdminPanel({
                 setError(result.error);
                 return;
             }
-            setRooms(result.data);
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
             setInfoMessage('部屋割りを削除しました');
+            router.refresh();
         });
     };
 
