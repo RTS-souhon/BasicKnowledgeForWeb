@@ -4,9 +4,10 @@ This file provides guidance to OpenAI Codex when working with code in this repos
 
 ## Overview
 
-Bun monorepo with two Cloudflare Workers apps:
+Bun monorepo with three Cloudflare Workers apps:
 - `apps/backend` — Hono.js REST API with CockroachDB + Drizzle ORM
 - `apps/frontend` — Next.js 15 (App Router) + React 19 + Tailwind CSS v4, deployed via OpenNext
+- `apps/email-worker` — Cloudflare Worker for internal email sending and Email Routing integration
 
 ## Commands
 
@@ -54,6 +55,19 @@ bun run deploy       # Deploy to Cloudflare Workers (prod)
 bun run deploy:dev   # Deploy to Cloudflare Workers (dev)
 ```
 
+### Email Worker (`apps/email-worker`)
+
+```bash
+bun run dev          # Dev server on port 8789
+bun run build        # Dry-run deploy build
+bun run type-check   # TypeScript validation (src + tests)
+bun run test         # Jest unit tests
+bun run lint         # Biome lint
+bun run lint:fix     # Auto-fix
+bun run deploy       # Deploy to Cloudflare Workers (prod)
+bun run deploy:dev   # Deploy to Cloudflare Workers (dev)
+```
+
 ### Local database
 
 ```bash
@@ -97,6 +111,12 @@ bun run test         # All tests PASS
 
 # When changing frontend
 cd apps/frontend
+bun run type-check   # No TypeScript errors
+bun run lint         # No Biome lint errors
+bun run test         # All tests PASS
+
+# When changing email-worker
+cd apps/email-worker
 bun run type-check   # No TypeScript errors
 bun run lint         # No Biome lint errors
 bun run test         # All tests PASS
