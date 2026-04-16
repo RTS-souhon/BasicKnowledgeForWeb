@@ -35,6 +35,7 @@ const MSW_ESM_PACKAGES = [
     'msw',
     '@mswjs/interceptors',
     'until-async',
+    'rettime',
     '@open-draft/until',
     '@open-draft/logger',
     '@open-draft/deferred-promise',
