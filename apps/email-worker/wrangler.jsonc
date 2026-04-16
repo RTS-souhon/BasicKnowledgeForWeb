@@ -1,0 +1,50 @@
+{
+    "$schema": "https://unpkg.com/wrangler/config-schema.json",
+    "name": "basic-knowledge-for-web-email-worker",
+    "main": "src/index.ts",
+    "compatibility_date": "2025-02-24",
+    "compatibility_flags": ["nodejs_compat"],
+    "send_email": [
+        {
+            "name": "EMAIL"
+        }
+    ],
+    "vars": {
+        "EMAIL_FROM": "noreply@reitaisai.info"
+    },
+    "secrets": {
+        "required": ["INTERNAL_API_TOKEN"]
+    },
+    "env": {
+        "dev": {
+            "name": "basic-knowledge-for-web-email-worker-dev",
+            "vars": {
+                "EMAIL_FROM": "noreply@dev.reitaisai.info"
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
+        },
+        "prod": {
+            "name": "basic-knowledge-for-web-email-worker",
+            "vars": {
+                "EMAIL_FROM": "noreply@reitaisai.info"
+            },
+            "observability": {
+                "traces": {
+                    "enabled": true
+                },
+                "logs": {
+                    "enabled": true,
+                    "invocation_logs": true
+                }
+            }
+        }
+    }
+}
