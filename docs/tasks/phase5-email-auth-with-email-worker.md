@@ -29,7 +29,7 @@
 2. Email Worker に `send_email` binding、必要な secrets/vars を設定する
 3. Backend Worker に `services` binding を追加し、`EMAIL_WORKER` として email-worker を参照する
 4. dev/prod の service 名を環境ごとに分離する
-5. Worker 間通信で使う内部認証ヘッダー（共有 secret）を定義する
+5. Email Worker を `workers_dev: false` にして公開 URL を無効化する
 
 完了条件:
 
@@ -134,7 +134,7 @@
 
 1. Backend Feature Test: `email/verify/request`, `email/verify/confirm`, `login`, `login/otp` の正常系/異常系を追加
 2. Backend Unit Test: use-case と repository の失敗系（期限切れ、試行回数超過、クールダウン）を追加
-3. Email Worker Unit Test: 内部認証、テンプレート生成、送信失敗ハンドリングを追加
+3. Email Worker Unit Test: テンプレート生成、入力バリデーション、送信失敗ハンドリングを追加
 4. Frontend Test: OTP フロー、再送クールダウン、信頼デバイス UI を追加
 5. Backend-EmailWorker 連携テスト: service binding 呼び出しをモックして送信委譲を確認
 6. CI ワークフローで backend/frontend/email-worker の lint/type-check/test を実行する
@@ -166,10 +166,10 @@
 
 #### Email Worker Unit Test
 
-- `EW-UNIT-001`: 内部認証ヘッダー不正時に 401
-- `EW-UNIT-002`: `email_verification` テンプレート生成
-- `EW-UNIT-003`: `login_otp` テンプレート生成
-- `EW-UNIT-004`: 6桁以外コード入力時のバリデーションエラー
+- `EW-UNIT-001`: `email_verification` テンプレート生成
+- `EW-UNIT-002`: `login_otp` テンプレート生成
+- `EW-UNIT-003`: 6桁以外コード入力時のバリデーションエラー
+- `EW-UNIT-004`: リクエストボディ不正時の 400 応答
 - `EW-UNIT-005`: SendEmail 失敗時のエラー応答とログ出力
 
 #### Frontend Test
@@ -183,7 +183,7 @@
 #### Integration / CI
 
 - `INT-001`: backend -> email-worker の service binding 呼び出し成功
-- `INT-002`: backend -> email-worker 認証トークン不一致時の失敗
+- `INT-002`: 公開 URL なし（`workers_dev: false`）で外部から直接呼び出せない
 - `CI-001`: `apps/backend` lint/type-check/test 成功
 - `CI-002`: `apps/email-worker` lint/type-check/test 成功
 - `CI-003`: `apps/frontend` lint/type-check/test 成功

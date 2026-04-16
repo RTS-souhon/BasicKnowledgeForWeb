@@ -2,7 +2,6 @@ import {
     type EmailTemplateType,
     renderEmailTemplate,
 } from '@email-worker/src/emailTemplates';
-import { isAuthorizedRequest } from '@email-worker/src/internalAuth';
 
 type SendEmailMessage = {
     from: string;
@@ -18,7 +17,6 @@ type SendEmailBinding = {
 type Env = {
     EMAIL: SendEmailBinding;
     EMAIL_FROM: string;
-    INTERNAL_API_TOKEN: string;
 };
 
 type SendEmailRequestBody = {
@@ -29,10 +27,6 @@ type SendEmailRequestBody = {
 
 function badRequest(message: string) {
     return Response.json({ error: message }, { status: 400 });
-}
-
-function unauthorized() {
-    return Response.json({ error: 'unauthorized' }, { status: 401 });
 }
 
 async function parseBody(
@@ -63,15 +57,6 @@ async function parseBody(
 }
 
 export async function handleInternalSend(request: Request, env: Env) {
-    if (
-        !isAuthorizedRequest(
-            request.headers.get('authorization'),
-            env.INTERNAL_API_TOKEN,
-        )
-    ) {
-        return unauthorized();
-    }
-
     const payload = await parseBody(request);
     if (!payload) {
         return badRequest('invalid request body');

@@ -6,7 +6,7 @@
 - [ ] Email Worker に `send_email` binding が設定されている
 - [ ] `apps/backend/wrangler.jsonc` に `EMAIL_WORKER` service binding がある
 - [ ] dev/prod で service 名が環境別に設定されている
-- [ ] 内部通信用 secret が backend/email-worker 両方に設定されている
+- [ ] Email Worker の `workers_dev` が `false` で公開 URL が無効化されている
 - [ ] Email Routing の対象ドメインと Worker 設定が有効化されている
 
 ## 2. Database
@@ -33,7 +33,7 @@
 - [ ] `POST /internal/email/send` が実装されている
 - [ ] `email_verification` テンプレートが実装されている
 - [ ] `login_otp` テンプレートが実装されている
-- [ ] 内部認証ヘッダーの検証がある
+- [ ] Service Binding 経由呼び出し前提で実装されている
 - [ ] 送信失敗時にログとエラーレスポンスが返る
 
 ## 5. Frontend
@@ -56,7 +56,6 @@
 - [ ] email-worker `bun run type-check` 成功
 - [ ] email-worker `bun run lint` 成功
 - [ ] email-worker `bun run test` 成功
-- [ ] email-worker Test に内部認証ヘッダー不正時の 401 がある
 - [ ] email-worker Test にテンプレート生成（`email_verification` / `login_otp`）の検証がある
 - [ ] email-worker Test に送信失敗時ハンドリング（エラー応答/ログ）がある
 - [ ] frontend `bun run type-check` 成功

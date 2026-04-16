@@ -24,8 +24,8 @@
 ### 通信方針
 
 - Backend から Email Worker へ `fetch()` で内部 API を呼ぶ
-- Email Worker 側で内部認証ヘッダー (`x-internal-token`) を検証する
-- 外部から Email Worker の内部 API を直接叩けないようにする
+- Email Worker は Service Binding 経由の呼び出し専用とする
+- Email Worker は `workers_dev: false` とし、公開 URL を持たせない
 
 ## 認証フロー
 

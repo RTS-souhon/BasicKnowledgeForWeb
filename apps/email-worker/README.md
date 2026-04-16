@@ -14,7 +14,15 @@ bun run test
 ## Internal API
 
 - `POST /internal/email/send`
-- 認証: `Authorization: Bearer <INTERNAL_API_TOKEN>`
+- 認可: Cloudflare Service Binding (`EMAIL_WORKER`) 経由のみ
+
+## Worker Visibility
+
+```bash
+workers_dev = false
+```
+
+公開 URL を持たない Worker としてデプロイし、backend Worker からの service binding 呼び出し専用で利用します。
 
 ### Request body
 
