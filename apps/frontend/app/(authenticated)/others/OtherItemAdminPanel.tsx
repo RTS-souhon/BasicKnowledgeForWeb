@@ -5,9 +5,11 @@ import {
     deleteOtherItemAction,
     updateOtherItemAction,
 } from '@frontend/app/actions/others';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type OtherItem = {
@@ -16,6 +18,22 @@ type OtherItem = {
     content: string;
     displayOrder: number;
 };
+
+async function fetchOtherItemsFromApi(
+    eventId: string,
+): Promise<OtherItem[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/others', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { items?: OtherItem[] };
+        return Array.isArray(body.items) ? body.items : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     title: string;
@@ -39,6 +57,7 @@ export default function OtherItemAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
+    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -106,12 +125,14 @@ export default function OtherItemAdminPanel({
                 return;
             }
 
-            setItems(result.data);
+            const refreshed = await fetchOtherItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '情報を追加しました'
                     : '情報を更新しました',
             );
+            router.refresh();
             closeForm();
         });
     };
@@ -124,8 +145,10 @@ export default function OtherItemAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems(result.data);
+            const refreshed = await fetchOtherItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage('情報を削除しました');
+            router.refresh();
         });
     };
 

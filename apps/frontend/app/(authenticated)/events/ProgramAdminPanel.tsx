@@ -5,10 +5,12 @@ import {
     deleteProgramAction,
     updateProgramAction,
 } from '@frontend/app/actions/programs';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -21,6 +23,22 @@ type Program = {
     endTime: string;
     description: string | null;
 };
+
+async function fetchProgramsFromApi(
+    eventId: string,
+): Promise<Program[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/programs', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { programs?: Program[] };
+        return Array.isArray(body.programs) ? body.programs : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     name: string;
@@ -89,6 +107,7 @@ export default function ProgramAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
+    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -160,12 +179,14 @@ export default function ProgramAdminPanel({
                 return;
             }
 
-            setItems(result.data);
+            const refreshed = await fetchProgramsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '企画を追加しました'
                     : '企画を更新しました',
             );
+            router.refresh();
             closeForm();
         });
     };
@@ -178,8 +199,10 @@ export default function ProgramAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems(result.data);
+            const refreshed = await fetchProgramsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage('企画を削除しました');
+            router.refresh();
         });
     };
 

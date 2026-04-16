@@ -3,6 +3,7 @@ const FALLBACK_API_BASE_URL =
 
 const MAX_LOG_BODY_LENGTH = 4000;
 const REDACTED = '[REDACTED]';
+const NO_STORE_CACHE_CONTROL_VALUE = 'no-store, no-cache, must-revalidate';
 
 const isVerboseBackendFetchLogEnabled = () =>
     process.env.BACKEND_FETCH_LOG === '1' ||
@@ -35,6 +36,25 @@ const buildAbsoluteUrl = (target: string) => {
 
 export const getPublicApiBaseUrl = () => FALLBACK_API_BASE_URL;
 export const buildBackendUrl = (target: string) => buildAbsoluteUrl(target);
+
+export function withNoStoreRequestInit(init?: RequestInit): RequestInit {
+    const headers = new Headers(init?.headers);
+    if (!headers.has('Cache-Control')) {
+        headers.set('Cache-Control', NO_STORE_CACHE_CONTROL_VALUE);
+    }
+    if (!headers.has('Pragma')) {
+        headers.set('Pragma', 'no-cache');
+    }
+    if (!headers.has('Expires')) {
+        headers.set('Expires', '0');
+    }
+
+    return {
+        ...init,
+        cache: 'no-store',
+        headers,
+    };
+}
 
 function isSensitiveKey(key: string): boolean {
     const lower = key.toLowerCase();
@@ -212,7 +232,8 @@ export async function fetchFromBackend(
     init?: RequestInit,
 ): Promise<Response> {
     const url = buildAbsoluteUrl(target);
-    const method = (init?.method ?? 'GET').toUpperCase();
+    const requestInit = withNoStoreRequestInit(init);
+    const method = (requestInit.method ?? 'GET').toUpperCase();
 
     try {
         if (typeof window === 'undefined') {
@@ -220,12 +241,12 @@ export async function fetchFromBackend(
                 const context = getCloudflareContext();
                 const backend = context?.env?.BACKEND;
                 if (backend) {
-                    const request = new Request(url, init);
+                    const request = new Request(url, requestInit);
                     const backendFetch = backend.fetch.bind(
                         backend,
                     ) as unknown as typeof fetch;
                     const response = await backendFetch(request);
-                    await logBackendFetch(method, url, init, response);
+                    await logBackendFetch(method, url, requestInit, response);
                     return response;
                 }
             } catch {
@@ -233,11 +254,11 @@ export async function fetchFromBackend(
             }
         }
 
-        const response = await fetch(url, init);
-        await logBackendFetch(method, url, init, response);
+        const response = await fetch(url, requestInit);
+        await logBackendFetch(method, url, requestInit, response);
         return response;
     } catch (error) {
-        logBackendFetchError(method, url, init, error);
+        logBackendFetchError(method, url, requestInit, error);
         throw error;
     }
 }
