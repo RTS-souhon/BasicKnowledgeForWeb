@@ -43,7 +43,7 @@
         "@types/react-dom": "^19",
         "cross-fetch": "^4.1.0",
         "jest-environment-jsdom": "^30.3.0",
-        "msw": "^2.12.14",
+        "msw": "^2.13.2",
         "postcss": "^8",
         "tailwindcss": "^4.2.2",
         "typescript": "^5"
