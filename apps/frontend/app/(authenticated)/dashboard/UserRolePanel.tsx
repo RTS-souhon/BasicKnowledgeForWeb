@@ -19,28 +19,26 @@ const ROLE_LABELS: Record<string, string> = {
     admin: '管理者',
 };
 
+function buildSelectedRoles(users: User[]): Record<string, 'user' | 'admin'> {
+    return Object.fromEntries(users.map((u) => [u.id, u.role])) as Record<
+        string,
+        'user' | 'admin'
+    >;
+}
+
 export default function UserRolePanel({ initialUsers }: Props) {
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [pendingId, setPendingId] = useState<string | null>(null);
     const [selectedRoles, setSelectedRoles] = useState<
         Record<string, 'user' | 'admin'>
-    >(
-        Object.fromEntries(initialUsers.map((u) => [u.id, u.role])) as Record<
-            string,
-            'user' | 'admin'
-        >,
-    );
+    >(buildSelectedRoles(initialUsers));
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [, startTransition] = useTransition();
 
     useEffect(() => {
         setUsers(initialUsers);
-        setSelectedRoles(
-            Object.fromEntries(
-                initialUsers.map((u) => [u.id, u.role]),
-            ) as Record<string, 'user' | 'admin'>,
-        );
+        setSelectedRoles(buildSelectedRoles(initialUsers));
     }, [initialUsers]);
 
     const handleRoleChange = (userId: string) => {
@@ -50,29 +48,26 @@ export default function UserRolePanel({ initialUsers }: Props) {
         setError(null);
         setPendingId(userId);
         setInfoMessage(null);
+        const currentRole = users.find((u) => u.id === userId)?.role;
 
         startTransition(async () => {
             const result = await updateUserRoleAction(userId, newRole);
             setPendingId(null);
             if (!result.success) {
                 setError(result.error);
-                const actualRole = users.find((u) => u.id === userId)?.role as
-                    | 'user'
-                    | 'admin'
-                    | undefined;
-                if (actualRole) {
+                if (currentRole) {
                     setSelectedRoles((prev) => ({
                         ...prev,
-                        [userId]: actualRole,
+                        [userId]: currentRole,
                     }));
                 }
             } else {
-                setUsers(result.data);
-                setSelectedRoles(
-                    Object.fromEntries(
-                        result.data.map((u) => [u.id, u.role]),
-                    ) as Record<string, 'user' | 'admin'>,
+                // スナップショットが遅延していても、更新したユーザーのロール表示は確実に反映する。
+                const nextUsers = result.data.map((user) =>
+                    user.id === userId ? { ...user, role: newRole } : user,
                 );
+                setUsers(nextUsers);
+                setSelectedRoles(buildSelectedRoles(nextUsers));
                 setInfoMessage('ユーザーのロールを更新しました');
             }
         });

@@ -8,7 +8,6 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type OtherItem = {
@@ -40,7 +39,6 @@ export default function OtherItemAdminPanel({
     items: initialItems,
     eventId,
 }: Props) {
-    const router = useRouter();
     const [items, setItems] = useState(initialItems);
     useEffect(() => {
         setItems(initialItems);
@@ -115,7 +113,6 @@ export default function OtherItemAdminPanel({
                     : '情報を更新しました',
             );
             closeForm();
-            router.refresh();
         });
     };
 
@@ -129,7 +126,6 @@ export default function OtherItemAdminPanel({
             }
             setItems(result.data);
             setInfoMessage('情報を削除しました');
-            router.refresh();
         });
     };
 

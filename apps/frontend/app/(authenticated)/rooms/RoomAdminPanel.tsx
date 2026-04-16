@@ -8,7 +8,6 @@ import {
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 type RoomWithDepartments = {
@@ -73,7 +72,6 @@ export default function RoomAdminPanel({
     departments,
     eventId,
 }: Props) {
-    const router = useRouter();
     const [rooms, setRooms] = useState(initialRooms);
     useEffect(() => {
         setRooms(initialRooms);
@@ -169,7 +167,6 @@ export default function RoomAdminPanel({
                     : '部屋割りを更新しました',
             );
             closeForm();
-            router.refresh();
         });
     };
 
@@ -183,7 +180,6 @@ export default function RoomAdminPanel({
             }
             setRooms(result.data);
             setInfoMessage('部屋割りを削除しました');
-            router.refresh();
         });
     };
 

@@ -7,22 +7,14 @@ jest.mock('@frontend/app/actions/access-codes', () => ({
     deleteAccessCodeAction: jest.fn(),
 }));
 
-jest.mock('next/navigation', () => ({
-    useRouter: jest.fn(),
-}));
-
 const actions =
     require('@frontend/app/actions/access-codes') as typeof import('@frontend/app/actions/access-codes');
 const AccessCodeAdminPanel =
     require('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel')
         .default as typeof import('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel').default;
-const navigation =
-    require('next/navigation') as typeof import('next/navigation');
 
 const mockCreate = jest.mocked(actions.createAccessCodeAction);
 const mockDelete = jest.mocked(actions.deleteAccessCodeAction);
-const mockUseRouter = jest.mocked(navigation.useRouter);
-let mockRefresh: jest.Mock;
 
 const now = new Date();
 const past = (days: number) =>
@@ -57,8 +49,6 @@ const MOCK_CODES = [
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockRefresh = jest.fn();
-    mockUseRouter.mockReturnValue({ refresh: mockRefresh } as never);
 });
 
 describe('AccessCodeAdminPanel', () => {
@@ -153,7 +143,6 @@ describe('AccessCodeAdminPanel', () => {
             expect(
                 screen.getAllByText('テストイベント').length,
             ).toBeGreaterThan(0);
-            expect(mockRefresh).toHaveBeenCalled();
         });
     });
 
@@ -211,7 +200,6 @@ describe('AccessCodeAdminPanel', () => {
         });
         await waitFor(() => {
             expect(screen.queryByText('2025夏イベント')).not.toBeInTheDocument();
-            expect(mockRefresh).toHaveBeenCalled();
         });
     });
 

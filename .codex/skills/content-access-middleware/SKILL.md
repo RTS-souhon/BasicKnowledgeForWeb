@@ -1,6 +1,6 @@
 ---
-name: content-access-middleware
-description: `contentAccessMiddleware` の仕様を実装・テストするときに使う。AGENTS.md のミドルウェア説明を手順化する。
+name: "content-access-middleware"
+description: "`contentAccessMiddleware` の仕様を実装・テストするときに使う。AGENTS.md のミドルウェア説明を手順化する。"
 ---
 
 # Content Access Middleware ガイド

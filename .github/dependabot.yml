@@ -23,12 +23,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-    groups:
-      drizzle:
-        patterns:
-          - "drizzle-orm"
-          - "drizzle-kit"
-
+      - dependency-name: "drizzle-orm"
+      - dependency-name: "drizzle-kit"
   - package-ecosystem: "bun"
     directory: "/apps/frontend"
     schedule:

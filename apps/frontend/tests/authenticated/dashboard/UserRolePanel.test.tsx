@@ -93,6 +93,31 @@ describe('UserRolePanel', () => {
         });
     });
 
+    it('スナップショットが古くても更新対象ユーザーの表示ロールは新しい値を維持する', async () => {
+        const user = userEvent.setup();
+        // あえて古い一覧（user-1 が user のまま）を返す
+        mockUpdateRole.mockResolvedValue({
+            success: true,
+            data: Array.from(MOCK_USERS),
+        });
+        render(<UserRolePanel initialUsers={MOCK_USERS} />);
+
+        const selects = screen.getAllByRole('combobox', {
+            name: '山田太郎のロール',
+        });
+        await user.selectOptions(selects[0], 'admin');
+
+        const changeButtons = screen.getAllByRole('button', { name: '変更' });
+        await act(async () => {
+            await user.click(changeButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(mockUpdateRole).toHaveBeenCalledWith('user-1', 'admin');
+        });
+        expect(selects[0]).toHaveValue('admin');
+    });
+
     it('アクション失敗時にエラーメッセージを表示する', async () => {
         const user = userEvent.setup();
         mockUpdateRole.mockResolvedValue({
