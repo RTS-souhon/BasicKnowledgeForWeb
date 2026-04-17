@@ -66,7 +66,6 @@ export async function createTimetableItem(
         eventId,
         title: parsed.data.title,
         startTime: parsed.data.start_time,
-        endTime: parsed.data.end_time,
         location: parsed.data.location,
         description: parsed.data.description ?? null,
     });
@@ -103,7 +102,6 @@ export async function updateTimetableItem(
         payload: {
             title: parsed.data.title,
             startTime: parsed.data.start_time,
-            endTime: parsed.data.end_time,
             location: parsed.data.location,
             description: parsed.data.description,
         },

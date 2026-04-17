@@ -46,11 +46,7 @@ const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
 });
 
 const formatDateLabel = (iso: string) => dateFormatter.format(new Date(iso));
-const formatRange = (start: string, end: string, separator: string) => {
-    const startLabel = timeFormatter.format(new Date(start));
-    const endLabel = timeFormatter.format(new Date(end));
-    return `${startLabel}${separator}${endLabel}`;
-};
+const formatTime = (iso: string) => timeFormatter.format(new Date(iso));
 
 const NO_AUTH: serverAuth.ResolvedAuth = {
     eventId: null,
@@ -71,7 +67,6 @@ const MOCK_ITEMS = [
         id: '1',
         title: '開会式',
         startTime: '2025-08-01T09:00:00.000Z',
-        endTime: '2025-08-01T09:30:00.000Z',
         location: '大ホール',
         description: null,
     },
@@ -79,7 +74,6 @@ const MOCK_ITEMS = [
         id: '2',
         title: 'スタッフ集合',
         startTime: '2025-08-01T08:00:00.000Z',
-        endTime: '2025-08-01T08:30:00.000Z',
         location: 'ロビー',
         description: '全員参加',
     },
@@ -153,18 +147,10 @@ describe('TimetablePage', () => {
         const dateLabel = formatDateLabel(MOCK_ITEMS[0].startTime);
         expect(screen.getByText(dateLabel)).toBeInTheDocument();
 
-        const mobileRange = formatRange(
-            MOCK_ITEMS[1].startTime,
-            MOCK_ITEMS[1].endTime,
-            ' 〜 ',
-        );
-        const desktopRange = formatRange(
-            MOCK_ITEMS[0].startTime,
-            MOCK_ITEMS[0].endTime,
-            ' - ',
-        );
-        expect(screen.getByText(mobileRange)).toBeInTheDocument();
-        expect(screen.getByText(desktopRange)).toBeInTheDocument();
+        const earlyTime = formatTime(MOCK_ITEMS[1].startTime);
+        const lateTime = formatTime(MOCK_ITEMS[0].startTime);
+        expect(screen.getByText(earlyTime)).toBeInTheDocument();
+        expect(screen.getByText(lateTime)).toBeInTheDocument();
 
         expect(screen.getByText('ロビー')).toBeInTheDocument();
     });

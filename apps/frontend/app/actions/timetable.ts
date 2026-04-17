@@ -12,7 +12,6 @@ type TimetableItemData = {
     id: string;
     title: string;
     startTime: string;
-    endTime: string;
     location: string;
     description: string | null;
 };
@@ -35,7 +34,6 @@ export async function createTimetableItemAction(
     data: {
         title: string;
         start_time: string;
-        end_time: string;
         location: string;
         description?: string | null;
     },
@@ -90,7 +88,6 @@ export async function updateTimetableItemAction(
     data: {
         title?: string;
         start_time?: string;
-        end_time?: string;
         location?: string;
         description?: string | null;
     },

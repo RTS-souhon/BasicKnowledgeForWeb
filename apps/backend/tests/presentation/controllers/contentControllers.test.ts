@@ -80,6 +80,7 @@ const program: Program = {
     startTime: new Date(),
     endTime: new Date(),
     description: null,
+    imageUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
 };
@@ -100,6 +101,7 @@ const otherItem: OtherItem = {
     eventId: EVENT_ID,
     title: '注意事項',
     content: '集合時間は9時です',
+    imageUrl: null,
     displayOrder: 1,
     createdBy: adminUser.id,
     createdAt: new Date(),
@@ -158,7 +160,6 @@ describe('timetableController', () => {
                     event_id: OTHER_EVENT_ID,
                     title: '開会式',
                     start_time: '2025-08-01T10:00:00.000Z',
-                    end_time: '2025-08-01T11:00:00.000Z',
                     location: '会場A',
                 }),
             },

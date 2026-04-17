@@ -4,6 +4,7 @@ export type CreateOtherItemInput = {
     eventId: string;
     title: string;
     content: string;
+    imageKey?: string | null;
     displayOrder: number;
     createdBy: string;
 };

@@ -18,7 +18,6 @@ type TimetableItem = {
     id: string;
     title: string;
     startTime: string;
-    endTime: string;
     location: string;
     description: string | null;
 };
@@ -42,7 +41,6 @@ async function fetchTimetableItemsFromApi(
 type FormData = {
     title: string;
     start_time: string;
-    end_time: string;
     location: string;
     description: string;
 };
@@ -50,7 +48,6 @@ type FormData = {
 const EMPTY_FORM: FormData = {
     title: '',
     start_time: '',
-    end_time: '',
     location: '',
     description: '',
 };
@@ -68,7 +65,6 @@ function itemToForm(item: TimetableItem): FormData {
     return {
         title: item.title,
         start_time: isoToDatetimeLocal(item.startTime),
-        end_time: isoToDatetimeLocal(item.endTime),
         location: item.location,
         description: item.description ?? '',
     };
@@ -89,7 +85,7 @@ const timeFormatter = new Intl.DateTimeFormat('ja-JP', {
 
 type TimetableGroup = {
     date: string;
-    entries: (TimetableItem & { dateLabel: string; rangeLabel: string })[];
+    entries: (TimetableItem & { dateLabel: string; timeLabel: string })[];
 };
 
 function buildGroups(items: TimetableItem[]): TimetableGroup[] {
@@ -100,10 +96,9 @@ function buildGroups(items: TimetableItem[]): TimetableGroup[] {
     const map = new Map<string, TimetableGroup['entries']>();
     for (const item of sorted) {
         const start = new Date(item.startTime);
-        const end = new Date(item.endTime);
         const dateLabel = dateFormatter.format(start);
-        const rangeLabel = `${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
-        const entry = { ...item, dateLabel, rangeLabel };
+        const timeLabel = timeFormatter.format(start);
+        const entry = { ...item, dateLabel, timeLabel };
         const list = map.get(dateLabel) ?? [];
         list.push(entry);
         map.set(dateLabel, list);
@@ -159,13 +154,12 @@ export default function TimetableAdminPanel({
     const handleSubmit = () => {
         const title = formData.title.trim();
         const location = formData.location.trim();
-        if (!title || !formData.start_time || !formData.end_time || !location) {
-            setError('タイトル・開始・終了・場所は必須です');
+        if (!title || !formData.start_time || !location) {
+            setError('タイトル・開始・場所は必須です');
             return;
         }
 
         const start_time = new Date(formData.start_time).toISOString();
-        const end_time = new Date(formData.end_time).toISOString();
 
         const description = formData.description.trim() || null;
 
@@ -175,14 +169,12 @@ export default function TimetableAdminPanel({
                     ? await updateTimetableItemAction(eventId, editingItem.id, {
                           title,
                           start_time,
-                          end_time,
                           location,
                           description,
                       })
                     : await createTimetableItemAction(eventId, {
                           title,
                           start_time,
-                          end_time,
                           location,
                           description,
                       });
@@ -278,43 +270,23 @@ export default function TimetableAdminPanel({
                                 className='mt-1'
                             />
                         </div>
-                        <div className='grid grid-cols-2 gap-3'>
-                            <div>
-                                <Label htmlFor='tt-start'>
-                                    開始時刻
-                                    <span className='ml-1 text-red-500'>*</span>
-                                </Label>
-                                <Input
-                                    id='tt-start'
-                                    type='datetime-local'
-                                    value={formData.start_time}
-                                    onChange={(e) =>
-                                        setFormData((f) => ({
-                                            ...f,
-                                            start_time: e.target.value,
-                                        }))
-                                    }
-                                    className='mt-1'
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor='tt-end'>
-                                    終了時刻
-                                    <span className='ml-1 text-red-500'>*</span>
-                                </Label>
-                                <Input
-                                    id='tt-end'
-                                    type='datetime-local'
-                                    value={formData.end_time}
-                                    onChange={(e) =>
-                                        setFormData((f) => ({
-                                            ...f,
-                                            end_time: e.target.value,
-                                        }))
-                                    }
-                                    className='mt-1'
-                                />
-                            </div>
+                        <div>
+                            <Label htmlFor='tt-start'>
+                                開始時刻
+                                <span className='ml-1 text-red-500'>*</span>
+                            </Label>
+                            <Input
+                                id='tt-start'
+                                type='datetime-local'
+                                value={formData.start_time}
+                                onChange={(e) =>
+                                    setFormData((f) => ({
+                                        ...f,
+                                        start_time: e.target.value,
+                                    }))
+                                }
+                                className='mt-1'
+                            />
                         </div>
                         <div>
                             <Label htmlFor='tt-location'>
@@ -389,7 +361,7 @@ export default function TimetableAdminPanel({
                                     >
                                         <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4'>
                                             <p className='font-medium text-muted-foreground text-xs tabular-nums sm:w-36 sm:flex-none sm:text-sm'>
-                                                {item.rangeLabel}
+                                                {item.timeLabel}
                                             </p>
                                             <div className='flex-1 space-y-1'>
                                                 <p className='font-semibold text-base text-foreground leading-tight sm:font-medium sm:text-sm'>

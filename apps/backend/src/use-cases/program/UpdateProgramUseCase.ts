@@ -8,8 +8,13 @@ import type {
     UpdateProgramResult,
 } from './IUpdateProgramUseCase';
 
+const PROGRAM_IMAGE_PREFIX = 'programs';
+
 export class UpdateProgramUseCase implements IUpdateProgramUseCase {
-    constructor(private readonly programRepository: IProgramRepository) {}
+    constructor(
+        private readonly programRepository: IProgramRepository,
+        private readonly assetBaseUrl: string,
+    ) {}
 
     async execute(input: UpdateProgramInput): Promise<UpdateProgramResult> {
         const payload: RepositoryUpdateProgramInput = {};
@@ -27,6 +32,22 @@ export class UpdateProgramUseCase implements IUpdateProgramUseCase {
         }
         if (input.payload.description !== undefined) {
             payload.description = input.payload.description;
+        }
+        if (input.payload.imageKey !== undefined) {
+            if (input.payload.imageKey === null) {
+                payload.imageKey = null;
+                payload.imageUrl = null;
+            } else {
+                if (!this.isKeyAllowed(input.payload.imageKey, input.eventId)) {
+                    return {
+                        success: false,
+                        error: 'image_key が許可されたプレフィックスではありません',
+                        status: 400,
+                    };
+                }
+                payload.imageKey = input.payload.imageKey;
+                payload.imageUrl = this.buildImageUrl(input.payload.imageKey);
+            }
         }
 
         if (Object.keys(payload).length === 0) {
@@ -81,5 +102,14 @@ export class UpdateProgramUseCase implements IUpdateProgramUseCase {
                 status: 500,
             };
         }
+    }
+
+    private isKeyAllowed(key: string, eventId: string) {
+        return key.startsWith(`${PROGRAM_IMAGE_PREFIX}/${eventId}/`);
+    }
+
+    private buildImageUrl(imageKey: string) {
+        const trimmedBase = this.assetBaseUrl.replace(/\/+$/, '');
+        return `${trimmedBase}/${imageKey}`;
     }
 }

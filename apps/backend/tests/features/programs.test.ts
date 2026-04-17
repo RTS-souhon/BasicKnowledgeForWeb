@@ -21,6 +21,7 @@ const program1: Program = {
     startTime: new Date('2025-08-01T10:00:00Z'),
     endTime: new Date('2025-08-01T12:00:00Z'),
     description: '説明テキスト',
+    imageUrl: null,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
 };

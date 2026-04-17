@@ -4,6 +4,7 @@ import {
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
 import { Clock3, MapPin } from 'lucide-react';
+import Image from 'next/image';
 import ProgramAdminPanel from './ProgramAdminPanel';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
@@ -15,6 +16,7 @@ type Program = {
     startTime: string;
     endTime: string;
     description: string | null;
+    imageUrl: string | null;
 };
 
 const dayFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -134,6 +136,18 @@ export default async function EventsPage({
                                 key={program.id}
                                 className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
                             >
+                                {program.imageUrl?.trim() && (
+                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <Image
+                                            src={program.imageUrl}
+                                            alt={program.name}
+                                            fill
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                            className='object-cover'
+                                            unoptimized
+                                        />
+                                    </div>
+                                )}
                                 <p className='font-semibold text-foreground text-sm leading-tight'>
                                     {program.name}
                                 </p>
@@ -155,7 +169,7 @@ export default async function EventsPage({
                                     </div>
                                 </div>
                                 {program.description && (
-                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                    <p className='mt-4 whitespace-pre-wrap border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
                                         {program.description}
                                     </p>
                                 )}

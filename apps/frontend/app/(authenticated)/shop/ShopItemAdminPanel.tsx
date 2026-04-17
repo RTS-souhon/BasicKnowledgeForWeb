@@ -439,7 +439,7 @@ export default function ShopItemAdminPanel({
                                         <td className='px-4 py-3 align-top tabular-nums'>
                                             ¥{priceFormatter.format(item.price)}
                                         </td>
-                                        <td className='px-4 py-3 align-top text-muted-foreground text-xs'>
+                                        <td className='whitespace-pre-wrap px-4 py-3 align-top text-muted-foreground text-xs'>
                                             {item.description ?? '—'}
                                         </td>
                                         <td className='px-4 py-3 align-top'>
@@ -493,7 +493,7 @@ export default function ShopItemAdminPanel({
                                             ¥{priceFormatter.format(item.price)}
                                         </p>
                                         {item.description && (
-                                            <p className='mt-3 text-muted-foreground text-sm'>
+                                            <p className='mt-3 whitespace-pre-wrap text-muted-foreground text-sm'>
                                                 {item.description}
                                             </p>
                                         )}

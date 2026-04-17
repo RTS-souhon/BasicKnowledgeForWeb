@@ -280,7 +280,6 @@ const validBody = {
     event_id: EVENT_ID,
     title: '開会式',
     start_time: '2025-08-01T10:00:00Z',
-    end_time: '2025-08-01T11:00:00Z',
     location: '会場 A',
 };
 

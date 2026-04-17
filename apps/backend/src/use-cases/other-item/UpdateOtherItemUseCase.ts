@@ -8,8 +8,13 @@ import type {
     UpdateOtherItemResult,
 } from './IUpdateOtherItemUseCase';
 
+const OTHER_ITEM_IMAGE_PREFIX = 'others';
+
 export class UpdateOtherItemUseCase implements IUpdateOtherItemUseCase {
-    constructor(private readonly otherItemRepository: IOtherItemRepository) {}
+    constructor(
+        private readonly otherItemRepository: IOtherItemRepository,
+        private readonly assetBaseUrl: string,
+    ) {}
 
     async execute(input: UpdateOtherItemInput): Promise<UpdateOtherItemResult> {
         const payload: RepositoryUpdateOtherItemInput = {};
@@ -18,6 +23,22 @@ export class UpdateOtherItemUseCase implements IUpdateOtherItemUseCase {
         }
         if (input.payload.content !== undefined) {
             payload.content = input.payload.content;
+        }
+        if (input.payload.imageKey !== undefined) {
+            if (input.payload.imageKey === null) {
+                payload.imageKey = null;
+                payload.imageUrl = null;
+            } else {
+                if (!this.isKeyAllowed(input.payload.imageKey, input.eventId)) {
+                    return {
+                        success: false,
+                        error: 'image_key が許可されたプレフィックスではありません',
+                        status: 400,
+                    };
+                }
+                payload.imageKey = input.payload.imageKey;
+                payload.imageUrl = this.buildImageUrl(input.payload.imageKey);
+            }
         }
         if (input.payload.displayOrder !== undefined) {
             payload.displayOrder = input.payload.displayOrder;
@@ -52,5 +73,14 @@ export class UpdateOtherItemUseCase implements IUpdateOtherItemUseCase {
                 status: 500,
             };
         }
+    }
+
+    private isKeyAllowed(key: string, eventId: string) {
+        return key.startsWith(`${OTHER_ITEM_IMAGE_PREFIX}/${eventId}/`);
+    }
+
+    private buildImageUrl(imageKey: string) {
+        const trimmedBase = this.assetBaseUrl.replace(/\/+$/, '');
+        return `${trimmedBase}/${imageKey}`;
     }
 }

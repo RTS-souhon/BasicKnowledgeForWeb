@@ -4,14 +4,16 @@ import {
     createProgramAction,
     deleteProgramAction,
     updateProgramAction,
+    uploadProgramImageAction,
 } from '@frontend/app/actions/programs';
 import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -22,6 +24,7 @@ type Program = {
     startTime: string;
     endTime: string;
     description: string | null;
+    imageUrl: string | null;
 };
 
 async function fetchProgramsFromApi(
@@ -120,6 +123,7 @@ export default function ProgramAdminPanel({
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
@@ -127,6 +131,7 @@ export default function ProgramAdminPanel({
         setError(null);
         setInfoMessage(null);
         setFormMode('adding');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const openEdit = (item: Program) => {
@@ -135,12 +140,29 @@ export default function ProgramAdminPanel({
         setError(null);
         setInfoMessage(null);
         setFormMode('editing');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const closeForm = () => {
         setFormMode('idle');
         setEditingItem(null);
         setError(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const uploadImageIfSelected = async (): Promise<string | null> => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return null;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const result = await uploadProgramImageAction(eventId, formData);
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        return result.imageKey;
     };
 
     const handleSubmit = () => {
@@ -157,37 +179,47 @@ export default function ProgramAdminPanel({
         const description = formData.description.trim() || null;
 
         startTransition(async () => {
-            const result =
-                formMode === 'editing' && editingItem
-                    ? await updateProgramAction(eventId, editingItem.id, {
-                          name,
-                          location,
-                          start_time,
-                          end_time,
-                          description,
-                      })
-                    : await createProgramAction(eventId, {
-                          name,
-                          location,
-                          start_time,
-                          end_time,
-                          description,
-                      });
+            try {
+                const imageKey = await uploadImageIfSelected();
 
-            if (!result.success) {
-                setError(result.error);
-                return;
+                const result =
+                    formMode === 'editing' && editingItem
+                        ? await updateProgramAction(eventId, editingItem.id, {
+                              name,
+                              location,
+                              start_time,
+                              end_time,
+                              description,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          })
+                        : await createProgramAction(eventId, {
+                              name,
+                              location,
+                              start_time,
+                              end_time,
+                              description,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          });
+
+                if (!result.success) {
+                    setError(result.error);
+                    return;
+                }
+
+                const refreshed = await fetchProgramsFromApi(eventId);
+                setItems(refreshed ?? result.data);
+                setInfoMessage(
+                    formMode === 'adding'
+                        ? '企画を追加しました'
+                        : '企画を更新しました',
+                );
+                router.refresh();
+                closeForm();
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : '操作に失敗しました',
+                );
             }
-
-            const refreshed = await fetchProgramsFromApi(eventId);
-            setItems(refreshed ?? result.data);
-            setInfoMessage(
-                formMode === 'adding'
-                    ? '企画を追加しました'
-                    : '企画を更新しました',
-            );
-            router.refresh();
-            closeForm();
         });
     };
 
@@ -325,6 +357,23 @@ export default function ProgramAdminPanel({
                             </div>
                         </div>
                         <div>
+                            <Label htmlFor='prog-image'>
+                                画像ファイル（任意）
+                                {formMode === 'editing' && (
+                                    <span className='ml-1 text-muted-foreground text-xs'>
+                                        （変更する場合のみ選択）
+                                    </span>
+                                )}
+                            </Label>
+                            <input
+                                ref={fileInputRef}
+                                id='prog-image'
+                                type='file'
+                                accept='image/*'
+                                className='mt-1 w-full text-muted-foreground text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:font-medium file:text-sm hover:file:bg-muted/80'
+                            />
+                        </div>
+                        <div>
                             <Label htmlFor='prog-desc'>説明（任意）</Label>
                             <textarea
                                 id='prog-desc'
@@ -377,6 +426,18 @@ export default function ProgramAdminPanel({
                                 key={program.id}
                                 className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
                             >
+                                {program.imageUrl?.trim() && (
+                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <Image
+                                            src={program.imageUrl}
+                                            alt={program.name}
+                                            fill
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                            className='object-cover'
+                                            unoptimized
+                                        />
+                                    </div>
+                                )}
                                 <div className='mb-3 flex items-start justify-between gap-2'>
                                     <p className='font-semibold text-foreground text-sm leading-tight'>
                                         {program.name}
@@ -421,7 +482,7 @@ export default function ProgramAdminPanel({
                                     </div>
                                 </div>
                                 {program.description && (
-                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                    <p className='mt-4 whitespace-pre-wrap border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
                                         {program.description}
                                     </p>
                                 )}
