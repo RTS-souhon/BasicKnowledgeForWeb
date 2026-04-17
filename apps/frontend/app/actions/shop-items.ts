@@ -16,7 +16,6 @@ type ShopItemData = {
     id: string;
     name: string;
     price: number;
-    stockStatus: 'available' | 'low' | 'sold_out';
     description: string | null;
     imageUrl: string;
 };
@@ -82,7 +81,6 @@ export async function createShopItemAction(
     data: {
         name: string;
         price: number;
-        stock_status: 'available' | 'low' | 'sold_out';
         image_key: string;
         description?: string | null;
     },
@@ -137,7 +135,6 @@ export async function updateShopItemAction(
     data: {
         name?: string;
         price?: number;
-        stock_status?: 'available' | 'low' | 'sold_out';
         image_key?: string;
         description?: string | null;
     },

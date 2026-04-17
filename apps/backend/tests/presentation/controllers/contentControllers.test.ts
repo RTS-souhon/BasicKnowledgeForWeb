@@ -89,7 +89,6 @@ const shopItem: ShopItem = {
     eventId: EVENT_ID,
     name: 'グッズA',
     price: 500,
-    stockStatus: 'available',
     description: null,
     imageUrl: 'https://assets.example.com/a.webp',
     createdAt: new Date(),
