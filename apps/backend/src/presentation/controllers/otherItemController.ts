@@ -8,6 +8,7 @@ import type { ICreateOtherItemUseCase } from '@backend/src/use-cases/other-item/
 import type { IDeleteOtherItemUseCase } from '@backend/src/use-cases/other-item/IDeleteOtherItemUseCase';
 import type { IGetOtherItemsUseCase } from '@backend/src/use-cases/other-item/IGetOtherItemsUseCase';
 import type { IUpdateOtherItemUseCase } from '@backend/src/use-cases/other-item/IUpdateOtherItemUseCase';
+import type { IUploadOtherItemImageUseCase } from '@backend/src/use-cases/other-item/IUploadOtherItemImageUseCase';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
@@ -63,13 +64,18 @@ export async function createOtherItem(
     }
 
     const user = c.get('user');
-    const result = await useCase.execute({
+    const input = {
         eventId,
         title: parsed.data.title,
         content: parsed.data.content,
         displayOrder: parsed.data.display_order,
         createdBy: user.id,
-    });
+        ...(parsed.data.image_key !== undefined
+            ? { imageKey: parsed.data.image_key }
+            : {}),
+    };
+
+    const result = await useCase.execute(input);
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
     }
@@ -97,14 +103,19 @@ export async function updateOtherItem(
         );
     }
 
+    const payload = {
+        title: parsed.data.title,
+        content: parsed.data.content,
+        displayOrder: parsed.data.display_order,
+        ...(parsed.data.image_key !== undefined
+            ? { imageKey: parsed.data.image_key }
+            : {}),
+    };
+
     const result = await useCase.execute({
         id: idParsed.data,
         eventId: c.get('eventId'),
-        payload: {
-            title: parsed.data.title,
-            content: parsed.data.content,
-            displayOrder: parsed.data.display_order,
-        },
+        payload,
     });
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
@@ -132,4 +143,33 @@ export async function deleteOtherItem(
         return c.json({ error: result.error }, toStatus(result.status));
     }
     return c.json({ id: result.data.id }, 200);
+}
+
+export async function uploadOtherItemImage(
+    c: AdminContext,
+    useCase: IUploadOtherItemImageUseCase,
+) {
+    let formData: FormData;
+    try {
+        formData = await c.req.formData();
+    } catch {
+        return c.json({ error: 'フォームデータの解析に失敗しました' }, 400);
+    }
+
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+        return c.json({ error: 'file フィールドが必要です' }, 400);
+    }
+
+    const body = await file.arrayBuffer();
+    const result = await useCase.execute({
+        eventId: c.get('eventId'),
+        body,
+        contentType: file.type || 'application/octet-stream',
+        fileName: file.name,
+    });
+    if (!result.success) {
+        return c.json({ error: result.error }, toStatus(result.status));
+    }
+    return c.json(result.data, 200);
 }

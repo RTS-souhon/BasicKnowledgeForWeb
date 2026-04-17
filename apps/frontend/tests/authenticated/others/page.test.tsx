@@ -23,6 +23,14 @@ jest.mock('@frontend/app/actions/others', () => ({
     deleteOtherItemAction: jest.fn(),
 }));
 
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
+}));
+
 const serverAuth =
     require('@frontend/app/lib/serverAuth') as typeof import('@frontend/app/lib/serverAuth');
 const OthersPage =
@@ -49,18 +57,21 @@ const MOCK_ITEMS = [
         id: '1',
         title: '緊急連絡先',
         content: 'スタッフ控室: 内線123\nセキュリティ: 内線456',
+        imageUrl: null,
         displayOrder: 1,
     },
     {
         id: '2',
         title: 'Wi-Fi情報',
         content: 'SSID: EventStaff2025\nPW: staff2025',
+        imageUrl: null,
         displayOrder: 2,
     },
     {
         id: '3',
         title: '駐車場案内',
         content: 'P1: スタッフ専用',
+        imageUrl: null,
         displayOrder: 0,
     },
 ];

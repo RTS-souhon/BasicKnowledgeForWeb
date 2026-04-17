@@ -8,6 +8,10 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
+type UploadImageResult =
+    | { success: true; imageKey: string }
+    | { success: false; error: string };
+
 type ProgramData = {
     id: string;
     name: string;
@@ -15,6 +19,7 @@ type ProgramData = {
     startTime: string;
     endTime: string;
     description: string | null;
+    imageUrl: string | null;
 };
 
 type ProgramsResult =
@@ -30,6 +35,49 @@ function revalidateEventsPage(_eventId: string) {
     revalidatePath('/events', 'layout');
 }
 
+export async function uploadProgramImageAction(
+    eventId: string,
+    formData: FormData,
+): Promise<UploadImageResult> {
+    const authToken = await getAuthToken();
+    if (!authToken) return { success: false, error: '認証が必要です' };
+
+    const endpoint = '/api/programs/upload';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            method: 'POST',
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+            body: formData,
+        });
+        logAction(
+            'uploadProgramImageAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        if (!res.ok) {
+            const body = (await res.json()) as { error?: string };
+            return {
+                success: false,
+                error: body.error ?? '画像のアップロードに失敗しました',
+            };
+        }
+        const body = (await res.json()) as { imageKey: string };
+        return { success: true, imageKey: body.imageKey };
+    } catch (err) {
+        logActionError(
+            'uploadProgramImageAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '画像のアップロードに失敗しました' };
+    }
+}
+
 export async function createProgramAction(
     eventId: string,
     data: {
@@ -38,6 +86,7 @@ export async function createProgramAction(
         start_time: string;
         end_time: string;
         description?: string | null;
+        image_key?: string | null;
     },
 ): Promise<ProgramsResult> {
     const authToken = await getAuthToken();
@@ -93,6 +142,7 @@ export async function updateProgramAction(
         start_time?: string;
         end_time?: string;
         description?: string | null;
+        image_key?: string | null;
     },
 ): Promise<ProgramsResult> {
     const authToken = await getAuthToken();

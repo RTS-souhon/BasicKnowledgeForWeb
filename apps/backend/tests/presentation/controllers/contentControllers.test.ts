@@ -80,6 +80,7 @@ const program: Program = {
     startTime: new Date(),
     endTime: new Date(),
     description: null,
+    imageUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
 };
@@ -100,6 +101,7 @@ const otherItem: OtherItem = {
     eventId: EVENT_ID,
     title: '注意事項',
     content: '集合時間は9時です',
+    imageUrl: null,
     displayOrder: 1,
     createdBy: adminUser.id,
     createdAt: new Date(),

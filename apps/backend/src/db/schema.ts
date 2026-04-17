@@ -101,6 +101,8 @@ export const programs = cockroachTable('programs', {
     startTime: timestamp('start_time').notNull(),
     endTime: timestamp('end_time').notNull(),
     description: text('description'),
+    imageKey: varchar('image_key', { length: 512 }),
+    imageUrl: text('image_url'),
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -126,6 +128,8 @@ export const otherItems = cockroachTable('other_items', {
         .references(() => accessCodes.id, { onDelete: 'restrict' }),
     title: varchar('title', { length: 255 }).notNull(),
     content: text('content').notNull(),
+    imageKey: varchar('image_key', { length: 512 }),
+    imageUrl: text('image_url'),
     displayOrder: int4('display_order').notNull(),
     createdBy: uuid('created_by').notNull(),
     createdAt: timestamp('created_at').defaultNow(),

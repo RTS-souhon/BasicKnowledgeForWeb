@@ -7,6 +7,7 @@ const baseProgramSchema = z.object({
     start_time: z.string().datetime(),
     end_time: z.string().datetime(),
     description: z.string().max(2000).nullable().optional(),
+    image_key: z.string().min(1).max(512).nullable().optional(),
 });
 
 export const createProgramSchema = baseProgramSchema;

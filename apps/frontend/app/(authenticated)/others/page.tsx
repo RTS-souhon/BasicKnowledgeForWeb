@@ -3,12 +3,14 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import Image from 'next/image';
 import OtherItemAdminPanel from './OtherItemAdminPanel';
 
 type OtherItem = {
     id: string;
     title: string;
     content: string;
+    imageUrl: string | null;
     displayOrder: number;
 };
 
@@ -102,6 +104,18 @@ export default async function OthersPage({
                                 </h2>
                             </div>
                             <div className='border-border/70 border-t pt-3'>
+                                {item.imageUrl?.trim() && (
+                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <Image
+                                            src={item.imageUrl}
+                                            alt={item.title}
+                                            fill
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                            className='object-cover'
+                                            unoptimized
+                                        />
+                                    </div>
+                                )}
                                 <p className='whitespace-pre-wrap text-muted-foreground text-sm leading-relaxed'>
                                     {item.content}
                                 </p>

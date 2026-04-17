@@ -16,6 +16,15 @@ jest.mock('@frontend/app/actions/programs', () => ({
     createProgramAction: jest.fn(),
     updateProgramAction: jest.fn(),
     deleteProgramAction: jest.fn(),
+    uploadProgramImageAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const actions =
@@ -27,6 +36,7 @@ const ProgramAdminPanel =
 const mockCreate = jest.mocked(actions.createProgramAction);
 const mockUpdate = jest.mocked(actions.updateProgramAction);
 const mockDelete = jest.mocked(actions.deleteProgramAction);
+const mockUploadImage = jest.mocked(actions.uploadProgramImageAction);
 const MOCK_ITEMS = [
     {
         id: '1',
@@ -35,6 +45,7 @@ const MOCK_ITEMS = [
         startTime: '2025-08-01T01:00:00.000Z',
         endTime: '2025-08-01T09:00:00.000Z',
         description: null,
+        imageUrl: null,
     },
     {
         id: '2',
@@ -43,6 +54,7 @@ const MOCK_ITEMS = [
         startTime: '2025-08-01T05:00:00.000Z',
         endTime: '2025-08-01T07:00:00.000Z',
         description: 'チケット必要\n入場整理券あり',
+        imageUrl: null,
     },
 ];
 
@@ -53,6 +65,7 @@ const CREATED_PROGRAM = {
     startTime: '2025-08-02T01:00:00.000Z',
     endTime: '2025-08-02T02:00:00.000Z',
     description: null,
+    imageUrl: null,
 };
 
 beforeEach(() => {
@@ -62,6 +75,10 @@ beforeEach(() => {
     mockCreate.mockResolvedValue({
         success: true,
         data: [...MOCK_ITEMS, CREATED_PROGRAM],
+    });
+    mockUploadImage.mockResolvedValue({
+        success: true,
+        imageKey: 'programs/event-1/new.webp',
     });
     mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS });
     mockDelete.mockResolvedValue({
@@ -182,6 +199,34 @@ describe('ProgramAdminPanel', () => {
         );
         expect(description).toBeInTheDocument();
         expect(description).toHaveClass('whitespace-pre-wrap');
+    });
+
+    it('画像を選択して保存すると uploadProgramImageAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        render(<ProgramAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/企画名/), '新規企画');
+        await user.type(screen.getByLabelText(/場所/), 'サブホール');
+        await user.type(
+            screen.getByLabelText(/開始時刻/),
+            '2025-08-01T10:00',
+        );
+        await user.type(
+            screen.getByLabelText(/終了時刻/),
+            '2025-08-01T11:00',
+        );
+        const fileInput = screen.getByLabelText(/画像ファイル/);
+        const file = new File(['dummy'], 'program.png', { type: 'image/png' });
+        await user.upload(fileInput, file);
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockUploadImage).toHaveBeenCalledTimes(1);
+        });
     });
 
     it('編集フォーム送信で updateProgramAction を呼ぶ', async () => {

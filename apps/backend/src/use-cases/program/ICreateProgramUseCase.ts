@@ -7,6 +7,7 @@ export type CreateProgramInput = {
     startTime: string;
     endTime: string;
     description?: string | null;
+    imageKey?: string | null;
 };
 
 export type CreateProgramResult =

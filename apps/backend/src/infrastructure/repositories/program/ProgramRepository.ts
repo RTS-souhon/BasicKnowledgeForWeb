@@ -16,7 +16,18 @@ export class ProgramRepository implements IProgramRepository {
 
     async findByEventId(eventId: string): Promise<Program[]> {
         return this.db
-            .select()
+            .select({
+                id: programs.id,
+                eventId: programs.eventId,
+                name: programs.name,
+                location: programs.location,
+                startTime: programs.startTime,
+                endTime: programs.endTime,
+                description: programs.description,
+                imageUrl: programs.imageUrl,
+                createdAt: programs.createdAt,
+                updatedAt: programs.updatedAt,
+            })
             .from(programs)
             .where(eq(programs.eventId, eventId))
             .orderBy(asc(programs.startTime));
@@ -34,7 +45,18 @@ export class ProgramRepository implements IProgramRepository {
     async search(keyword: string, eventId: string): Promise<Program[]> {
         const pattern = createIlikePattern(keyword);
         return this.db
-            .select()
+            .select({
+                id: programs.id,
+                eventId: programs.eventId,
+                name: programs.name,
+                location: programs.location,
+                startTime: programs.startTime,
+                endTime: programs.endTime,
+                description: programs.description,
+                imageUrl: programs.imageUrl,
+                createdAt: programs.createdAt,
+                updatedAt: programs.updatedAt,
+            })
             .from(programs)
             .where(
                 and(
@@ -54,7 +76,7 @@ export class ProgramRepository implements IProgramRepository {
             .insert(programs)
             .values(input)
             .returning();
-        return created;
+        return this.mapRecord(created);
     }
 
     async update(
@@ -67,7 +89,7 @@ export class ProgramRepository implements IProgramRepository {
             .set({ ...input, updatedAt: new Date() })
             .where(and(eq(programs.id, id), eq(programs.eventId, eventId)))
             .returning();
-        return updated ?? null;
+        return updated ? this.mapRecord(updated) : null;
     }
 
     async delete(id: string, eventId: string): Promise<boolean> {
@@ -76,5 +98,10 @@ export class ProgramRepository implements IProgramRepository {
             .where(and(eq(programs.id, id), eq(programs.eventId, eventId)))
             .returning({ id: programs.id });
         return deleted.length > 0;
+    }
+
+    private mapRecord(record: typeof programs.$inferSelect): Program {
+        const { imageKey: _imageKey, ...rest } = record;
+        return rest;
     }
 }

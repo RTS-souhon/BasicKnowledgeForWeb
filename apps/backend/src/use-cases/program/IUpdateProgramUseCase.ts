@@ -9,6 +9,7 @@ export type UpdateProgramInput = {
         startTime?: string;
         endTime?: string;
         description?: string | null;
+        imageKey?: string | null;
     };
 };
 

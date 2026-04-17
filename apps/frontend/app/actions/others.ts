@@ -8,10 +8,15 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
+type UploadImageResult =
+    | { success: true; imageKey: string }
+    | { success: false; error: string };
+
 type OtherItemData = {
     id: string;
     title: string;
     content: string;
+    imageUrl: string | null;
     displayOrder: number;
 };
 
@@ -28,9 +33,57 @@ function revalidateOthersPage(_eventId: string) {
     revalidatePath('/others', 'layout');
 }
 
+export async function uploadOtherItemImageAction(
+    eventId: string,
+    formData: FormData,
+): Promise<UploadImageResult> {
+    const authToken = await getAuthToken();
+    if (!authToken) return { success: false, error: '認証が必要です' };
+
+    const endpoint = '/api/others/upload';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            method: 'POST',
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+            body: formData,
+        });
+        logAction(
+            'uploadOtherItemImageAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        if (!res.ok) {
+            const body = (await res.json()) as { error?: string };
+            return {
+                success: false,
+                error: body.error ?? '画像のアップロードに失敗しました',
+            };
+        }
+        const body = (await res.json()) as { imageKey: string };
+        return { success: true, imageKey: body.imageKey };
+    } catch (err) {
+        logActionError(
+            'uploadOtherItemImageAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '画像のアップロードに失敗しました' };
+    }
+}
+
 export async function createOtherItemAction(
     eventId: string,
-    data: { title: string; content: string; display_order: number },
+    data: {
+        title: string;
+        content: string;
+        image_key?: string | null;
+        display_order: number;
+    },
 ): Promise<OtherItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
@@ -79,7 +132,12 @@ export async function createOtherItemAction(
 export async function updateOtherItemAction(
     eventId: string,
     id: string,
-    data: { title?: string; content?: string; display_order?: number },
+    data: {
+        title?: string;
+        content?: string;
+        image_key?: string | null;
+        display_order?: number;
+    },
 ): Promise<OtherItemsResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
