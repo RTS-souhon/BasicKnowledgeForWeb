@@ -3,7 +3,6 @@ import {
     cockroachTable,
     foreignKey,
     int4,
-    primaryKey,
     text,
     timestamp,
     uniqueIndex,
@@ -45,26 +44,6 @@ export const departments = cockroachTable(
     },
     (table) => [
         uniqueIndex('departments_event_id_id_idx').on(table.eventId, table.id),
-    ],
-);
-
-export const userDepartments = cockroachTable(
-    'user_departments',
-    {
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'restrict' }),
-        eventId: uuid('event_id')
-            .notNull()
-            .references(() => accessCodes.id, { onDelete: 'restrict' }),
-        departmentId: uuid('department_id').notNull(),
-    },
-    (table) => [
-        primaryKey({ columns: [table.userId, table.eventId] }),
-        foreignKey({
-            columns: [table.eventId, table.departmentId],
-            foreignColumns: [departments.eventId, departments.id],
-        }).onDelete('restrict'),
     ],
 );
 
