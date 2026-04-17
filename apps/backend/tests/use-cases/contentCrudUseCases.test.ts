@@ -224,29 +224,13 @@ function expectFailure<T extends { success: boolean }>(
 // Timetable
 
 describe('Timetable use cases', () => {
-    it('CreateTimetableItemUseCase rejects when end <= start', async () => {
-        const repo = mockTimetableRepository();
-        const useCase = new CreateTimetableItemUseCase(repo);
-        const result = await useCase.execute({
-            eventId: EVENT_ID,
-            title: 'テスト',
-            startTime: '2025-08-01T11:00:00.000Z',
-            endTime: '2025-08-01T10:00:00.000Z',
-            location: 'A',
-        });
-        expectFailure(result);
-        expect(result.status).toBe(400);
-        expect(repo.create).not.toHaveBeenCalled();
-    });
-
-    it('CreateTimetableItemUseCase passes converted dates to repository', async () => {
+    it('CreateTimetableItemUseCase sets endTime to startTime', async () => {
         const repo = mockTimetableRepository();
         const useCase = new CreateTimetableItemUseCase(repo);
         await useCase.execute({
             eventId: EVENT_ID,
             title: 'テスト',
             startTime: '2025-08-01T10:00:00.000Z',
-            endTime: '2025-08-01T11:00:00.000Z',
             location: 'A',
             description: undefined,
         });
@@ -254,9 +238,25 @@ describe('Timetable use cases', () => {
             eventId: EVENT_ID,
             title: 'テスト',
             startTime: new Date('2025-08-01T10:00:00.000Z'),
-            endTime: new Date('2025-08-01T11:00:00.000Z'),
+            endTime: new Date('2025-08-01T10:00:00.000Z'),
             location: 'A',
             description: null,
+        });
+    });
+
+    it('UpdateTimetableItemUseCase sets endTime to startTime when start is updated', async () => {
+        const repo = mockTimetableRepository();
+        const useCase = new UpdateTimetableItemUseCase(repo);
+        await useCase.execute({
+            id: baseTimetable.id,
+            eventId: EVENT_ID,
+            payload: {
+                startTime: '2025-08-01T12:00:00.000Z',
+            },
+        });
+        expect(repo.update).toHaveBeenCalledWith(baseTimetable.id, EVENT_ID, {
+            startTime: new Date('2025-08-01T12:00:00.000Z'),
+            endTime: new Date('2025-08-01T12:00:00.000Z'),
         });
     });
 

@@ -160,7 +160,6 @@ describe('timetableController', () => {
                     event_id: OTHER_EVENT_ID,
                     title: '開会式',
                     start_time: '2025-08-01T10:00:00.000Z',
-                    end_time: '2025-08-01T11:00:00.000Z',
                     location: '会場A',
                 }),
             },

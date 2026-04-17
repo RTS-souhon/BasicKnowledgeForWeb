@@ -32,7 +32,6 @@ const MOCK_ITEMS = [
         id: '1',
         title: '開会式',
         startTime: '2025-08-01T00:00:00.000Z',
-        endTime: '2025-08-01T00:30:00.000Z',
         location: '大ホール',
         description: null,
     },
@@ -40,7 +39,6 @@ const MOCK_ITEMS = [
         id: '2',
         title: 'スタッフ集合',
         startTime: '2025-08-01T23:00:00.000Z',
-        endTime: '2025-08-01T23:30:00.000Z',
         location: 'ロビー',
         description: '全員参加',
     },
@@ -50,7 +48,6 @@ const CREATED_ITEM = {
     id: 'created-id',
     title: '閉会式',
     startTime: '2025-08-02T00:00:00.000Z',
-    endTime: '2025-08-02T00:30:00.000Z',
     location: '大ホール',
     description: null,
 };
@@ -138,7 +135,7 @@ describe('TimetableAdminPanel', () => {
         await user.click(screen.getByRole('button', { name: '保存' }));
 
         expect(screen.getByRole('alert')).toHaveTextContent(
-            'タイトル・開始・終了・場所は必須です',
+            'タイトル・開始・場所は必須です',
         );
         expect(mockCreate).not.toHaveBeenCalled();
     });

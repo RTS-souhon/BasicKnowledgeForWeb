@@ -44,6 +44,10 @@ function formatRange(startIso: string, endIso: string) {
     return `${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
 }
 
+function formatTime(iso: string) {
+    return timeFormatter.format(new Date(iso));
+}
+
 function formatDateLabel(iso: string) {
     return dateFormatter.format(new Date(iso));
 }
@@ -149,9 +153,7 @@ function SearchPageContent() {
                         <div className='mt-1 text-muted-foreground text-sm'>
                             <span>{formatDateLabel(item.startTime)}</span>
                             <span className='mx-2'>・</span>
-                            <span>
-                                {formatRange(item.startTime, item.endTime)}
-                            </span>
+                            <span>{formatTime(item.startTime)}</span>
                         </div>
                         <p className='mt-1 text-muted-foreground text-sm'>
                             📍 {item.location}

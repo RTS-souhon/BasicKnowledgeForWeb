@@ -4,7 +4,6 @@ const baseTimetableSchema = z.object({
     event_id: z.string().uuid(),
     title: z.string().min(1).max(255),
     start_time: z.string().datetime(),
-    end_time: z.string().datetime(),
     location: z.string().min(1).max(255),
     description: z.string().max(2000).nullable().optional(),
 });
