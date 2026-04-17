@@ -87,7 +87,6 @@ const baseShopItem: ShopItem = {
     eventId: EVENT_ID,
     name: 'グッズA',
     price: 500,
-    stockStatus: 'available',
     description: null,
     imageUrl: 'https://assets.example.com/a.webp',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
@@ -394,7 +393,6 @@ describe('Shop item use cases', () => {
             eventId: EVENT_ID,
             name: 'グッズ',
             price: 500,
-            stockStatus: 'available',
             imageKey: 'invalid/path',
         });
         expectFailure(result);
@@ -413,7 +411,6 @@ describe('Shop item use cases', () => {
             eventId: EVENT_ID,
             name: 'グッズ',
             price: 500,
-            stockStatus: 'available',
             imageKey,
         });
         expect(repo.create).toHaveBeenCalledWith(

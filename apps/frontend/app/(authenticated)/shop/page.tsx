@@ -7,13 +7,10 @@ import Image from 'next/image';
 import type { CSSProperties } from 'react';
 import ShopItemAdminPanel from './ShopItemAdminPanel';
 
-type StockStatus = 'available' | 'low' | 'sold_out';
-
 type ShopItem = {
     id: string;
     name: string;
     price: number;
-    stockStatus: StockStatus;
     description: string | null;
     imageUrl: string;
 };
@@ -41,32 +38,6 @@ async function fetchShopItems(
         return [];
     }
 }
-
-const STOCK_VARIANTS: Record<
-    StockStatus,
-    { label: string; badgeClass: string }
-> = {
-    available: {
-        label: '在庫あり',
-        badgeClass:
-            'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
-    },
-    low: {
-        label: '残りわずか',
-        badgeClass:
-            'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400',
-    },
-    sold_out: {
-        label: '完売',
-        badgeClass:
-            'bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-400',
-    },
-};
-
-const DEFAULT_STOCK = {
-    label: '在庫状況不明',
-    badgeClass: 'bg-muted text-muted-foreground',
-};
 
 const priceFormatter = new Intl.NumberFormat('ja-JP');
 
@@ -151,17 +122,6 @@ export default async function ShopPage({
         (item) => item.imageUrl.trim().length === 0,
     );
 
-    const renderStock = (status: StockStatus | string) => {
-        const variant = STOCK_VARIANTS[status as StockStatus] ?? DEFAULT_STOCK;
-        return (
-            <span
-                className={`inline-flex shrink-0 rounded-full px-2 py-0.5 font-medium text-xs ${variant.badgeClass}`}
-            >
-                {variant.label}
-            </span>
-        );
-    };
-
     const renderPrice = (price: number) => `¥${priceFormatter.format(price)}`;
 
     return (
@@ -201,9 +161,6 @@ export default async function ShopPage({
                                         価格
                                     </th>
                                     <th className='px-4 py-3 font-medium'>
-                                        在庫
-                                    </th>
-                                    <th className='px-4 py-3 font-medium'>
                                         説明
                                     </th>
                                 </tr>
@@ -223,9 +180,6 @@ export default async function ShopPage({
                                         </td>
                                         <td className='px-4 py-3 align-top tabular-nums'>
                                             {renderPrice(item.price)}
-                                        </td>
-                                        <td className='px-4 py-3 align-top'>
-                                            {renderStock(item.stockStatus)}
                                         </td>
                                         <td className='px-4 py-3 align-top text-muted-foreground text-xs'>
                                             {item.description ?? '—'}
@@ -251,7 +205,6 @@ export default async function ShopPage({
                                     <p className='font-medium text-base text-foreground'>
                                         {item.name}
                                     </p>
-                                    {renderStock(item.stockStatus)}
                                 </div>
                                 <p className='mt-2 font-semibold text-foreground tabular-nums'>
                                     {renderPrice(item.price)}

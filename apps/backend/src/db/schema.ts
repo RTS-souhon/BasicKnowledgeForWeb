@@ -133,9 +133,6 @@ export const shopItems = cockroachTable('shop_items', {
         .references(() => accessCodes.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     price: int4('price').notNull(),
-    stockStatus: varchar('stock_status', { length: 50 })
-        .notNull()
-        .default('available'),
     description: text('description'),
     imageKey: varchar('image_key', { length: 512 }).notNull(),
     imageUrl: text('image_url').notNull(),

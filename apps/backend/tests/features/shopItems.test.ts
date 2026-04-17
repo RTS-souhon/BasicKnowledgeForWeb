@@ -24,7 +24,6 @@ const shopItem1: ShopItem = {
     eventId: EVENT_ID,
     name: 'グッズ A',
     price: 500,
-    stockStatus: 'available',
     description: null,
     imageUrl: 'https://assets.example.com/event-1/item-1.webp',
     createdAt: new Date('2025-01-01'),
@@ -36,7 +35,6 @@ const shopItem2: ShopItem = {
     id: '40000000-0000-4000-8000-000000000002',
     name: 'グッズ B',
     price: 1000,
-    stockStatus: 'low',
     imageUrl: 'https://assets.example.com/event-1/item-2.webp',
 };
 
@@ -236,7 +234,7 @@ describe('GET /api/shop-items', () => {
         expect(res.status).toBe(400);
     });
 
-    it('stock_status が正しく返ること', async () => {
+    it('複数件の販売物が正しく返ること', async () => {
         const repo = createMockShopItemRepository({
             findByEventId: jest
                 .fn<(eventId: string) => Promise<ShopItem[]>>()
@@ -256,8 +254,8 @@ describe('GET /api/shop-items', () => {
         );
         const body = (await res.json()) as { items: ShopItem[] };
 
-        expect(body.items[0]?.stockStatus).toBe('available');
-        expect(body.items[1]?.stockStatus).toBe('low');
+        expect(body.items[0]?.name).toBe('グッズ A');
+        expect(body.items[1]?.name).toBe('グッズ B');
     });
 });
 
@@ -265,7 +263,6 @@ const validShopItemBody = {
     event_id: EVENT_ID,
     name: 'グッズ A',
     price: 500,
-    stock_status: 'available',
     image_key: `shop-items/${EVENT_ID}/uuid.webp`,
 };
 

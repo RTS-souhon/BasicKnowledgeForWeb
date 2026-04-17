@@ -45,7 +45,6 @@ const MOCK_ITEMS = [
         id: '1',
         name: 'オリジナルTシャツ',
         price: 2000,
-        stockStatus: 'available' as const,
         description: null,
         imageUrl: 'https://assets.example.com/tshirt.webp',
     },
@@ -53,7 +52,6 @@ const MOCK_ITEMS = [
         id: '2',
         name: '缶バッジセット',
         price: 500,
-        stockStatus: 'sold_out' as const,
         description: '3個セット',
         imageUrl: 'https://assets.example.com/badge.webp',
     },
@@ -63,7 +61,6 @@ const CREATED_ITEM = {
     id: 'created-id',
     name: '新商品',
     price: 0,
-    stockStatus: 'available' as const,
     description: null,
     imageUrl: 'https://assets.example.com/new.webp',
 };
@@ -106,7 +103,6 @@ describe('ShopItemAdminPanel', () => {
             expect(mockCreate).toHaveBeenCalledWith('event-1', {
                 name: '新商品',
                 price: 0,
-                stock_status: 'available',
                 image_key: 'shop-items/event-1/new.webp',
                 description: null,
             });
@@ -137,13 +133,6 @@ describe('ShopItemAdminPanel', () => {
         expect(
             screen.getByText('登録されている販売物はありません'),
         ).toBeInTheDocument();
-    });
-
-    it('在庫ステータスラベルを表示する', () => {
-        render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
-
-        expect(screen.getAllByText('在庫あり')[0]).toBeInTheDocument();
-        expect(screen.getAllByText('完売')[0]).toBeInTheDocument();
     });
 
     it('+ 追加 ボタンクリックでフォームを表示する', async () => {

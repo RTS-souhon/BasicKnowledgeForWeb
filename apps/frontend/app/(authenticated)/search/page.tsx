@@ -229,18 +229,9 @@ function SearchPageContent() {
                         key={item.id}
                         className='rounded-lg border border-border bg-card p-4'
                     >
-                        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-                            <p className='font-semibold text-base text-foreground'>
-                                {item.name}
-                            </p>
-                            <span className='rounded-full bg-muted px-3 py-1 text-muted-foreground text-xs'>
-                                {item.stockStatus === 'sold_out'
-                                    ? '完売'
-                                    : item.stockStatus === 'low'
-                                      ? '残りわずか'
-                                      : '在庫あり'}
-                            </span>
-                        </div>
+                        <p className='font-semibold text-base text-foreground'>
+                            {item.name}
+                        </p>
                         <p className='mt-2 font-semibold text-foreground tabular-nums'>
                             ¥{item.price.toLocaleString('ja-JP')}
                         </p>

@@ -1,0 +1,1 @@
+ALTER TABLE "shop_items" DROP COLUMN "stock_status";

@@ -64,7 +64,6 @@ export async function createShopItem(
         eventId,
         name: parsed.data.name,
         price: parsed.data.price,
-        stockStatus: parsed.data.stock_status,
         description: parsed.data.description ?? null,
         imageKey: parsed.data.image_key,
     });
@@ -101,7 +100,6 @@ export async function updateShopItem(
         payload: {
             name: parsed.data.name,
             price: parsed.data.price,
-            stockStatus: parsed.data.stock_status,
             description: parsed.data.description,
             imageKey: parsed.data.image_key,
         },

@@ -150,7 +150,6 @@ describe('SearchUseCase', () => {
                 eventId: 'event-1',
                 name: 'グッズA',
                 price: 1000,
-                stockStatus: 'available',
                 description: null,
                 imageUrl: 'https://assets.example.com/event-1/item-1.webp',
                 createdAt: new Date(),
