@@ -155,7 +155,7 @@ export default async function EventsPage({
                                     </div>
                                 </div>
                                 {program.description && (
-                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                    <p className='mt-4 whitespace-pre-wrap border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
                                         {program.description}
                                     </p>
                                 )}

@@ -52,7 +52,7 @@ const MOCK_ITEMS = [
         id: '2',
         name: '缶バッジセット',
         price: 500,
-        description: '3個セット',
+        description: '3個セット\n台紙付き',
         imageUrl: 'https://assets.example.com/badge.webp',
     },
 ];
@@ -252,6 +252,15 @@ describe('ShopItemAdminPanel', () => {
     it('説明がある場合に表示する', () => {
         render(<ShopItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
-        expect(screen.getAllByText('3個セット')[0]).toBeInTheDocument();
+        const descriptions = screen.getAllByText(
+            (_, element) =>
+                element?.classList.contains('whitespace-pre-wrap') === true &&
+                element.textContent?.includes('3個セット') === true &&
+                element.textContent?.includes('台紙付き') === true,
+        );
+        expect(descriptions[0]).toBeInTheDocument();
+        descriptions.forEach((element) => {
+            expect(element).toHaveClass('whitespace-pre-wrap');
+        });
     });
 });

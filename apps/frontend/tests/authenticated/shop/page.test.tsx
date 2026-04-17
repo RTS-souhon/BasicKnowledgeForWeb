@@ -58,7 +58,7 @@ const MOCK_ITEMS = [
         id: '2',
         name: '限定Tシャツ',
         price: 2500,
-        description: 'サイズはS・M・Lのみ',
+        description: 'サイズはS・M・Lのみ\n数量限定',
         imageUrl: 'https://assets.example.com/event-1/tshirt.webp',
     },
     {
@@ -159,7 +159,16 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getAllByText('サイズはS・M・Lのみ')).toHaveLength(2);
+        const descriptions = screen.getAllByText(
+            (_, element) =>
+                element?.classList.contains('whitespace-pre-wrap') === true &&
+                element.textContent?.includes('サイズはS・M・Lのみ') === true &&
+                element.textContent?.includes('数量限定') === true,
+        );
+        expect(descriptions).toHaveLength(2);
+        descriptions.forEach((element) => {
+            expect(element).toHaveClass('whitespace-pre-wrap');
+        });
     });
 
     it('テーブル表示で列ごとの情報を確認できる', async () => {
@@ -198,6 +207,7 @@ describe('ShopPage', () => {
         expect(articles).toHaveLength(3);
         expect(articles[1]).toHaveTextContent('限定Tシャツ');
         expect(articles[1]).toHaveTextContent('サイズはS・M・Lのみ');
+        expect(articles[1]).toHaveTextContent('数量限定');
     });
 
     it('画像が欠けている場合に警告とプレースホルダーを表示する', async () => {

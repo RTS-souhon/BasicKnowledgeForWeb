@@ -42,7 +42,7 @@ const MOCK_ITEMS = [
         location: 'ステージ',
         startTime: '2025-08-01T05:00:00.000Z',
         endTime: '2025-08-01T07:00:00.000Z',
-        description: 'チケット必要',
+        description: 'チケット必要\n入場整理券あり',
     },
 ];
 
@@ -174,7 +174,14 @@ describe('ProgramAdminPanel', () => {
     it('説明がある場合に表示する', () => {
         render(<ProgramAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
-        expect(screen.getByText('チケット必要')).toBeInTheDocument();
+        const description = screen.getByText(
+            (_, element) =>
+                element?.classList.contains('whitespace-pre-wrap') === true &&
+                element.textContent?.includes('チケット必要') === true &&
+                element.textContent?.includes('入場整理券あり') === true,
+        );
+        expect(description).toBeInTheDocument();
+        expect(description).toHaveClass('whitespace-pre-wrap');
     });
 
     it('編集フォーム送信で updateProgramAction を呼ぶ', async () => {
