@@ -1,174 +1,57 @@
 # 情報検索 `/search`
 
 ## 概要
-
-キーワードで、現在の会期に属する全カテゴリ（タイムテーブル・部屋割り・企画・販売物）を横断検索する。
-
----
+- タイムテーブル、部屋割り、企画、販売物、その他情報を横断検索するページ。
+- クライアント側で `q` クエリを URL に保持し、検索 API を呼び出す。
 
 ## アクセス制御
-
-| 条件 | 挙動 |
-|---|---|
-| access_token 有効 | 表示 |
-| auth_token 有効（admin） | 表示 |
-| それ以外 | `/access` へリダイレクト |
-
----
+- API は `contentAccessMiddleware` を通過する必要がある。
+- `admin`
+  - URL の `event_id` で会期を選ぶ
+- `user`
+  - `access_token` の `event_id` を使用（URL の `event_id` は使わない）
 
 ## 画面構成
-
-### デスクトップ
-
-```
-┌───────────────────────────────────────────┐
-│  情報検索                                   │
-│                                           │
-│  [キーワードを入力]  [検索]                  │
-│                                           │
-│  ── タイムテーブル（2件） ──                 │
-│  10:00 - 11:00  開会式  [会場 A]           │
-│  ...                                      │
-│                                           │
-│  ── 部屋割り（1件） ──                      │
-│  会場 A  スタッフ1  受付                    │
-│  ...                                      │
-│                                           │
-│  ── 企画（3件） ──                          │
-│  ○○企画  ...                              │
-│  ...                                      │
-│                                           │
-│  ── 販売物（1件） ──                        │
-│  グッズ A  ¥500  在庫あり                  │
-│  ...                                      │
-│                                           │
-│  （0件の場合: "該当する情報が見つかりません"）  │
-└───────────────────────────────────────────┘
-```
-
-### スマートフォン
-
-```
-┌──────────────────────┐
-│  情報検索             │
-│                      │
-│  ┌────────────────┐  │
-│  │ キーワードを入力 │  │  ← フルワイドの検索ボックス
-│  └────────────────┘  │
-│  [      検索      ]  │  ← フルワイドのボタン
-│                      │
-│  ── タイムテーブル（2件）──  │
-│  10:00 〜 11:00       │
-│  開会式  📍 会場 A    │
-│  ─────────────────── │
-│                      │
-│  ── 部屋割り（1件）── │
-│  会場 A               │
-│  担当: スタッフ1 / 受付│
-│  ─────────────────── │
-│                      │
-│  ── 企画（3件） ──    │
-│  ○○企画              │
-│  📍 会場 A  10:00〜   │
-│  ─────────────────── │
-│                      │
-│  ── 販売物（1件） ──  │
-│  グッズ A  ¥500       │
-│  [在庫あり]           │
-└──────────────────────┘
-```
-
-**スマートフォン固有の要件:**
-- 検索ボックスとボタンをフルワイドで縦積み配置
-- 各カテゴリの結果は対応するページと同じカード形式で表示（一貫性のため）
-- 横並びの情報は縦積みに変換（例: `会場 A  スタッフ1  受付` → 別行）
-
----
-
-## 検索対象フィールド
-
-| テーブル | 検索対象フィールド |
-|---|---|
-| `timetable_items` | `title`, `location`, `description` |
-| `rooms` | `room_name`, `assignee`, `purpose`, `notes` |
-| `programs` | `name`, `location`, `description` |
-| `shop_items` | `name`, `description` |
-| `other_items` | `title`, `content` |
-
----
+- キーワード入力と検索ボタン
+- 状態表示
+  - 検索中
+  - エラー
+  - 会期未選択
+  - 0件
+- 結果表示
+  - カテゴリごとに件数とカードを表示
 
 ## API
-
-### GET `/api/search?q=<keyword>&event_id=<id>`
-
-- `q`: 検索キーワード（必須・1文字以上）
-- `event_id` の解決:
-  - User: `access_token` Cookie から自動付与
-  - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
-- DB 側で `ILIKE '%keyword%'` による部分一致検索
-
-**レスポンス**
+### `GET /api/search?q=<keyword>`
+- 必須ヘッダー: `x-event-id`
+- レスポンス
 ```json
 {
-    "timetable":   [ { TimetableItem } ],
-    "rooms":       [ { Room } ],
-    "programs":    [ { Program } ],
-    "shop_items":  [ { ShopItem } ],
-    "other_items": [ { OtherItem } ]
+  "timetable": [],
+  "rooms": [],
+  "programs": [],
+  "shopItems": [],
+  "otherItems": []
 }
 ```
+- 失敗時
+  - `400`: `q` または `x-event-id` のバリデーションエラー
+  - `401`: 認証不備
 
----
+## 検索対象フィールド
+- timetable: `title`, `location`, `description`
+- rooms: `buildingName`, `floor`, `roomName`, `preDayPurpose`, `dayPurpose`, `notes`, 担当部署名
+- programs: `name`, `location`, `description`
+- shopItems: `name`, `description`
+- otherItems: `title`, `content`
 
-## フロントエンド実装
+## 実装メモ
+- ページ: `apps/frontend/app/(authenticated)/search/page.tsx`
+- バックエンド: `searchController.ts`, `SearchUseCase.ts`
+- 検索語は前後空白を除去し、1文字以上必須
 
-- `page.tsx`: Client Component
-  - URL クエリパラメータ（`?q=`）で検索状態を管理
-  - 入力確定（Enter またはボタン）でパラメータを更新 → データ再取得
-- データ取得: `useEffect` + `fetch` または `useSWR`
-- 各カテゴリの結果は件数と共にセクション表示
-- 0件の場合はカテゴリセクション自体を非表示
-
-> ページ遷移でも検索クエリを保持するため URL パラメータで管理する。
-
----
-
-## バックエンド実装
-
-### 新規ファイル
-
-```
-src/use-cases/search/
-  ISearchUseCase.ts
-  SearchUseCase.ts     ← 4テーブルを並列クエリ（Promise.all）
-src/presentation/
-  controllers/searchController.ts
-  routes/searchRoutes.ts
-```
-
-### SearchUseCase の責務
-
-```typescript
-// 5テーブルを並列クエリ
-const [timetable, rooms, programs, shopItems, otherItems] = await Promise.all([
-    timetableRepo.search(keyword, eventId),
-    roomRepo.search(keyword, eventId),
-    programRepo.search(keyword, eventId),
-    shopItemRepo.search(keyword, eventId),
-    otherItemRepo.search(keyword, eventId),
-])
-```
-
-各リポジトリに `search(keyword, eventId)` メソッドを追加する。
-
----
-
-## テスト項目
-
-| # | テスト内容 |
-|---|---|
-| 1 | 検索フィールドとボタンが表示されること |
-| 2 | キーワード入力で全カテゴリの結果が表示されること |
-| 3 | 一致するカテゴリのみセクションが表示されること |
-| 4 | 0件の場合に「見つかりません」が表示されること |
-| 5 | 空クエリで検索できないこと（バリデーション） |
+## テスト観点
+- `q` 未指定で `400`
+- `x-event-id` 不備で `400`
+- 認証なしで `401`
+- 複数カテゴリ同時ヒット時の表示
