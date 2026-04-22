@@ -123,7 +123,7 @@ export function AuthHeader({
                             href={buildHref(href)}
                             className={`relative rounded-sm px-3 py-1.5 text-sm transition-colors ${
                                 isActive(href)
-                                    ? 'opacity-100 after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-background'
+                                    ? 'opacity-100 after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-current'
                                     : 'opacity-60 hover:opacity-90'
                             }`}
                         >
@@ -219,7 +219,7 @@ export function AuthHeader({
                             }`}
                         >
                             {isActive(href) && (
-                                <span className='mr-3 h-1 w-1 rounded-full bg-background' />
+                                <span className='mr-3 h-1 w-1 rounded-full bg-current' />
                             )}
                             {!isActive(href) && <span className='mr-3 w-1' />}
                             {label}
