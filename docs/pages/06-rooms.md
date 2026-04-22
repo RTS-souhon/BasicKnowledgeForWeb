@@ -1,194 +1,76 @@
 # 部屋割り `/rooms`
 
 ## 概要
-
-イベント会期の部屋・スペースの割り当て情報を一覧表示する。
-Admin/Developer はインライン編集・追加・削除が可能。
-
----
+- 会期ごとの部屋割りを表示・管理するページ。
+- 担当部署（前日/当日）と目的、備考を扱う。
 
 ## アクセス制御
-
-| 条件 | 挙動 |
-|---|---|
-| access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin） | 閲覧 + 編集 |
-| それ以外 | `/access` へリダイレクト |
-
----
+- 閲覧: `contentAccessMiddleware`
+- 編集: `contentEditMiddleware` + `roleGuard(['admin'])`
+- 編集 API は `auth_token(role=admin)` と `x-event-id` が必須
 
 ## 画面構成
-
-### 閲覧（全ユーザー）— デスクトップ
-
-```
-┌─────────────────────────────────────────┐
-│  部屋割り                                │
-│                                         │
-│  部屋名       担当者       用途          │
-│  ─────────────────────────────────      │
-│  会場 A       スタッフ1    受付          │
-│  会場 B       スタッフ2    メイン企画    │
-│  ...                                    │
-└─────────────────────────────────────────┘
-```
-
-### 閲覧（全ユーザー）— スマートフォン
-
-横3列テーブルは幅が足りないため、カードレイアウトに切り替える。
-
-```
-┌──────────────────────┐
-│  部屋割り             │
-│                      │
-│  ┌──────────────────┐│
-│  │ 会場 A            ││  ← 部屋名（大きめフォント）
-│  │ 担当: スタッフ1    ││
-│  │ 用途: 受付        ││
-│  └──────────────────┘│
-│  ┌──────────────────┐│
-│  │ 会場 B            ││
-│  │ 担当: スタッフ2    ││
-│  │ 用途: メイン企画   ││
-│  └──────────────────┘│
-│  ...                 │
-└──────────────────────┘
-```
-
-### 編集モード（Admin/Developer のみ表示）
-
-#### デスクトップ
-
-```
-│  [+ 追加]                                        │
-│  会場 A  スタッフ1  受付  [編集] [削除]            │
-```
-
-#### スマートフォン
-
-```
-┌──────────────────────┐
-│  [+ 追加]            │
-│                      │
-│  ┌──────────────────┐│
-│  │ 会場 A            ││
-│  │ 担当: スタッフ1    ││
-│  │ 用途: 受付        ││
-│  │              [⋮] ││  ← タップで編集/削除メニュー
-│  └──────────────────┘│
-```
-
-**スマートフォン固有の要件:**
-- 3列テーブルは使用せず、1カラムのカードリストで表示
-- 部屋名を最上段に大きく表示し、担当者・用途をラベル付きで縦積み
-- 編集・削除は `[⋮]` ボタンのアクションシートで提供
-
----
+- `user`
+  - デスクトップ: テーブル表示（部屋、前日担当、当日担当、備考）
+  - モバイル: カード表示
+- `admin`
+  - `RoomAdminPanel` で一覧・作成・更新・削除
+  - 部署候補は `/api/departments` から取得
 
 ## データ構造
-
-GET API は部署名を JOIN 解決した `RoomWithDepartments` を返す。
-
-```typescript
+```ts
 type RoomWithDepartments = {
-    id: string
-    eventId: string
-    buildingName: string
-    floor: string
-    roomName: string
-    preDayManagerId: string | null   // 前日担当部署 UUID（nullable）
-    preDayManagerName: string | null // 前日担当部署名（JOIN 解決済み）
-    preDayPurpose: string | null     // 前日用途
-    dayManagerId: string             // 当日担当部署 UUID
-    dayManagerName: string           // 当日担当部署名（JOIN 解決済み）
-    dayPurpose: string               // 当日用途
-    notes: string | null
-    createdAt: Date
-    updatedAt: Date
+  id: string;
+  eventId: string;
+  buildingName: string;
+  floor: string;
+  roomName: string;
+  preDayManagerId: string | null;
+  preDayManagerName: string | null;
+  preDayPurpose: string | null;
+  dayManagerId: string;
+  dayManagerName: string;
+  dayPurpose: string;
+  notes: string | null;
 }
 ```
-
----
 
 ## API
+### `GET /api/rooms`
+- ヘッダー: `x-event-id`
+- レスポンス: `{ "rooms": RoomWithDepartments[] }`
 
-### GET `/api/rooms?event_id=<id>`
-
-- `event_id` の解決:
-  - User: `access_token` Cookie の `event_id` を自動付与
-  - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用
-- レスポンス: `{ rooms: RoomWithDepartments[] }`（`building_name`, `floor`, `room_name` 昇順）
-
-### POST `/api/rooms` （admin）
-
+### `POST /api/rooms`（admin）
 ```json
 {
-    "event_id": "...",
-    "building_name": "...",
-    "floor": "...",
-    "room_name": "...",
-    "pre_day_manager_id": "...",
-    "pre_day_purpose": "...",
-    "day_manager_id": "...",
-    "day_purpose": "...",
-    "notes": "..."
+  "event_id": "uuid",
+  "building_name": "1号館",
+  "floor": "2F",
+  "room_name": "201",
+  "day_manager_id": "uuid",
+  "day_purpose": "本部",
+  "pre_day_manager_id": "uuid or null",
+  "pre_day_purpose": "任意",
+  "notes": "任意"
 }
 ```
 
-- 認可: `auth_token` + admin。`x-event-id` ヘッダー必須で body.`event_id` と一致させる。
-- `pre_day_manager_id`/`day_manager_id` は部署 UUID。`pre_day_*` は null 可。
-- レスポンス: `201 { room: RoomWithDepartments }`。配下部署が他イベントの場合は 400。
+### `PUT /api/rooms/:id`（admin）
+- 部分更新可
 
-### PUT `/api/rooms/:id` （admin）
+### `DELETE /api/rooms/:id`（admin）
+- レスポンス: `{ "id": "uuid" }`
 
-- 認可は POST と同じ。body は部分更新で、1 項目以上の指定が必要。
-- レスポンス: `200 { room: RoomWithDepartments }`、対象なしは 404。
+## 関連 API
+- `GET /api/departments`（部署名表示・選択用）
 
-### DELETE `/api/rooms/:id` （admin）
+## 実装メモ
+- ページ: `apps/frontend/app/(authenticated)/rooms/page.tsx`
+- Action: `apps/frontend/app/actions/rooms.ts`
+- バックエンド: `roomController.ts`, `roomRoutes.ts`
 
-- 認可は POST と同じ。`id` の UUID 検証に失敗すると 400。
-- レスポンス: `200 { id: string }`。
-
----
-
-## フロントエンド実装
-
-- `page.tsx`: Server Component → `GET /api/rooms` でデータ取得
-- 編集 UI: Client Component（モーダルまたはインラインフォーム）
-- フォーム: `react-hook-form` + `roomSchema`
-
----
-
-## バックエンド実装
-
-### 新規ファイル
-
-```
-src/db/schema.ts                         rooms テーブル追加
-src/infrastructure/
-  validators/roomValidator.ts
-  repositories/room/
-    IRoomRepository.ts
-    RoomRepository.ts
-src/use-cases/room/
-  ICreateRoomUseCase.ts / CreateRoomUseCase.ts
-  IGetRoomsUseCase.ts   / GetRoomsUseCase.ts
-  IUpdateRoomUseCase.ts / UpdateRoomUseCase.ts
-  IDeleteRoomUseCase.ts / DeleteRoomUseCase.ts
-src/presentation/
-  controllers/roomController.ts
-  routes/roomRoutes.ts
-```
-
----
-
-## テスト項目
-
-| # | テスト内容 |
-|---|---|
-| 1 | 部屋割り一覧が表示されること |
-| 2 | user ロール時に編集 UI が表示されないこと |
-| 3 | admin ロール時に編集ボタンが表示されること |
-| 4 | 追加フォームから新規部屋割りを登録できること |
-| 5 | 編集フォームで既存情報を更新できること |
-| 6 | 削除ボタンで部屋割りを削除できること |
+## テスト観点
+- ソート順（建物 → 階 → 部屋名）
+- 会期不一致データの更新拒否
+- 部署未設定（前日担当なし）の表示
+- 認証/認可失敗時のステータス

@@ -7,7 +7,7 @@
 - `docs/pages/06-rooms.md`
 - `docs/pages/07-events.md`
 - `docs/pages/08-shop.md`
-- `docs/pages/12-others.md`
+- `docs/pages/13-others.md`
 
 ## 目的
 
@@ -18,14 +18,15 @@
 1. 各ドメインの validator を拡張し、POST/PUT/DELETE 用の入力スキーマを追加する
 2. 各 repository に `create`, `update`, `delete` メソッドを追加し、use-case 層（Create/Update/Delete）を実装する
 3. 既存 controller / route に POST/PUT/DELETE ハンドラを追加し、`roleGuard(['admin'])` を適用する
-4. contentAccessMiddleware とは別に編集専用 middleware で auth_token + role を検証し、`event_id` の整合性（アクセスコード or クエリ）を必ずチェックする
+4. contentAccessMiddleware とは別に編集専用 middleware で auth_token + role を検証し、`event_id` と `x-event-id` の整合性を必ずチェックする
 5. すべてのミューテーション API は `{ success: true, data }` / `{ success: false, error }` の結果型を返す
 6. CockroachDB での更新/削除は `RETURNING *` を使って結果を返却し、ソフトデリートは未対応で OK（別タスクで導入予定）
 7. 販売物 (`shop_items`) ドメインでは商品画像を Cloudflare R2 に保存することを前提にし、`image_key`（R2 オブジェクトパス）と `image_url`（CDN 経由の参照 URL）を validator / repository / use-case / controller すべてで必須フィールドとして扱う
 
 ### 画像/R2 連携の詳細
 
-- 環境変数で R2 バケット（例: `SHOP_ITEM_ASSET_BUCKET`）を受け取り、サーバーサイドで署名付き PUT URL を発行する `POST /api/shop-items/upload-url`（admin/developer 限定）を追加する
+- 環境変数で R2 バケット（例: `SHOP_ITEM_ASSET_BUCKET`）を受け取り、`POST /api/shop-items/upload`（admin 限定）でファイルを受け取り、`image_key` を返す
+- 企画/その他も同様に `POST /api/programs/upload` / `POST /api/others/upload` を追加する
 - `CreateShopItemUseCase` / `UpdateShopItemUseCase` では、リクエストに含まれる `image_key` が自分のバケットプレフィックス（`shop-items/<event_id>/...` など）に一致するかをチェックし、許可されていないキーは拒否する
 - `GetShopItemsUseCase` / controller では `image_url` を API レスポンスに含め、フロントエンドが常に画像を表示できるようにする
 - バケット内の実体削除はこのフェーズでは任意（再アップロード時に同じキーを上書きする運用で可）だが、後続タスクでクリーンアップを検討する

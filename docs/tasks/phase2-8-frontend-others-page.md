@@ -2,7 +2,7 @@
 
 ## 対象
 
-- `docs/pages/12-others.md`
+- `docs/pages/13-others.md`
 
 ## 目的
 

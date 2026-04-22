@@ -1,127 +1,55 @@
 # アクセスコード入力画面 `/access`
 
 ## 概要
-
-イベント会期ごとに発行されたアクセスコードを入力する。
-正しいコードを入力すると `access_token` Cookie が発行され、コンテンツページへリダイレクトされる。
-
----
+- 一般ユーザーが会期アクセス用コードを入力する画面。
+- 成功時に `access_token` Cookie を受け取り、`/` へ遷移する。
 
 ## アクセス制御
-
-| 条件 | 挙動 |
-|---|---|
-| 誰でもアクセス可 | 表示 |
-| access_token 有効 | `/` へリダイレクト |
-| auth_token 有効（admin） | `/` へリダイレクト |
-
----
+- 未ログインでも表示可能。
+- 管理者ログイン導線として `/login` へのリンクを表示。
 
 ## 画面構成
-
-単一カラムのフォームのため、デスクトップ・スマートフォンで共通のレイアウトを使用する。
-
-```
-┌──────────────────────────────────┐
-│    アクセスコードを入力してください   │
-│    コード [                      ] │
-│    [エラーメッセージ（任意）]        │
-│          [入力する]                │
-└──────────────────────────────────┘
-```
-
-**スマートフォン固有の要件:**
-- 入力欄・ボタンはフルワイド（`w-full`）
-- コード入力欄に `autoCapitalize="characters"` を付与（大文字コードの入力を促す）
-- コード入力欄に `autoComplete="one-time-code"` を付与（SMS等からの自動入力に対応）
-
----
+- 入力項目
+  - アクセスコード
+- 表示要素
+  - 入力バリデーションエラー
+  - サーバーエラー
+  - `/login` への導線
 
 ## フォームバリデーション
+- `code`: 1文字以上必須
 
-| フィールド | ルール |
-|---|---|
-| code | 必須 |
-
----
-
-## API
-
+## 利用 API
 ### `POST /api/access-codes/verify`
-
-**リクエスト**
+- リクエスト
 ```json
-{ "code": "SUMMER2025" }
+{
+  "code": "SUMMER2025"
+}
 ```
+- 成功時
+  - `200 OK`
+  - `Set-Cookie: access_token=...`
+  - レスポンス: `{ "message": "アクセスコードを確認しました" }`
+- 失敗時
+  - `400`: バリデーションエラー
+  - `401`: コード不正 / 有効期限外
 
-**レスポンス**
-```
-200 Set-Cookie: access_token=<JWT>; HttpOnly; Secure; SameSite=Strict
-{ "event": { "id", "event_name", "valid_from", "valid_to" } }
-
-400 { "error": "アクセスコードが正しくありません" }
-400 { "error": "このアクセスコードは有効期限が切れています" }
-```
-
-### access_token payload
-
+## JWT ペイロード（`access_token`）
 ```json
-{ "event_id": "<access_code_id>", "exp": <valid_to のタイムスタンプ> }
+{
+  "event_id": "access-code-id(uuid)",
+  "exp": 1700000000
+}
 ```
 
-Cookie 有効期限: アクセスコードの `valid_to` に合わせる
+## 実装メモ
+- フロント: `apps/frontend/app/access/page.tsx`
+- バックエンド: `accessCodeController.verifyAccessCode` + `VerifyAccessCodeUseCase`
+- `exp` はアクセスコードの `valid_to` を使用
 
----
-
-## フロントエンド実装
-
-- `'use client'` コンポーネント
-- `react-hook-form` + `zodResolver`
-- 成功時: `router.push('/')` でリダイレクト
-- エラー時: フォーム上部にグローバルエラー表示
-
----
-
-## バックエンド実装
-
-### 新規ファイル
-
-```
-src/db/schema.ts                          access_codes テーブル追加
-src/infrastructure/
-  validators/accessCodeValidator.ts
-  repositories/access-code/
-    IAccessCodeRepository.ts
-    AccessCodeRepository.ts
-src/use-cases/access-code/
-  IVerifyAccessCodeUseCase.ts
-  VerifyAccessCodeUseCase.ts
-  ICreateAccessCodeUseCase.ts
-  CreateAccessCodeUseCase.ts
-  IGetAccessCodesUseCase.ts
-  GetAccessCodesUseCase.ts
-  IDeleteAccessCodeUseCase.ts
-  DeleteAccessCodeUseCase.ts
-src/presentation/
-  controllers/accessCodeController.ts
-  routes/accessCodeRoutes.ts
-```
-
-### VerifyAccessCodeUseCase の責務
-
-1. `code` でテーブルを検索
-2. 存在しない → エラー
-3. `valid_to < now()` → 有効期限切れエラー
-4. 正常 → `{ event_id }` を含む JWT を署名し Cookie にセット
-
----
-
-## テスト項目
-
-| # | テスト内容 |
-|---|---|
-| 1 | コード入力フィールドとボタンが表示されること |
-| 2 | 空送信でバリデーションエラーが表示されること |
-| 3 | 正しいコードで `/` へリダイレクトされること |
-| 4 | 誤ったコードでエラーメッセージが表示されること |
-| 5 | 期限切れコードで期限切れエラーが表示されること |
+## テスト観点
+- 正しいコードで `200` + Cookie 設定
+- 不正コードで `401`
+- 期限切れコードで `401`
+- 入力不足で `400`

@@ -1,137 +1,63 @@
 ---
 name: new-feature
-description: 新機能を backend → frontend の順で実装する。ブランチ作成からPR作成までの全フローをガイドする。
+description: 新機能を実装するときの標準フロー。developからのブランチ作成、backend→frontendの実装順序、各チェックとPR作成ルールを網羅する。
 ---
 
-# /new-feature — 新機能実装フロー
+# 新機能実装ワークフロー
 
-ユーザーが実装したい機能の概要を提供する。
+このリポジトリで新機能を安全に進めるための標準フロー。Backend→Frontend の順序を必ず守ること。
 
-## 前提
-
-- **必ず `develop` から新ブランチを切る**
-- **backend を先に実装・テストしてから frontend を実装する**（順序厳守）
-- 実装中に `type-check`, `lint`, `test` が通らない状態でコミットしない
-
-## Step 1: ブランチ作成
-
+## 0. ブランチ作成
 ```bash
 git checkout develop
 git pull origin develop
-git checkout -b feature/<機能名>
-# 例: feature/phase2-2-frontend-authenticated-layout
+git checkout -b feature/<task-name>
 ```
+Prefix: `feature/`, `fix/`, `docs/`, `chore/`。`develop` へ直 push しない。
+作業開始前に `git status` で既存の未コミット変更を確認し、無関係な差分を混ぜない。
 
-ブランチ命名規則:
-| Prefix | 用途 |
-|---|---|
-| `feature/` | 新機能・改善 |
-| `fix/` | バグ修正 |
-| `docs/` | ドキュメントのみ |
-| `chore/` | リファクタリング・ツール |
+## 1. Backend を先に完了
+1. 新しいリソースなら `/add-domain` ワークフローで schema→repo→use case→controller→route→index を実装。
+2. `apps/backend` で以下をすべて PASS させる:
+   ```bash
+   bun run type-check
+   bun run lint
+   bun run test
+   ```
+3. 未通過のまま次工程へ進まない。
 
-## Step 2: Backend 実装
+## 2. Backend コミット
+- Conventional Commits + 日本語（例: `feat(rooms): GET /api/rooms エンドポイントを追加`）。
+- レイヤー単位でコミットを分割し、失敗中のチェック状態ではコミットしない。
+- 既存変更が混在する場合は、今回の対象ファイルだけを stage する。
 
-新しいリソースを追加する場合は `/add-domain` スキルを使用。
+## 3. Frontend 実装
+1. `apps/frontend/app/`（Next.js App Router）配下で作業。`(authenticated)` などのレイアウト構造を尊重。
+2. バリデーションは `@backend/infrastructure/validators/...` から共有。
+3. Client Component は `'use client'` + `react-hook-form` + `zodResolver` を使用。
+4. API 呼び出し時は `resolveAuth` / `buildContentFetchHeaders` など既存 helper を使い、`access_token` / `x-event-id` 契約を順守。
 
-既存の変更の場合:
-1. `src/db/schema.ts` — スキーマ変更があれば migration も
-2. Repository → Use Case → Controller → Routes の順で実装
-3. `src/index.ts` に routes を登録
-
-## Step 3: Backend テスト
-
-```bash
-cd apps/backend
-bun run type-check
-bun run lint
-bun run test
-```
-
-**全チェックが通るまで Step 4 に進まない。**
-
-## Step 4: Backend コミット
-
-コミットメッセージは**日本語**で記述する:
-
-```
-feat(<scope>): <日本語の説明>
-test(<scope>): <日本語の説明>
-```
-
-例:
-```
-feat(rooms): GET /api/rooms エンドポイントを追加
-test(rooms): GET /api/rooms のフィーチャーテストを追加
-```
-
-1つのコミットに複数のレイヤーを混在させない。論理的な単位ごとにコミットを分割する。
-
-## Step 5: Frontend 実装
-
-```
-apps/frontend/app/
-├── (authenticated)/   # 認証が必要なページ
-│   └── {page}/
-│       └── page.tsx
-└── utils/
-    └── client.ts      # hc<AppType>(NEXT_PUBLIC_API_URL) — 型安全な API クライアント
-```
-
-認証フロー:
-- `access_token` Cookie は Server Component で取得し `x-event-id` と一緒に API に渡す
-- Client Component では `'use client'` ディレクティブと `react-hook-form` + `zodResolver` を使用
-- Validator は `@backend/infrastructure/validators/...` から直接 import して共有する
-
-## Step 6: Frontend テスト
-
+## 4. Frontend チェック & コミット
 ```bash
 cd apps/frontend
 bun run type-check
 bun run lint
 bun run test
 ```
+通過後に日本語 Conventional Commit でフロント変更を記録（例: `feat(home): 認証済みホームを追加`）。
 
-MSW v2 のテストパターン:
-- `tests/mocks/handlers.ts` にハンドラーを追加
-- `tests/{feature}/page.test.tsx` でコンポーネントをテスト
-
-## Step 7: Frontend コミット
-
-```
-feat(<scope>): <日本語の説明>
-test(<scope>): <日本語の説明>
-```
-
-## Step 8: PR 作成
-
+## 5. プルリクエスト
 ```bash
-git push -u origin <branch-name>
-gh pr create --base develop --title "<prefix>(<scope>): <日本語タイトル>" --body "$(cat <<'EOF'
-# Pull Request
-
-## What's changed
-
-<実装内容の説明>
-
-## Todo List
-
-- [ ] <残タスク>
-
-## Remark
-
-なし
-EOF
-)"
+git push -u origin <branch>
+gh pr create --base develop --title "<prefix>(<scope>): <日本語タイトル>"
 ```
+`.github/pull_request_template.md` に準拠して日本語で記入。ターゲットは `develop` 固定。
 
-**PR タイトルと本文は日本語で記述する。**
-
-## チェックリスト
-
-- [ ] `develop` から新ブランチを切った
-- [ ] backend の type-check / lint / test が通る
-- [ ] frontend の type-check / lint / test が通る
-- [ ] コミットメッセージが日本語かつ Conventional Commits 形式
-- [ ] PR タイトル・本文が日本語かつテンプレートに従っている
-- [ ] PR が `develop` ブランチをターゲットにしている
+## 6. 完了チェックリスト
+- [ ] ブランチは `develop` から切ったか
+- [ ] Backend `type-check` / `lint` / `test` ✅
+- [ ] Frontend `type-check` / `lint` / `test` ✅
+- [ ] コミットメッセージ: 日本語 + Conventional Commits
+- [ ] PR タイトル・本文: 日本語 + テンプレ準拠
+- [ ] Backend を終えてから Frontend を実装した
+- [ ] `git status` で意図しない差分が混ざっていない

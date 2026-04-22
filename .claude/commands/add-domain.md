@@ -1,120 +1,85 @@
 ---
 name: add-domain
-description: バックエンドに新しいドメイン（リソース）を追加する。スキーマ定義からテストまでのチェックリストに従い、Clean Architecture のレイヤーを順番に実装する。
+description: バックエンドに新しいドメインやリソースを追加するときに使う。Clean Architecture 各層の実装順序、CockroachDB 複合FKの落とし穴、テストと認証ミドルウェア適用までの必須手順をガイドする。
 ---
 
-# /add-domain — 新ドメイン追加
+# 新ドメイン追加ガイド
 
-ユーザーが追加したいリソース名（例: `posts`, `announcements`）と、必要なフィールド情報を提供する。
+/.claude/commands/add-domain.md の内容をプロジェクトローカルで参照できるように再編したもの。新しいコンテンツAPIを作る際は必ず以下の順序を守る。
+
+## 前提
+- リポジトリ: `/Users/y_murotani/Documents/RTS-souhon/BasicKnowledgeForWeb`
+- 依存関係: ルート `AGENTS.md` と既存 skill 群
+- Clean Architecture: routes → controllers → use cases → repositories → db
+- すべての GET コンテンツ API に `contentAccessMiddleware` を適用すること
 
 ## 実装順序
+1. **Schema — `apps/backend/src/db/schema.ts`**
+   - `cockroachTable` + `uuid('id').defaultRandom().primaryKey()`。
+   - `event_id`: `uuid('event_id').notNull().references(() => accessCodes.id, { onDelete: 'restrict' })`。
+   - `created_at` / `updated_at`: `timestamp(...).defaultNow()`。
+   - 複合 FK はテーブルコールバックで `foreignKey` を宣言し、先に対応する `uniqueIndex` を定義。
+   - CockroachDB では migration 内で `CREATE UNIQUE INDEX IF NOT EXISTS ...` を **必ず** `ADD CONSTRAINT ... FOREIGN KEY` より前に置く。
 
-以下の順番で厳密に実装する。順番を変えてはならない。
+2. **マイグレーション**
+   ```bash
+   cd apps/backend
+   bun run db:generate
+   # drizzle/<timestamp>_*/migration.sql を開いて FK 順序を確認
+   bun run db:migrate
+   ```
+   Drizzle が FK → INDEX の順に生成した場合は手動で並べ替える。
 
-### 1. Schema (`src/db/schema.ts`)
+3. **Repository Interface** — `src/infrastructure/repositories/<domain>/I{Name}Repository.ts`
+   - 例: `findByEventId(eventId: string): Promise<{Name}[]>;`
+   - 利用側が必要とするメソッドだけを宣言。
 
-Drizzle の `cockroachTable` でテーブルを定義する。
+4. **Repository Implementation** — `src/infrastructure/repositories/<domain>/{Name}Repository.ts`
+   - Drizzle クエリ実装はここだけで行う。
+   - `eq`, `asc` を `drizzle-orm` から、`alias` が必要なら `drizzle-orm/cockroach-core` からインポート。
+   - 並び順や JOIN はドキュメント仕様に合わせる。soft delete された行は返さない。
 
-- PK: `uuid('id').defaultRandom().primaryKey()`
-- `event_id`: `uuid('event_id').notNull().references(() => accessCodes.id, { onDelete: 'restrict' })`
-- `created_at` / `updated_at`: `timestamp` with `defaultNow()`
-- 複合 FK が必要な場合は table callback で `foreignKey()` を使用し、UNIQUE INDEX も同時に追加する
+5. **Validator** — `src/infrastructure/validators/{domain}Validator.ts`
+   - Zod で `x-event-id` ヘッダーやリクエスト DTO、レスポンス DTO を定義。
+   - フロントエンドからも `@backend/...` を介して再利用可能にする。
 
-**⚠️ CockroachDB 複合 FK の注意:**
-migration ファイルで `CREATE UNIQUE INDEX IF NOT EXISTS` を `ADD CONSTRAINT ... FOREIGN KEY` より**前**に記述すること。
+6. **Use Case Interface / Implementation** — `src/use-cases/{domain}/`
+   - 返り値は `{ success: true; data: T } | { success: false; error: string }` の discriminated union。
+   - ビジネスロジック（フィルタや代替テキスト）は use case に閉じ込める。
 
-### 2. Migration
+7. **Controller** — `src/presentation/controllers/{domain}Controller.ts`
+   - `IGet{Name}sUseCase` などインターフェースのみ依存。
+   - `x-event-id` が無い場合は `400` を返し、use case の結果に応じてステータスを分岐。
 
-```bash
-cd apps/backend
-bun run db:generate   # migration ファイルを生成
-# migration.sql を確認し、FK の順序が正しいか検証
-bun run db:migrate    # 適用
-```
+8. **Routes** — `src/presentation/routes/{domain}Routes.ts`
+   - Composition Root。repository + use case を組み合わせて controller を呼び出す。
+   - 例:
+     ```typescript
+     app.get('/api/<resource>', contentAccessMiddleware, (c) => controller.handle(c));
+     ```
 
-### 3. Repository Interface (`src/infrastructure/repositories/{domain}/I{Name}Repository.ts`)
+9. **Mount** — `src/index.ts`
+   ```typescript
+   import { create<Name>Routes } from './presentation/routes/<domain>Routes';
+   app.route('/api', create<Name>Routes());
+   ```
 
-```typescript
-export interface I{Name}Repository {
-    findByEventId(eventId: string): Promise<{Name}[]>;
-}
-```
+10. **Tests** — 実装後に追加する
+    | レイヤー | パス | 確認事項 |
+    | --- | --- | --- |
+    | Validator | `tests/infrastructure/validators/<domain>Validator.test.ts` | 必須フィールド / UUID |
+    | Repository | `tests/infrastructure/repositories/<domain>/{Name}Repository.test.ts` | クエリチェーン / 並び順 |
+    | Use Case | `tests/use-cases/<domain>/Get{Name}sUseCase.test.ts` | 成功/失敗分岐 |
+    | Controller | `tests/presentation/controllers/{domain}Controller.test.ts` | HTTP ステータス / レスポンス |
+    | フィーチャー | `tests/features/{domain}.test.ts` | access_token / auth_token(admin) / 401 の分岐 |
 
-### 4. Repository Implementation (`src/infrastructure/repositories/{domain}/{Name}Repository.ts`)
+    Feature テストのポイント:
+    - `JWT_SECRET` を `app.request(..., mockEnv)` の第3引数で渡す。
+    - `role=user` の `auth_token` は必ず `401` になることを確認。
+    - `access_token.payload.event_id` と `x-event-id` が一致しない場合の拒否もテスト。
 
-- Drizzle クエリを実装する唯一の場所
-- `import { eq, asc } from 'drizzle-orm'` — `drizzle-orm` から
-- `alias` が必要な場合は `drizzle-orm/cockroach-core` から import
-- 並び順は docs の仕様に従う
-
-### 5. Validator (`src/infrastructure/validators/{domain}Validator.ts`)
-
-- Zod スキーマで `event_id`（uuid）と主要フィールドを定義
-- `x-event-id` ヘッダーのバリデーションを含める
-
-### 6. Use Case Interface + Implementation (`src/use-cases/{domain}/`)
-
-```typescript
-// IGet{Name}sUseCase.ts
-export interface IGet{Name}sUseCase {
-    execute(eventId: string): Promise<{ success: true; data: {Name}[] } | { success: false; error: string }>;
-}
-```
-
-返り値は必ず `{ success: true; data: T } | { success: false; error: string }` の Discriminated Union にする。
-
-### 7. Controller (`src/presentation/controllers/{domain}Controller.ts`)
-
-- `IGet{Name}sUseCase` インターフェースにのみ依存（具象クラスは import しない）
-- `x-event-id` ヘッダーが未指定の場合は `400` を返す
-
-### 8. Routes (`src/presentation/routes/{domain}Routes.ts`)
-
-- Composition Root: 具象 Repository・UseCase を生成して Controller に注入
-- **全コンテンツ GET API に `contentAccessMiddleware` を適用する**
-
-```typescript
-import { contentAccessMiddleware } from '../middleware/contentAccessMiddleware';
-
-app.get('/api/{resource}', contentAccessMiddleware, async (c) => { ... });
-```
-
-### 9. Mount (`src/index.ts`)
-
-```typescript
-import { create{Name}Routes } from './presentation/routes/{domain}Routes';
-app.route('/api', create{Name}Routes());
-```
-
-### 10. Tests
-
-実装後、以下の順でテストを追加する:
-
-| テスト | 場所 | 何を確認するか |
-|---|---|---|
-| Validator | `tests/infrastructure/validators/{domain}Validator.test.ts` | フィールドの型・必須チェック |
-| Repository | `tests/infrastructure/repositories/{domain}/{Name}Repository.test.ts` | Drizzle クエリチェーンと order |
-| Use Case | `tests/use-cases/{domain}/Get{Name}sUseCase.test.ts` | 正常系・異常系の business logic |
-| Controller | `tests/presentation/controllers/{domain}Controller.test.ts` | HTTP ステータスコードとレスポンス形状 |
-| Feature | `tests/features/{domain}.test.ts` | E2E: access_token / auth_token / 401 ケース |
-
-Feature テストのパターン:
-```typescript
-const mockEnv = { JWT_SECRET } as unknown as Env;
-// access_token: sign({ event_id, exp }, JWT_SECRET, 'HS256')
-// auth_token(admin): sign({ id, name, email, role: 'admin', exp }, JWT_SECRET, 'HS256')
-// auth_token(user): sign({ ..., role: 'user', exp }, ... ) → 401 が期待値
-
-const res = await app.request('/api/{resource}', {
-    headers: { 'x-event-id': eventId, Cookie: `access_token=${token}` },
-}, mockEnv);
-```
-
-## 完了条件
-
-```bash
-cd apps/backend
-bun run type-check   # TypeScript エラーなし
-bun run lint         # Biome lint エラーなし（auto-fix: bun run lint:fix）
-bun run test         # 全テスト PASS
-```
+## 完了チェックリスト
+- `cd apps/backend && bun run type-check`
+- `bun run lint`（必要なら `bun run lint:fix`）
+- `bun run test`
+- フロントエンドの実装は backend が完了してから着手
