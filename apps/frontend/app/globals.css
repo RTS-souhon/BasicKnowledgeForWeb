@@ -50,6 +50,9 @@
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
+    --header-bg: oklch(0.145 0 0);
+    --header-fg: oklch(0.985 0 0);
+    --header-border: oklch(1 0 0 / 0.15);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
@@ -85,6 +88,9 @@
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
+    --header-bg: oklch(0.205 0 0);
+    --header-fg: oklch(0.985 0 0);
+    --header-border: oklch(1 0 0 / 0.1);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);

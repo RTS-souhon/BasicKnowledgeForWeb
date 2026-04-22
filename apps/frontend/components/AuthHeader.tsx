@@ -1,6 +1,7 @@
 'use client';
 
 import { EventSelector } from '@frontend/components/EventSelector';
+import { ThemeToggle } from '@frontend/components/ThemeToggle';
 import { AlignRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -29,7 +30,7 @@ const NAV_ITEMS = [
     { href: '/events', label: '企画一覧' },
     { href: '/shop', label: '販売物' },
     { href: '/others', label: '情報' },
-    { href: '/search', label: '情報検索' },
+    { href: '/search', label: '検索' },
 ] as const;
 
 export function AuthHeader({
@@ -94,7 +95,14 @@ export function AuthHeader({
     }, [pathname]);
 
     return (
-        <header className='sticky top-0 z-50 border-b border-border bg-foreground text-background'>
+        <header
+            className='sticky top-0 z-50 border-b'
+            style={{
+                background: 'var(--header-bg)',
+                color: 'var(--header-fg)',
+                borderColor: 'var(--header-border)',
+            }}
+        >
             <div className='mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6'>
                 {/* Left: logo / home link */}
                 <Link
@@ -124,7 +132,7 @@ export function AuthHeader({
                     ))}
                 </nav>
 
-                {/* Right: event selector (admin/dev) or event name (user) + logout */}
+                {/* Right: event selector (admin/dev) or event name (user) + theme toggle + logout */}
                 <div className='hidden items-center gap-3 md:flex'>
                     {isPrivileged && (
                         <EventSelector accessCodes={accessCodes} />
@@ -134,6 +142,7 @@ export function AuthHeader({
                             {userEventName}
                         </span>
                     )}
+                    <ThemeToggle />
                     <form action={logoutAction}>
                         <button
                             type='submit'
@@ -173,11 +182,15 @@ export function AuthHeader({
                 role='dialog'
                 aria-modal='true'
                 aria-label='ナビゲーションメニュー'
-                className={`fixed inset-y-0 right-0 z-50 flex w-64 flex-col bg-foreground text-background shadow-xl transition-transform duration-300 ease-in-out md:hidden ${
+                className={`fixed inset-y-0 right-0 z-50 flex w-64 flex-col shadow-xl transition-transform duration-300 ease-in-out md:hidden ${
                     drawerOpen ? 'translate-x-0' : 'translate-x-full'
                 }`}
+                style={{
+                    background: 'var(--header-bg)',
+                    color: 'var(--header-fg)',
+                }}
             >
-                <div className='flex h-14 items-center justify-between border-b border-background/20 px-4'>
+                <div className='flex h-14 items-center justify-between border-b border-[var(--header-border)] px-4'>
                     <span className='text-sm font-semibold opacity-90'>
                         {userName ?? 'メニュー'}
                     </span>
@@ -214,7 +227,11 @@ export function AuthHeader({
                     ))}
                 </nav>
 
-                <div className='border-t border-background/20 p-4 space-y-3'>
+                <div className='border-t border-[var(--header-border)] p-4 space-y-3'>
+                    <div className='flex items-center justify-between px-1'>
+                        <span className='text-xs opacity-50'>テーマ</span>
+                        <ThemeToggle />
+                    </div>
                     {isPrivileged && (
                         <div>
                             <p className='mb-1.5 px-1 text-xs opacity-50'>
