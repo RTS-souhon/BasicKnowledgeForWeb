@@ -131,6 +131,42 @@ jobs:
           cd apps/frontend
           bun run test
 
+  lint-and-test-email-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd apps/email-worker
+          bun install
+
+      - name: Build email-worker
+        run: |
+          cd apps/email-worker
+          bun run build
+
+      - name: Lint email-worker code
+        run: |
+          cd apps/email-worker
+          bun run lint
+
+      - name: Type check email-worker
+        run: |
+          cd apps/email-worker
+          bun run type-check
+
+      - name: Test email-worker
+        run: |
+          cd apps/email-worker
+          bun run test
+
   dependabot-auto-merge:
     runs-on: ubuntu-slim
     if: "github.actor == 'dependabot[bot]'"
@@ -138,7 +174,7 @@ jobs:
       contents: write
       pull-requests: write
     timeout-minutes: 5
-    needs: ["lint-and-test-backend", "verify-migration-backend", "lint-and-test-frontend"]
+    needs: ["lint-and-test-backend", "verify-migration-backend", "lint-and-test-frontend", "lint-and-test-email-worker"]
     steps:
       - name: Dependabot metadata
         uses: Dependabot/fetch-metadata@v3
