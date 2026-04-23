@@ -9,6 +9,7 @@
     "commit-commands@claude-plugins-official": true,
     "learning-output-style@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "chrome-devtools-mcp@claude-plugins-official": true
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "context-mode@context-mode": true
   }
 }

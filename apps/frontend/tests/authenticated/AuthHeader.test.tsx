@@ -75,7 +75,7 @@ describe('AuthHeader', () => {
                 screen.getAllByRole('link', { name: '情報' }).length,
             ).toBeGreaterThanOrEqual(1);
             expect(
-                screen.getAllByRole('link', { name: '情報検索' }).length,
+                screen.getAllByRole('link', { name: '検索' }).length,
             ).toBeGreaterThanOrEqual(1);
         });
 

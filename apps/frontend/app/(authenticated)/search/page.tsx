@@ -287,7 +287,7 @@ function SearchPageContent() {
                     Search
                 </p>
                 <h1 className='font-semibold text-2xl text-foreground tracking-tight sm:text-3xl'>
-                    情報検索
+                    検索
                 </h1>
                 <p className='text-muted-foreground text-sm'>
                     タイムテーブル・部屋割り・企画・販売物・その他の情報を横断検索できます。
