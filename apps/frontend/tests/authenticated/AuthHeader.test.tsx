@@ -98,9 +98,12 @@ describe('AuthHeader', () => {
 
         it('admin ロールでは会期セレクターが表示されること', () => {
             renderHeader({ ...defaultProps, role: 'admin', accessCodes: ACCESS_CODES });
-            expect(
-                screen.getAllByRole('combobox', { name: '会期を選択' }).length,
-            ).toBeGreaterThanOrEqual(1);
+            const selectors = screen.getAllByRole('combobox', {
+                name: '会期を選択',
+            });
+
+            expect(selectors.length).toBeGreaterThanOrEqual(1);
+            expect(selectors[0]).toHaveClass('text-[var(--header-fg)]');
         });
 
     });
