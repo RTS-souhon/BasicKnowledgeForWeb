@@ -37,7 +37,7 @@ export function EventSelector({ accessCodes, variant = 'header' }: Props) {
     }
 
     const baseClass =
-        'rounded-sm border border-background/30 bg-transparent text-sm text-background focus:outline-none focus:ring-1 focus:ring-background/50 disabled:opacity-40';
+        'rounded-sm border border-[var(--header-border)] bg-transparent text-sm text-[var(--header-fg)] focus:outline-none focus:ring-1 focus:ring-[var(--header-fg)] disabled:cursor-not-allowed disabled:opacity-40';
 
     const sizeClass =
         variant === 'drawer'
@@ -52,9 +52,18 @@ export function EventSelector({ accessCodes, variant = 'header' }: Props) {
             className={`${baseClass} ${sizeClass}`}
             onChange={(e) => handleChange(e.target.value)}
         >
-            <option value=''>会期を選択</option>
+            <option
+                value=''
+                className='bg-[var(--background)] text-[var(--foreground)]'
+            >
+                会期を選択
+            </option>
             {accessCodes.map((code) => (
-                <option key={code.id} value={code.id}>
+                <option
+                    key={code.id}
+                    value={code.id}
+                    className='bg-[var(--background)] text-[var(--foreground)]'
+                >
                     {code.eventName}
                 </option>
             ))}

@@ -239,95 +239,16 @@ src/
 
 Drizzle ORM 上の CockroachDB スキーマ（`src/db/schema.ts`）:
 
-```
-users table:
-  id          uuid        primary key, auto-generated (defaultRandom)
-  name        varchar(255) not null
-  email       varchar(255) not null, unique
-  password    text         not null
-  role        varchar(50)  default 'user'
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
-  deleted_at  timestamp    nullable (soft delete)
-
-access_codes table:
-  id          uuid        primary key
-  code        varchar(50)  not null, unique
-  event_name  varchar(255) not null
-  valid_from  timestamp    not null
-  valid_to    timestamp    not null
-  created_by  uuid         not null
-  created_at  timestamp    auto-populated
-
-departments table:
-  id          uuid        primary key
-  event_id    uuid        FK → access_codes.id (RESTRICT)
-  name        varchar(255) not null
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
-  UNIQUE INDEX (event_id, id)  ← composite FK の参照元として必要
-
-timetable_items table:
-  id          uuid        primary key
-  event_id    uuid        FK → access_codes.id (RESTRICT)
-  title       varchar(255) not null
-  start_time  timestamp    not null
-  end_time    timestamp    not null
-  location    varchar(255) not null
-  description text
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
-
-rooms table:
-  id                  uuid        primary key
-  event_id            uuid        FK → access_codes.id (RESTRICT)
-  building_name       varchar(255) not null
-  floor               varchar(50)  not null
-  room_name           varchar(255) not null
-  pre_day_manager_id  uuid        composite FK → departments(event_id, id) (RESTRICT), nullable
-  pre_day_purpose     varchar(255) nullable
-  day_manager_id      uuid        composite FK → departments(event_id, id) (RESTRICT), not null
-  day_purpose         varchar(255) not null
-  notes               text         nullable
-  created_at          timestamp    auto-populated
-  updated_at          timestamp    auto-populated
-
-programs table:
-  id          uuid        primary key
-  event_id    uuid        FK → access_codes.id (RESTRICT)
-  name        varchar(255) not null
-  location    varchar(255) not null
-  start_time  timestamp    not null
-  end_time    timestamp    not null
-  description text
-  image_key   varchar(512) nullable
-  image_url   text         nullable
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
-
-shop_items table:
-  id          uuid        primary key
-  event_id    uuid        FK → access_codes.id (RESTRICT)
-  name        varchar(255) not null
-  price       int          not null
-  description text
-  image_key   varchar(512) not null
-  image_url   text         not null
-  created_at  timestamp    auto-populated
-  updated_at  timestamp    auto-populated
-
-other_items table:
-  id            uuid        primary key
-  event_id      uuid        FK → access_codes.id (RESTRICT)
-  title         varchar(255) not null
-  content       text         not null
-  image_key     varchar(512) nullable
-  image_url     text         nullable
-  display_order int          not null
-  created_by    uuid         not null
-  created_at    timestamp    auto-populated
-  updated_at    timestamp    auto-populated
-```
+| テーブル | 主要カラム |
+|---|---|
+| `users` | id, name, email, password, role(default 'user'), created/updated/deleted_at |
+| `access_codes` | id, code(unique), event_name, valid_from, valid_to, created_by, created_at |
+| `departments` | id, event_id→access_codes, name, created/updated_at; **UNIQUE(event_id,id)** |
+| `timetable_items` | id, event_id→access_codes, title, start/end_time, location, description, created/updated_at |
+| `rooms` | id, event_id→access_codes, building_name, floor, room_name, pre_day_manager_id(nullable), pre_day_purpose(nullable), day_manager_id, day_purpose, notes(nullable), created/updated_at |
+| `programs` | id, event_id→access_codes, name, location, start/end_time, description, image_key/image_url(nullable), created/updated_at |
+| `shop_items` | id, event_id→access_codes, name, price, description, image_key, image_url, created/updated_at |
+| `other_items` | id, event_id→access_codes, title, content, image_key/image_url(nullable), display_order, created_by, created/updated_at |
 
 **⚠️ CockroachDB — 複合外部キーと migration 順序**
 CockroachDB で複合 FK（例: `(event_id, manager_id) → departments(event_id, id)`）を追加するには、
@@ -403,38 +324,7 @@ const mockUseCase: IGetUsersUseCase = {
 
 **Repository モック: Drizzle クエリチェーン**
 
-Drizzle はメソッドチェーン前提です。戻り値型が `never` 推論されるのを避けるため、`mockResolvedValue` ではなく `jest.fn().mockImplementation()` を使います:
-
-```typescript
-// findAll: db.select().from(table)
-const db = {
-    select: jest.fn().mockReturnValue({
-        from: jest.fn().mockImplementation(() => Promise.resolve([mockUser])),
-    }),
-} as unknown as DatabaseClient;
-
-// findByEmail: db.select().from(table).where(...).limit(1)
-const db = {
-    select: jest.fn().mockReturnValue({
-        from: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockImplementation(() => Promise.resolve([mockUser])),
-            }),
-        }),
-    }),
-} as unknown as DatabaseClient;
-
-// create: db.insert(table).values(input).returning()
-const db = {
-    insert: jest.fn().mockReturnValue({
-        values: jest.fn().mockReturnValue({
-            returning: jest.fn().mockImplementation(() => Promise.resolve([newUser])),
-        }),
-    }),
-} as unknown as DatabaseClient;
-```
-
-⚠️ `jest.fn().mockResolvedValue(value)` は、`jest.fn()` の型引数が文脈から推論できない場合（`as unknown as DatabaseClient` など）に TS2345（`not assignable to never`）を起こします。チェーン末端のモックには `mockImplementation(() => Promise.resolve(value))` を使ってください。
+チェーン末端のリーフに `mockImplementation(() => Promise.resolve(value))` を使う（`mockResolvedValue` は TS2345 `"not assignable to never"` を起こす）。
 
 **Feature テスト: repository factory DI**
 
