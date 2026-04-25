@@ -52,6 +52,10 @@ function formatDateLabel(iso: string) {
     return dateFormatter.format(new Date(iso));
 }
 
+function hasText(value: string) {
+    return value.trim().length > 0;
+}
+
 function SearchPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -155,9 +159,11 @@ function SearchPageContent() {
                             <span className='mx-2'>・</span>
                             <span>{formatTime(item.startTime)}</span>
                         </div>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            📍 {item.location}
-                        </p>
+                        {hasText(item.location) && (
+                            <p className='mt-1 text-muted-foreground text-sm'>
+                                📍 {item.location}
+                            </p>
+                        )}
                         {item.description && (
                             <p className='mt-2 text-muted-foreground text-sm'>
                                 {item.description}
@@ -211,9 +217,11 @@ function SearchPageContent() {
                             {formatDateLabel(program.startTime)} ・{' '}
                             {formatRange(program.startTime, program.endTime)}
                         </p>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            📍 {program.location}
-                        </p>
+                        {hasText(program.location) && (
+                            <p className='mt-1 text-muted-foreground text-sm'>
+                                📍 {program.location}
+                            </p>
+                        )}
                         {program.description && (
                             <p className='mt-2 text-muted-foreground text-sm'>
                                 {program.description}
