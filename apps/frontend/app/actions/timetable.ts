@@ -34,7 +34,7 @@ export async function createTimetableItemAction(
     data: {
         title: string;
         start_time: string;
-        location: string;
+        location?: string;
         description?: string | null;
     },
 ): Promise<TimetableResult> {
