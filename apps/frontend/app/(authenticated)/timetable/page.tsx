@@ -157,12 +157,16 @@ export default async function TimetablePage({
                                                 <p className='font-semibold text-base text-foreground leading-tight sm:font-medium sm:text-sm'>
                                                     {item.title}
                                                 </p>
-                                                <p className='flex items-center gap-1 text-muted-foreground text-xs'>
-                                                    <span aria-hidden='true'>
-                                                        {'📍'}
-                                                    </span>
-                                                    <span>{item.location}</span>
-                                                </p>
+                                                {item.location && (
+                                                    <p className='flex items-center gap-1 text-muted-foreground text-xs'>
+                                                        <span aria-hidden='true'>
+                                                            {'📍'}
+                                                        </span>
+                                                        <span>
+                                                            {item.location}
+                                                        </span>
+                                                    </p>
+                                                )}
                                                 {item.description && (
                                                     <p className='text-muted-foreground text-xs'>
                                                         {item.description}

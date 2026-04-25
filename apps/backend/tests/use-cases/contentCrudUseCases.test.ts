@@ -244,6 +244,20 @@ describe('Timetable use cases', () => {
         });
     });
 
+    it('CreateTimetableItemUseCase sets empty location when omitted', async () => {
+        const repo = mockTimetableRepository();
+        const useCase = new CreateTimetableItemUseCase(repo);
+        await useCase.execute({
+            eventId: EVENT_ID,
+            title: '場所未定の案内',
+            startTime: '2025-08-01T10:00:00.000Z',
+            description: null,
+        });
+        expect(repo.create).toHaveBeenCalledWith(
+            expect.objectContaining({ location: '' }),
+        );
+    });
+
     it('UpdateTimetableItemUseCase sets endTime to startTime when start is updated', async () => {
         const repo = mockTimetableRepository();
         const useCase = new UpdateTimetableItemUseCase(repo);

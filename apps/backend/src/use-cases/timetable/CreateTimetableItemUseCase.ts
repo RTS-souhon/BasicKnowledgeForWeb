@@ -19,7 +19,7 @@ export class CreateTimetableItemUseCase implements ICreateTimetableItemUseCase {
                 title: input.title,
                 startTime: start,
                 endTime: start,
-                location: input.location,
+                location: input.location ?? '',
                 description: input.description ?? null,
             });
             return { success: true, data };

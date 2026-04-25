@@ -154,8 +154,8 @@ export default function TimetableAdminPanel({
     const handleSubmit = () => {
         const title = formData.title.trim();
         const location = formData.location.trim();
-        if (!title || !formData.start_time || !location) {
-            setError('タイトル・開始・場所は必須です');
+        if (!title || !formData.start_time) {
+            setError('タイトル・開始は必須です');
             return;
         }
 
@@ -289,10 +289,7 @@ export default function TimetableAdminPanel({
                             />
                         </div>
                         <div>
-                            <Label htmlFor='tt-location'>
-                                場所
-                                <span className='ml-1 text-red-500'>*</span>
-                            </Label>
+                            <Label htmlFor='tt-location'>場所</Label>
                             <Input
                                 id='tt-location'
                                 value={formData.location}
@@ -367,12 +364,16 @@ export default function TimetableAdminPanel({
                                                 <p className='font-semibold text-base text-foreground leading-tight sm:font-medium sm:text-sm'>
                                                     {item.title}
                                                 </p>
-                                                <p className='flex items-center gap-1 text-muted-foreground text-xs'>
-                                                    <span aria-hidden='true'>
-                                                        {'📍'}
-                                                    </span>
-                                                    <span>{item.location}</span>
-                                                </p>
+                                                {item.location && (
+                                                    <p className='flex items-center gap-1 text-muted-foreground text-xs'>
+                                                        <span aria-hidden='true'>
+                                                            {'📍'}
+                                                        </span>
+                                                        <span>
+                                                            {item.location}
+                                                        </span>
+                                                    </p>
+                                                )}
                                                 {item.description && (
                                                     <p className='text-muted-foreground text-xs'>
                                                         {item.description}

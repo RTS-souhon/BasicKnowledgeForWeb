@@ -15,7 +15,7 @@
 ## 画面構成
 - `user`
   - 日付ごとにグルーピング表示
-  - 項目: 時刻、タイトル、場所、説明
+  - 項目: 時刻、タイトル、場所（設定されている場合のみ）、説明
 - `admin`
   - `TimetableAdminPanel` で一覧・作成・更新・削除
 
@@ -27,7 +27,7 @@ type TimetableItem = {
   title: string;
   startTime: string;
   endTime: string;
-  location: string;
+  location: string; // 空文字の場合あり
   description: string | null;
 }
 ```
@@ -43,10 +43,10 @@ type TimetableItem = {
   "event_id": "uuid",
   "title": "開会",
   "start_time": "2026-05-01T09:00:00.000Z",
-  "location": "本部",
   "description": "任意"
 }
 ```
+- `location` は任意（未指定時は空文字で保存）
 - レスポンス: `{ "item": TimetableItem }`
 
 ### `PUT /api/timetable/:id`（admin）
