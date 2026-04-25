@@ -94,6 +94,33 @@ describe('SearchPage', () => {
         expect(await screen.findByText('開会式')).toBeInTheDocument();
     });
 
+    it('タイムテーブルの場所が空の場合はピン表示を出さない', async () => {
+        mockUseSearchParams.mockReturnValue(new URLSearchParams('q=open'));
+        (global.fetch as jest.Mock).mockResolvedValue(
+            mockResponse({
+                timetable: [
+                    {
+                        id: 'tt-1',
+                        title: '開会式',
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString(),
+                        location: '',
+                        description: null,
+                    },
+                ],
+                rooms: [],
+                programs: [],
+                shopItems: [],
+                otherItems: [],
+            }),
+        );
+
+        render(<SearchPage />);
+
+        expect(await screen.findByText('開会式')).toBeInTheDocument();
+        expect(screen.queryByText(/📍/)).not.toBeInTheDocument();
+    });
+
     it('全カテゴリ0件のとき空状態を表示する', async () => {
         mockUseSearchParams.mockReturnValue(new URLSearchParams('q=none'));
         (global.fetch as jest.Mock).mockResolvedValue(
