@@ -1,12 +1,20 @@
-import { AuthHeader } from '@frontend/components/AuthHeader';
+import {
+    AuthHeader,
+    buildNavigationHref,
+} from '@frontend/components/AuthHeader';
 import { AppRouterWrapper } from '@frontend/tests/helpers/createMockRouter';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+const mockUseSearchParams = jest
+    .fn()
+    .mockReturnValue(new URLSearchParams());
+const mockUsePathname = jest.fn().mockReturnValue('/');
+
 jest.mock('next/navigation', () => ({
-    usePathname: jest.fn().mockReturnValue('/'),
-    useSearchParams: jest.fn().mockReturnValue(new URLSearchParams()),
+    usePathname: mockUsePathname,
+    useSearchParams: mockUseSearchParams,
 }));
 
 jest.mock('next/link', () => {
@@ -32,7 +40,6 @@ const ACCESS_CODES = [
     { id: 'event-2', eventName: '第2回イベント' },
 ];
 
-
 const defaultProps = {
     role: 'user',
     userName: 'テストユーザー',
@@ -53,6 +60,8 @@ function renderHeader(props = defaultProps) {
 describe('AuthHeader', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockUsePathname.mockReturnValue('/');
+        mockUseSearchParams.mockReturnValue(new URLSearchParams());
     });
 
     describe('ナビゲーション', () => {
@@ -86,6 +95,19 @@ describe('AuthHeader', () => {
             ).toBeInTheDocument();
         });
 
+    });
+
+    describe('buildNavigationHref', () => {
+        it('検索クエリは検索ページ以外に引き継がれないこと', () => {
+            const rawParams = 'event_id=event-1&q=hogehoge';
+
+            expect(
+                buildNavigationHref('/timetable', rawParams),
+            ).toBe('/timetable?event_id=event-1');
+            expect(buildNavigationHref('/search', rawParams)).toBe(
+                '/search?event_id=event-1&q=hogehoge',
+            );
+        });
     });
 
     describe('会期セレクター — 権限制御', () => {
