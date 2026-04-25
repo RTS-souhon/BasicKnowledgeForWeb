@@ -7,11 +7,11 @@ import {
     uploadProgramImageAction,
 } from '@frontend/app/actions/programs';
 import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -417,6 +417,7 @@ export default function ProgramAdminPanel({
             ) : (
                 <div className='grid gap-4 md:grid-cols-2'>
                     {sorted.map((program) => {
+                        const imageUrl = program.imageUrl?.trim() ?? '';
                         const schedule = describeSchedule(
                             program.startTime,
                             program.endTime,
@@ -426,15 +427,12 @@ export default function ProgramAdminPanel({
                                 key={program.id}
                                 className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
                             >
-                                {program.imageUrl?.trim() && (
-                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
-                                        <Image
-                                            src={program.imageUrl}
+                                {imageUrl && (
+                                    <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <TapToZoomImage
+                                            src={imageUrl}
                                             alt={program.name}
-                                            fill
                                             sizes='(max-width: 768px) 100vw, 400px'
-                                            className='object-cover'
-                                            unoptimized
                                         />
                                     </div>
                                 )}
