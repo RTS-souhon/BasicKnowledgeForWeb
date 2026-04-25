@@ -3,7 +3,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
-import Image from 'next/image';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import OtherItemAdminPanel from './OtherItemAdminPanel';
 
 type OtherItem = {
@@ -89,39 +89,39 @@ export default async function OthersPage({
                 </p>
             ) : (
                 <div className='space-y-4'>
-                    {sorted.map((item) => (
-                        <article
-                            key={item.id}
-                            className='rounded-xl border border-border bg-card p-4 shadow-sm'
-                            aria-labelledby={`other-item-${item.id}`}
-                        >
-                            <div className='pb-3'>
-                                <h2
-                                    id={`other-item-${item.id}`}
-                                    className='font-semibold text-foreground text-sm'
-                                >
-                                    {item.title}
-                                </h2>
-                            </div>
-                            <div className='border-border/70 border-t pt-3'>
-                                {item.imageUrl?.trim() && (
-                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
-                                        <Image
-                                            src={item.imageUrl}
-                                            alt={item.title}
-                                            fill
-                                            sizes='(max-width: 768px) 100vw, 400px'
-                                            className='object-cover'
-                                            unoptimized
-                                        />
-                                    </div>
-                                )}
-                                <p className='whitespace-pre-wrap text-muted-foreground text-sm leading-relaxed'>
-                                    {item.content}
-                                </p>
-                            </div>
-                        </article>
-                    ))}
+                    {sorted.map((item) => {
+                        const imageUrl = item.imageUrl?.trim() ?? '';
+                        return (
+                            <article
+                                key={item.id}
+                                className='rounded-xl border border-border bg-card p-4 shadow-sm'
+                                aria-labelledby={`other-item-${item.id}`}
+                            >
+                                <div className='pb-3'>
+                                    <h2
+                                        id={`other-item-${item.id}`}
+                                        className='font-semibold text-foreground text-sm'
+                                    >
+                                        {item.title}
+                                    </h2>
+                                </div>
+                                <div className='border-border/70 border-t pt-3'>
+                                    {imageUrl && (
+                                        <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                            <TapToZoomImage
+                                                src={imageUrl}
+                                                alt={item.title}
+                                                sizes='(max-width: 768px) 100vw, 400px'
+                                            />
+                                        </div>
+                                    )}
+                                    <p className='whitespace-pre-wrap text-muted-foreground text-sm leading-relaxed'>
+                                        {item.content}
+                                    </p>
+                                </div>
+                            </article>
+                        );
+                    })}
                 </div>
             )}
         </section>

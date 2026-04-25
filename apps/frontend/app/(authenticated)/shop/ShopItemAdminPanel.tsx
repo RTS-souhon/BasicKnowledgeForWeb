@@ -7,10 +7,10 @@ import {
     uploadShopItemImageAction,
 } from '@frontend/app/actions/shop-items';
 import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
     type CSSProperties,
@@ -87,13 +87,11 @@ function ShopItemImage({
             style={style}
         >
             {hasImage ? (
-                <Image
+                <TapToZoomImage
                     src={sanitizedUrl}
                     alt={item.name}
-                    fill
                     sizes='(max-width: 768px) 100vw, 160px'
-                    className='object-cover'
-                    unoptimized
+                    thumbnailClassName='object-cover'
                 />
             ) : (
                 <div className='flex h-full w-full items-center justify-center text-[10px] text-muted-foreground uppercase tracking-wide'>

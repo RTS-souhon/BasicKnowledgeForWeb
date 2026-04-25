@@ -3,7 +3,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
-import Image from 'next/image';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import type { CSSProperties } from 'react';
 import ShopItemAdminPanel from './ShopItemAdminPanel';
 
@@ -67,13 +67,11 @@ function ShopItemImage({
             style={style}
         >
             {hasImage ? (
-                <Image
+                <TapToZoomImage
                     src={sanitizedUrl}
                     alt={item.name}
-                    fill
                     sizes='(max-width: 768px) 100vw, 160px'
-                    className='object-cover'
-                    unoptimized
+                    thumbnailClassName='object-cover'
                 />
             ) : (
                 <div className='flex h-full w-full items-center justify-center text-[10px] text-muted-foreground uppercase tracking-wide'>

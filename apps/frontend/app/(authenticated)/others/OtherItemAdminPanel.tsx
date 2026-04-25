@@ -7,10 +7,10 @@ import {
     uploadOtherItemImageAction,
 } from '@frontend/app/actions/others';
 import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
@@ -364,14 +364,11 @@ export default function OtherItemAdminPanel({
                             </div>
                             <div className='border-border/70 border-t pt-3'>
                                 {item.imageUrl?.trim() && (
-                                    <div className='relative mb-3 h-40 w-full overflow-hidden rounded-lg'>
-                                        <Image
-                                            src={item.imageUrl}
+                                    <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <TapToZoomImage
+                                            src={item.imageUrl.trim()}
                                             alt={item.title}
-                                            fill
                                             sizes='(max-width: 768px) 100vw, 400px'
-                                            className='object-cover'
-                                            unoptimized
                                         />
                                     </div>
                                 )}
