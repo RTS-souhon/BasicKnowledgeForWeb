@@ -3,6 +3,7 @@
 import type { SearchResultData } from '@backend/src/use-cases/search/ISearchUseCase';
 import { useAuthContext } from '@frontend/app/(authenticated)/auth-context';
 import { client } from '@frontend/app/utils/client';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 
@@ -54,6 +55,12 @@ function formatDateLabel(iso: string) {
 
 function hasText(value: string) {
     return value.trim().length > 0;
+}
+
+function toImageUrl(value: string | null | undefined) {
+    if (!value) return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
 }
 
 function SearchPageContent() {
@@ -205,71 +212,110 @@ function SearchPageContent() {
                 key: 'programs',
                 label: '企画',
                 items: results?.programs ?? [],
-                render: (program: ProgramResult) => (
-                    <article
-                        key={program.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <p className='font-semibold text-base text-foreground'>
-                            {program.name}
-                        </p>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            {formatDateLabel(program.startTime)} ・{' '}
-                            {formatRange(program.startTime, program.endTime)}
-                        </p>
-                        {hasText(program.location) && (
+                render: (program: ProgramResult) => {
+                    const imageUrl = toImageUrl(program.imageUrl);
+                    return (
+                        <article
+                            key={program.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={program.name}
+                                        sizes='(max-width: 768px) 100vw, 400px'
+                                    />
+                                </div>
+                            )}
+                            <p className='font-semibold text-base text-foreground'>
+                                {program.name}
+                            </p>
                             <p className='mt-1 text-muted-foreground text-sm'>
-                                📍 {program.location}
+                                {formatDateLabel(program.startTime)} ・{' '}
+                                {formatRange(
+                                    program.startTime,
+                                    program.endTime,
+                                )}
                             </p>
-                        )}
-                        {program.description && (
-                            <p className='mt-2 text-muted-foreground text-sm'>
-                                {program.description}
-                            </p>
-                        )}
-                    </article>
-                ),
+                            {hasText(program.location) && (
+                                <p className='mt-1 text-muted-foreground text-sm'>
+                                    📍 {program.location}
+                                </p>
+                            )}
+                            {program.description && (
+                                <p className='mt-2 text-muted-foreground text-sm'>
+                                    {program.description}
+                                </p>
+                            )}
+                        </article>
+                    );
+                },
             },
             {
                 key: 'shopItems',
                 label: '販売物',
                 items: results?.shopItems ?? [],
-                render: (item: ShopItemResult) => (
-                    <article
-                        key={item.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <p className='font-semibold text-base text-foreground'>
-                            {item.name}
-                        </p>
-                        <p className='mt-2 font-semibold text-foreground tabular-nums'>
-                            ¥{item.price.toLocaleString('ja-JP')}
-                        </p>
-                        {item.description && (
-                            <p className='mt-2 text-muted-foreground text-sm'>
-                                {item.description}
+                render: (item: ShopItemResult) => {
+                    const imageUrl = toImageUrl(item.imageUrl);
+                    return (
+                        <article
+                            key={item.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-36 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={item.name}
+                                        sizes='(max-width: 768px) 100vw, 360px'
+                                    />
+                                </div>
+                            )}
+                            <p className='font-semibold text-base text-foreground'>
+                                {item.name}
                             </p>
-                        )}
-                    </article>
-                ),
+                            <p className='mt-2 font-semibold text-foreground tabular-nums'>
+                                ¥{item.price.toLocaleString('ja-JP')}
+                            </p>
+                            {item.description && (
+                                <p className='mt-2 text-muted-foreground text-sm'>
+                                    {item.description}
+                                </p>
+                            )}
+                        </article>
+                    );
+                },
             },
             {
                 key: 'otherItems',
                 label: 'その他情報',
                 items: results?.otherItems ?? [],
-                render: (info: OtherItemResult) => (
-                    <article
-                        key={info.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <p className='font-semibold text-base text-foreground'>
-                            {info.title}
-                        </p>
-                        <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
-                            {info.content}
-                        </p>
-                    </article>
-                ),
+                render: (info: OtherItemResult) => {
+                    const imageUrl = toImageUrl(info.imageUrl);
+                    return (
+                        <article
+                            key={info.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={info.title}
+                                        sizes='(max-width: 768px) 100vw, 400px'
+                                    />
+                                </div>
+                            )}
+                            <p className='font-semibold text-base text-foreground'>
+                                {info.title}
+                            </p>
+                            <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
+                                {info.content}
+                            </p>
+                        </article>
+                    );
+                },
             },
         ],
         [results],
