@@ -81,7 +81,7 @@ export default function TapToZoomImage({
                     </button>
                     <div
                         className='relative h-[min(82vh,1080px)] w-[min(94vw,1600px)]'
-                        onClick={(event) => event.stopPropagation()}
+                        data-testid='zoom-modal-frame'
                     >
                         <Image
                             src={src}
