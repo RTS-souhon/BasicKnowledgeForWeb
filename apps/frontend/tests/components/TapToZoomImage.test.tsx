@@ -60,4 +60,26 @@ describe('TapToZoomImage', () => {
         await user.click(screen.getByTestId('zoom-modal-frame'));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
+
+    it('拡大後に画像をタップしても閉じる', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <div className='h-40 w-40'>
+                <TapToZoomImage
+                    src='https://example.com/sample.png'
+                    alt='サンプル画像'
+                    sizes='160px'
+                />
+            </div>,
+        );
+
+        await user.click(
+            screen.getByRole('button', { name: 'サンプル画像 を拡大表示' }),
+        );
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+        await user.click(screen.getAllByAltText('サンプル画像')[1]);
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
 });
