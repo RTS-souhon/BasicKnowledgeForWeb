@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: 'Basic Knowledge For Web',
-    description: 'Basic Knowledge For Web',
+    title: '基礎知識Web版',
+    description: 'RTS基礎知識のWeb版',
 };
 
 export default function RootLayout({
