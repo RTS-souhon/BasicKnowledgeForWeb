@@ -1,5 +1,6 @@
 'use client';
 
+import type { AccessCode as BackendAccessCode } from '@backend/src/infrastructure/repositories/access-code/IAccessCodeRepository';
 import {
     copyDepartmentsFromEventAction,
     createDepartmentAction,
@@ -7,6 +8,7 @@ import {
     updateDepartmentAction,
 } from '@frontend/app/actions/departments';
 import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import { client } from '@frontend/app/utils/client';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
@@ -18,10 +20,7 @@ type Department = {
     name: string;
 };
 
-type AccessCode = {
-    id: string;
-    eventName: string;
-};
+type AccessCode = Pick<BackendAccessCode, 'id' | 'eventName'>;
 
 async function fetchDepartmentsFromApi(
     eventId: string,
@@ -41,12 +40,11 @@ async function fetchDepartmentsFromApi(
 
 async function fetchAccessCodesFromApi(): Promise<AccessCode[] | null> {
     try {
-        const res = await fetchFromBackend('/api/access-codes', {
-            credentials: 'include',
-        });
+        const res = await client.api['access-codes'].$get();
         if (!res.ok) return null;
-        const body = (await res.json()) as { codes?: AccessCode[] };
-        return Array.isArray(body.codes) ? body.codes : null;
+        const body = await res.json();
+        if (!('codes' in body) || !Array.isArray(body.codes)) return null;
+        return body.codes;
     } catch {
         return null;
     }

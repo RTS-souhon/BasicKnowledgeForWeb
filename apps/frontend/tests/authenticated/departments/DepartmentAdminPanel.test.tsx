@@ -28,11 +28,22 @@ jest.mock('@frontend/app/actions/departments', () => ({
 jest.mock('@frontend/app/lib/backendFetch', () => ({
     fetchFromBackend: jest.fn(),
 }));
+jest.mock('@frontend/app/utils/client', () => ({
+    client: {
+        api: {
+            'access-codes': {
+                $get: jest.fn(),
+            },
+        },
+    },
+}));
 
 const actions =
     require('@frontend/app/actions/departments') as typeof import('@frontend/app/actions/departments');
 const backendFetch =
     require('@frontend/app/lib/backendFetch') as typeof import('@frontend/app/lib/backendFetch');
+const frontendClient =
+    require('@frontend/app/utils/client') as typeof import('@frontend/app/utils/client');
 const DepartmentAdminPanel =
     require('@frontend/app/(authenticated)/departments/DepartmentAdminPanel')
         .default as typeof import('@frontend/app/(authenticated)/departments/DepartmentAdminPanel').default;
@@ -42,6 +53,9 @@ const mockUpdate = jest.mocked(actions.updateDepartmentAction);
 const mockDelete = jest.mocked(actions.deleteDepartmentAction);
 const mockCopy = jest.mocked(actions.copyDepartmentsFromEventAction);
 const mockFetchFromBackend = jest.mocked(backendFetch.fetchFromBackend);
+const mockAccessCodesGet = jest.mocked(
+    frontendClient.client.api['access-codes'].$get,
+);
 
 const MOCK_DEPARTMENTS = [
     { id: '1', name: '企画部' },
@@ -51,6 +65,10 @@ const MOCK_DEPARTMENTS = [
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockAccessCodesGet.mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+    } as never);
     mockFetchFromBackend.mockResolvedValue(
         new Response('{}', {
             status: 404,
@@ -330,17 +348,12 @@ describe('DepartmentAdminPanel', () => {
 
     it('コピー元会期未選択でコピーするとエラーを表示する', async () => {
         const user = userEvent.setup();
-        mockFetchFromBackend.mockResolvedValueOnce(
-            new Response(
-                JSON.stringify({
-                    codes: [{ id: 'event-2', eventName: '前回会期' }],
-                }),
-                {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                },
-            ),
-        );
+        mockAccessCodesGet.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                codes: [{ id: 'event-2', eventName: '前回会期' }],
+            }),
+        } as never);
         render(
             <DepartmentAdminPanel
                 departments={MOCK_DEPARTMENTS}
@@ -361,36 +374,30 @@ describe('DepartmentAdminPanel', () => {
 
     it('コピー元会期を選択してコピーできる', async () => {
         const user = userEvent.setup();
-        mockFetchFromBackend
-            .mockResolvedValueOnce(
-                new Response(
-                    JSON.stringify({
-                        codes: [
-                            { id: 'event-1', eventName: '現在会期' },
-                            { id: 'event-2', eventName: '前回会期' },
-                        ],
-                    }),
-                    {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' },
-                    },
-                ),
-            )
-            .mockResolvedValueOnce(
-                new Response(
-                    JSON.stringify({
-                        departments: [
-                            { id: '1', name: '企画部' },
-                            { id: '2', name: '運営部' },
-                            { id: '3', name: '広報部' },
-                        ],
-                    }),
-                    {
-                        status: 200,
-                        headers: { 'Content-Type': 'application/json' },
-                    },
-                ),
-            );
+        mockAccessCodesGet.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                codes: [
+                    { id: 'event-1', eventName: '現在会期' },
+                    { id: 'event-2', eventName: '前回会期' },
+                ],
+            }),
+        } as never);
+        mockFetchFromBackend.mockResolvedValueOnce(
+            new Response(
+                JSON.stringify({
+                    departments: [
+                        { id: '1', name: '企画部' },
+                        { id: '2', name: '運営部' },
+                        { id: '3', name: '広報部' },
+                    ],
+                }),
+                {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                },
+            ),
+        );
         mockCopy.mockResolvedValue({
             success: true,
             data: [

@@ -17,6 +17,7 @@ export type UpdateDepartmentInput = Partial<
 export interface IDepartmentRepository {
     findByEventId(eventId: string): Promise<Department[]>;
     create(input: CreateDepartmentInput): Promise<Department>;
+    createBulk(inputs: CreateDepartmentInput[]): Promise<Department[]>;
     update(
         id: string,
         eventId: string,

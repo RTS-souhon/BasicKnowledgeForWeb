@@ -49,14 +49,13 @@ export class CopyDepartmentsFromEventUseCase
                 (name) => !targetNameSet.has(name),
             );
 
-            const createdDepartments = await Promise.all(
-                namesToCreate.map((name) =>
-                    this.departmentRepository.create({
+            const createdDepartments =
+                await this.departmentRepository.createBulk(
+                    namesToCreate.map((name) => ({
                         eventId: input.targetEventId,
                         name,
-                    }),
-                ),
-            );
+                    })),
+                );
 
             return {
                 success: true,

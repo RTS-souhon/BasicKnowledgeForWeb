@@ -188,6 +188,9 @@ function mockDepartmentRepository(overrides: Partial<IDepartmentRepository> = {}
         create: jest
             .fn<IDepartmentRepository['create']>()
             .mockImplementation(() => Promise.resolve(baseDepartment)),
+        createBulk: jest
+            .fn<IDepartmentRepository['createBulk']>()
+            .mockImplementation(() => Promise.resolve([baseDepartment])),
         update: jest
             .fn<IDepartmentRepository['update']>()
             .mockImplementation(() => Promise.resolve(baseDepartment)),

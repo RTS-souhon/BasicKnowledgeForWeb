@@ -68,6 +68,9 @@ function createMockDepartmentRepository(
         create: jest
             .fn<IDepartmentRepository['create']>()
             .mockImplementation(() => Promise.resolve(dept1)),
+        createBulk: jest
+            .fn<IDepartmentRepository['createBulk']>()
+            .mockImplementation(() => Promise.resolve([dept1])),
         update: jest
             .fn<IDepartmentRepository['update']>()
             .mockImplementation(() => Promise.resolve(dept1)),
@@ -394,11 +397,11 @@ describe('POST /api/departments/copy', () => {
                 }
                 return Promise.resolve([]);
             });
-        const create = jest
-            .fn<IDepartmentRepository['create']>()
-            .mockImplementation(() => Promise.resolve(createdDepartment));
+        const createBulk = jest
+            .fn<IDepartmentRepository['createBulk']>()
+            .mockImplementation(() => Promise.resolve([createdDepartment]));
         const app = createTestAppWithDepartments(
-            createMockDepartmentRepository({ findByEventId, create }),
+            createMockDepartmentRepository({ findByEventId, createBulk }),
         );
 
         const res = await app.request(
@@ -424,10 +427,12 @@ describe('POST /api/departments/copy', () => {
         expect(body.createdCount).toBe(1);
         expect(body.skippedCount).toBe(1);
         expect(body.departments).toHaveLength(1);
-        expect(create).toHaveBeenCalledWith({
-            eventId: EVENT_ID,
-            name: '広報部',
-        });
+        expect(createBulk).toHaveBeenCalledWith([
+            {
+                eventId: EVENT_ID,
+                name: '広報部',
+            },
+        ]);
     });
 
     it('コピー元とコピー先が同一会期のとき 400 が返ること', async () => {
