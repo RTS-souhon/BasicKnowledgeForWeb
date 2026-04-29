@@ -359,6 +359,166 @@ describe('POST /api/departments', () => {
     });
 });
 
+// ─── POST /api/departments/copy ───────────────────────────────────────────────
+
+describe('POST /api/departments/copy', () => {
+    it('コピー元会期の部署名を重複除外してコピーできること', async () => {
+        const sourceDepartments: Department[] = [
+            {
+                ...dept1,
+                id: '60000000-0000-4000-8000-000000000010',
+                eventId: OTHER_EVENT_ID,
+                name: '企画部',
+            },
+            {
+                ...dept1,
+                id: '60000000-0000-4000-8000-000000000011',
+                eventId: OTHER_EVENT_ID,
+                name: '広報部',
+            },
+        ];
+        const createdDepartment: Department = {
+            ...dept1,
+            id: '60000000-0000-4000-8000-000000000012',
+            eventId: EVENT_ID,
+            name: '広報部',
+        };
+        const findByEventId = jest
+            .fn<(eventId: string) => Promise<Department[]>>()
+            .mockImplementation((eventId) => {
+                if (eventId === OTHER_EVENT_ID) {
+                    return Promise.resolve(sourceDepartments);
+                }
+                if (eventId === EVENT_ID) {
+                    return Promise.resolve([dept1]);
+                }
+                return Promise.resolve([]);
+            });
+        const create = jest
+            .fn<IDepartmentRepository['create']>()
+            .mockImplementation(() => Promise.resolve(createdDepartment));
+        const app = createTestAppWithDepartments(
+            createMockDepartmentRepository({ findByEventId, create }),
+        );
+
+        const res = await app.request(
+            '/api/departments/copy',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ source_event_id: OTHER_EVENT_ID }),
+            },
+            mockEnv,
+        );
+        const body = (await res.json()) as {
+            departments: Department[];
+            createdCount: number;
+            skippedCount: number;
+        };
+
+        expect(res.status).toBe(200);
+        expect(body.createdCount).toBe(1);
+        expect(body.skippedCount).toBe(1);
+        expect(body.departments).toHaveLength(1);
+        expect(create).toHaveBeenCalledWith({
+            eventId: EVENT_ID,
+            name: '広報部',
+        });
+    });
+
+    it('コピー元とコピー先が同一会期のとき 400 が返ること', async () => {
+        const app = createTestAppWithDepartments(
+            createMockDepartmentRepository(),
+        );
+
+        const res = await app.request(
+            '/api/departments/copy',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ source_event_id: EVENT_ID }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('コピー元会期に部署がないとき 404 が返ること', async () => {
+        const app = createTestAppWithDepartments(
+            createMockDepartmentRepository(),
+        );
+
+        const res = await app.request(
+            '/api/departments/copy',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ source_event_id: OTHER_EVENT_ID }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(404);
+    });
+
+    it('source_event_id が不正なとき 400 が返ること', async () => {
+        const app = createTestAppWithDepartments(
+            createMockDepartmentRepository(),
+        );
+
+        const res = await app.request(
+            '/api/departments/copy',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({ source_event_id: 'invalid' }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(400);
+    });
+
+    it('role=user の auth_token では 403 が返ること', async () => {
+        const app = createTestAppWithDepartments(
+            createMockDepartmentRepository(),
+        );
+
+        const res = await app.request(
+            '/api/departments/copy',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${userToken}`,
+                },
+                body: JSON.stringify({ source_event_id: OTHER_EVENT_ID }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(403);
+    });
+});
+
 // ─── PUT /api/departments/:id ─────────────────────────────────────────────────
 
 describe('PUT /api/departments/:id', () => {

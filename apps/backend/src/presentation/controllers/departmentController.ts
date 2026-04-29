@@ -1,9 +1,11 @@
 import type { Env } from '@backend/src/db/connection';
 import {
+    copyDepartmentsSchema,
     createDepartmentSchema,
     updateDepartmentSchema,
 } from '@backend/src/infrastructure/validators/departmentValidator';
 import { eventIdHeaderSchema } from '@backend/src/infrastructure/validators/eventIdValidator';
+import type { ICopyDepartmentsFromEventUseCase } from '@backend/src/use-cases/department/ICopyDepartmentsFromEventUseCase';
 import type { ICreateDepartmentUseCase } from '@backend/src/use-cases/department/ICreateDepartmentUseCase';
 import type { IDeleteDepartmentUseCase } from '@backend/src/use-cases/department/IDeleteDepartmentUseCase';
 import type { IGetDepartmentsUseCase } from '@backend/src/use-cases/department/IGetDepartmentsUseCase';
@@ -67,6 +69,29 @@ export async function createDepartment(
         return c.json({ error: result.error }, toStatus(result.status));
     }
     return c.json({ department: result.data }, 201);
+}
+
+export async function copyDepartmentsFromEvent(
+    c: AdminContext,
+    useCase: ICopyDepartmentsFromEventUseCase,
+) {
+    const body = await c.req.json().catch(() => null);
+    const parsed = copyDepartmentsSchema.safeParse(body);
+    if (!parsed.success) {
+        return c.json(
+            { error: 'バリデーションエラー', details: parsed.error.issues },
+            400,
+        );
+    }
+
+    const result = await useCase.execute({
+        sourceEventId: parsed.data.source_event_id,
+        targetEventId: c.get('eventId'),
+    });
+    if (!result.success) {
+        return c.json({ error: result.error }, toStatus(result.status));
+    }
+    return c.json(result.data, 200);
 }
 
 export async function updateDepartment(
