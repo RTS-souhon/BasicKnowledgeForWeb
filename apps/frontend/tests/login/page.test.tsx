@@ -19,6 +19,30 @@ describe('LoginPage', () => {
         expect(screen.getByLabelText('メールアドレス')).toBeInTheDocument();
         expect(screen.getByLabelText('パスワード')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'ログイン' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'こちら' })).toHaveAttribute(
+            'href',
+            '/access',
+        );
+    });
+
+    it('hidden command として register を入力すると登録ページへ遷移すること', async () => {
+        const user = userEvent.setup();
+        render(<LoginPage />);
+
+        await user.keyboard('register');
+
+        await waitFor(() => {
+            expect(push).toHaveBeenCalledWith('/register');
+        });
+    });
+
+    it('メールアドレス入力中に register を入力しても登録ページへ遷移しないこと', async () => {
+        const user = userEvent.setup();
+        render(<LoginPage />);
+
+        await user.type(screen.getByLabelText('メールアドレス'), 'register');
+
+        expect(push).not.toHaveBeenCalledWith('/register');
     });
 
     it('空送信時にバリデーションエラーが表示されること', async () => {
