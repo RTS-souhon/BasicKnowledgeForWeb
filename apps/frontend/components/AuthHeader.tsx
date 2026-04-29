@@ -33,6 +33,29 @@ const NAV_ITEMS = [
     { href: '/search', label: '検索' },
 ] as const;
 
+export function buildNavigationHref(
+    href: string,
+    rawSearchParams: string,
+) {
+    const sourceParams = new URLSearchParams(rawSearchParams);
+    const selectedEventId =
+        sourceParams.get('event_id')?.trim() ?? '';
+    const searchQuery = sourceParams.get('q')?.trim() ?? '';
+    const params = new URLSearchParams();
+
+    if (selectedEventId) {
+        params.set('event_id', selectedEventId);
+    }
+
+    // q は検索ページ専用のため、他ページ遷移では引き継がない
+    if (href === '/search' && searchQuery) {
+        params.set('q', searchQuery);
+    }
+
+    const query = params.toString();
+    return query ? `${href}?${query}` : href;
+}
+
 export function AuthHeader({
     role,
     userName,
@@ -54,8 +77,7 @@ export function AuthHeader({
     );
 
     const buildHref = useCallback(
-        (href: string) =>
-            paramsString ? `${href}?${paramsString}` : href,
+        (href: string) => buildNavigationHref(href, paramsString),
         [paramsString],
     );
 

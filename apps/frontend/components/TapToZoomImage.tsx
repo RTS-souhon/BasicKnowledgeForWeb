@@ -69,7 +69,7 @@ export default function TapToZoomImage({
                     role='dialog'
                     aria-modal='true'
                     aria-label={`${alt} の拡大表示`}
-                    className='fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4'
+                    className='fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 md:p-10'
                     onClick={() => setIsOpen(false)}
                 >
                     <button
@@ -80,8 +80,9 @@ export default function TapToZoomImage({
                         閉じる
                     </button>
                     <div
-                        className='relative h-[min(82vh,1080px)] w-[min(94vw,1600px)]'
-                        onClick={(event) => event.stopPropagation()}
+                        className='relative h-[min(72vh,920px)] w-[min(86vw,1320px)] cursor-zoom-out'
+                        data-testid='zoom-modal-frame'
+                        onClick={() => setIsOpen(false)}
                     >
                         <Image
                             src={src}
