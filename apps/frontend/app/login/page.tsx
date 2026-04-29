@@ -14,7 +14,7 @@ import { Label } from '@frontend/components/ui/label';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -28,6 +28,42 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
     const router = useRouter();
     const [serverError, setServerError] = useState<string | null>(null);
+    const hiddenCommandBufferRef = useRef('');
+
+    useEffect(() => {
+        const hiddenCommand = 'register';
+        const maxBufferLength = hiddenCommand.length;
+        const onKeyDown = (event: KeyboardEvent) => {
+            const activeElement = document.activeElement;
+            const isTypingFieldFocused =
+                activeElement instanceof HTMLInputElement ||
+                activeElement instanceof HTMLTextAreaElement ||
+                activeElement instanceof HTMLSelectElement ||
+                (activeElement instanceof HTMLElement &&
+                    activeElement.isContentEditable);
+
+            if (isTypingFieldFocused) {
+                return;
+            }
+            if (event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+            if (event.key.length !== 1) {
+                return;
+            }
+            hiddenCommandBufferRef.current = (
+                hiddenCommandBufferRef.current + event.key.toLowerCase()
+            ).slice(-maxBufferLength);
+            if (hiddenCommandBufferRef.current === hiddenCommand) {
+                hiddenCommandBufferRef.current = '';
+                router.push('/register');
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [router]);
 
     const {
         register,
@@ -117,8 +153,8 @@ export default function LoginPage() {
                     </form>
 
                     <p className='mt-4 text-center text-muted-foreground text-sm'>
-                        アカウントをお持ちでない方は{' '}
-                        <Link href='/register' className='underline'>
+                        スタッフの方はアクセスコード入力ページへ{' '}
+                        <Link href='/access' className='underline'>
                             こちら
                         </Link>
                     </p>
