@@ -42,12 +42,14 @@ backend と frontend をまたぐため、以下の順序を厳守する。
 5. AI Search 呼び出し時に `event_id` メタデータフィルタを必須化し、会期越境を防止する
 6. レスポンスは `answer` と `sources`（どのドメイン・どのレコード由来か）を返す
 7. 5 ドメインをチャンク化して AI Search へ同期する処理を実装する
-8. 同期方式は「初回一括同期 + CRUD 時差分同期（upsert/delete）」とする
-9. frontend に `AiChatLauncher`（Client Component）を追加する
-10. `(authenticated)` レイアウトに右下 FAB を常時配置し、クリックでチャットモーダルを開閉できるようにする
-11. ルーティング条件で `/dashboard` と `/admin/*` では FAB とモーダルを表示しない
-12. モーダル内に会話履歴、入力欄、送信ボタン、エラーメッセージ表示を実装する
-13. 初期リリースは非ストリーミング応答（送信後に回答を一括表示）とする
+8. 同期方式は「CRUD 時差分同期（upsert/delete） + Cron Trigger による定期バッチ再同期」とする
+9. Cron Trigger は 1 日 1 回の深夜 03:00（JST）に実行する
+   - Wrangler の cron 設定は UTC で `0 18 * * *` を使用する
+10. frontend に `AiChatLauncher`（Client Component）を追加する
+11. `(authenticated)` レイアウトに右下 FAB を常時配置し、クリックでチャットモーダルを開閉できるようにする
+12. ルーティング条件で `/dashboard` と `/admin/*` では FAB とモーダルを表示しない
+13. モーダル内に会話履歴、入力欄、送信ボタン、エラーメッセージ表示を実装する
+14. 初期リリースは非ストリーミング応答（送信後に回答を一括表示）とする
 
 ## このフェーズでやらないこと
 
@@ -55,6 +57,7 @@ backend と frontend をまたぐため、以下の順序を厳守する。
 - manual / docs / PDF など DB 以外のデータ取り込み
 - 会話履歴の永続化
 - ストリーミング応答（SSE）
+- 管理者手動の初期一括インデックス実行 API
 
 ## テスト
 
@@ -65,6 +68,8 @@ backend と frontend をまたぐため、以下の順序を厳守する。
 - 正常系で `200` と `answer/sources` が返る
 - `event_id` フィルタにより別会期データが混在しない
 - 差分同期（upsert/delete）でインデックスが追従する
+- Cron バッチ実行で 5 ドメインの再同期が行われる
+- Cron バッチの失敗時にログが記録される
 
 ### Frontend
 
