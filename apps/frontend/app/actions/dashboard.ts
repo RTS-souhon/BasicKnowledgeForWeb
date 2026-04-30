@@ -9,6 +9,15 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
 type ActionResult = { success: true } | { success: false; error: string };
+type UserEntry = {
+    id: string;
+    name: string;
+    email: string;
+    role: 'user' | 'admin';
+};
+type UserRoleResult =
+    | { success: true; data: UserEntry[] }
+    | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
@@ -64,7 +73,7 @@ export async function changePasswordAction(data: {
 export async function updateUserRoleAction(
     userId: string,
     role: 'user' | 'admin',
-): Promise<ActionResult> {
+): Promise<UserRoleResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -91,8 +100,12 @@ export async function updateUserRoleAction(
                 error: body.error ?? 'ロールの変更に失敗しました',
             };
         }
+        const snapshot = await fetchUsersSnapshot(authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
         revalidateDashboard();
-        return { success: true };
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateUserRoleAction',
@@ -101,5 +114,53 @@ export async function updateUserRoleAction(
             err,
         );
         return { success: false, error: 'ロールの変更に失敗しました' };
+    }
+}
+
+async function fetchUsersSnapshot(authToken: string): Promise<UserRoleResult> {
+    const endpoint = '/api/users';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: { Cookie: `auth_token=${authToken}` },
+        });
+        logAction(
+            'fetchUsersSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error:
+                    errorBody?.error ?? '最新ユーザー一覧の取得に失敗しました',
+            };
+        }
+        const list = (body as { users?: UserEntry[] } | null)?.users;
+        if (!Array.isArray(list)) {
+            return {
+                success: false,
+                error: '最新ユーザー一覧の取得に失敗しました',
+            };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchUsersSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return {
+            success: false,
+            error: '最新ユーザー一覧の取得に失敗しました',
+        };
     }
 }

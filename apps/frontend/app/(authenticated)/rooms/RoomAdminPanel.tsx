@@ -5,6 +5,7 @@ import {
     deleteRoomAction,
     updateRoomAction,
 } from '@frontend/app/actions/rooms';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
@@ -24,6 +25,22 @@ type RoomWithDepartments = {
     dayPurpose: string;
     notes: string | null;
 };
+
+async function fetchRoomsFromApi(
+    eventId: string,
+): Promise<RoomWithDepartments[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/rooms', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { rooms?: RoomWithDepartments[] };
+        return Array.isArray(body.rooms) ? body.rooms : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     building_name: string;
@@ -162,20 +179,15 @@ export default function RoomAdminPanel({
                 return;
             }
 
-            const saved = result.data;
-            setRooms((prev) =>
-                formMode === 'adding'
-                    ? [...prev, saved]
-                    : prev.map((r) => (r.id === saved.id ? saved : r)),
-            );
-
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
             setInfoMessage(
                 formMode === 'adding'
                     ? '部屋割りを追加しました'
                     : '部屋割りを更新しました',
             );
-            closeForm();
             router.refresh();
+            closeForm();
         });
     };
 
@@ -187,7 +199,8 @@ export default function RoomAdminPanel({
                 setError(result.error);
                 return;
             }
-            setRooms((prev) => prev.filter((r) => r.id !== item.id));
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
             setInfoMessage('部屋割りを削除しました');
             router.refresh();
         });

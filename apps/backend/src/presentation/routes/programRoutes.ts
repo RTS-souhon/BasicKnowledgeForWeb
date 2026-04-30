@@ -6,6 +6,7 @@ import {
     deleteProgram,
     getPrograms,
     updateProgram,
+    uploadProgramImage,
 } from '@backend/src/presentation/controllers/programController';
 import { contentAccessMiddleware } from '@backend/src/presentation/middleware/contentAccessMiddleware';
 import { contentEditMiddleware } from '@backend/src/presentation/middleware/contentEditMiddleware';
@@ -14,6 +15,7 @@ import { CreateProgramUseCase } from '@backend/src/use-cases/program/CreateProgr
 import { DeleteProgramUseCase } from '@backend/src/use-cases/program/DeleteProgramUseCase';
 import { GetProgramsUseCase } from '@backend/src/use-cases/program/GetProgramsUseCase';
 import { UpdateProgramUseCase } from '@backend/src/use-cases/program/UpdateProgramUseCase';
+import { UploadProgramImageUseCase } from '@backend/src/use-cases/program/UploadProgramImageUseCase';
 import { Hono } from 'hono';
 import type { ContentEditVariables } from '../middleware/contentEditMiddleware';
 
@@ -38,7 +40,10 @@ export function createProgramRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new CreateProgramUseCase(repository);
+            const useCase = new CreateProgramUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return createProgram(c, useCase);
         },
     );
@@ -49,7 +54,10 @@ export function createProgramRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new UpdateProgramUseCase(repository);
+            const useCase = new UpdateProgramUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return updateProgram(c, useCase);
         },
     );
@@ -62,6 +70,18 @@ export function createProgramRoutes(
             const repository = repositoryFactory(c.env);
             const useCase = new DeleteProgramUseCase(repository);
             return deleteProgram(c, useCase);
+        },
+    );
+
+    app.post(
+        '/programs/upload',
+        contentEditMiddleware,
+        roleGuard(ADMIN_ROLES),
+        async (c) => {
+            const useCase = new UploadProgramImageUseCase(
+                c.env.SHOP_ITEM_ASSET_BUCKET,
+            );
+            return uploadProgramImage(c, useCase);
         },
     );
 

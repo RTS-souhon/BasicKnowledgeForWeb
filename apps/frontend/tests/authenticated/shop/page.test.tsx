@@ -51,7 +51,6 @@ const MOCK_ITEMS = [
         id: '1',
         name: '公式パンフレット',
         price: 500,
-        stockStatus: 'available',
         description: null,
         imageUrl: 'https://assets.example.com/event-1/pamphlet.webp',
     },
@@ -59,15 +58,13 @@ const MOCK_ITEMS = [
         id: '2',
         name: '限定Tシャツ',
         price: 2500,
-        stockStatus: 'low',
-        description: 'サイズはS・M・Lのみ',
+        description: 'サイズはS・M・Lのみ\n数量限定',
         imageUrl: 'https://assets.example.com/event-1/tshirt.webp',
     },
     {
         id: '3',
         name: '缶バッジセット',
         price: 300,
-        stockStatus: 'sold_out',
         description: null,
         imageUrl: 'https://assets.example.com/event-1/badge.webp',
     },
@@ -149,24 +146,6 @@ describe('ShopPage', () => {
         expect(screen.getAllByText('¥2,500')).toHaveLength(2);
     });
 
-    it('在庫ステータスラベルを表示する', async () => {
-        mockResolveAuth.mockResolvedValue(WITH_AUTH);
-        global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
-            new Response(JSON.stringify({ items: MOCK_ITEMS }), {
-                status: 200,
-            }),
-        );
-
-        const element = await ShopPage({
-            searchParams: Promise.resolve({ event_id: 'event-1' }),
-        });
-        render(element);
-
-        expect(screen.getAllByText('在庫あり')).toHaveLength(2);
-        expect(screen.getAllByText('残りわずか')).toHaveLength(2);
-        expect(screen.getAllByText('完売')).toHaveLength(2);
-    });
-
     it('descriptionがある場合に表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
@@ -180,7 +159,16 @@ describe('ShopPage', () => {
         });
         render(element);
 
-        expect(screen.getAllByText('サイズはS・M・Lのみ')).toHaveLength(2);
+        const descriptions = screen.getAllByText(
+            (_, element) =>
+                element?.classList.contains('whitespace-pre-wrap') === true &&
+                element.textContent?.includes('サイズはS・M・Lのみ') === true &&
+                element.textContent?.includes('数量限定') === true,
+        );
+        expect(descriptions).toHaveLength(2);
+        descriptions.forEach((element) => {
+            expect(element).toHaveClass('whitespace-pre-wrap');
+        });
     });
 
     it('テーブル表示で列ごとの情報を確認できる', async () => {
@@ -202,7 +190,7 @@ describe('ShopPage', () => {
         expect(within(table).getByText('¥500')).toBeInTheDocument();
     });
 
-    it('モバイルカードでもバッジと説明を表示する', async () => {
+    it('モバイルカードでも説明を表示する', async () => {
         mockResolveAuth.mockResolvedValue(WITH_AUTH);
         global.fetch = jest.fn<typeof fetch>().mockResolvedValue(
             new Response(JSON.stringify({ items: MOCK_ITEMS }), {
@@ -218,7 +206,8 @@ describe('ShopPage', () => {
         const articles = within(container).getAllByRole('article');
         expect(articles).toHaveLength(3);
         expect(articles[1]).toHaveTextContent('限定Tシャツ');
-        expect(articles[1]).toHaveTextContent('残りわずか');
+        expect(articles[1]).toHaveTextContent('サイズはS・M・Lのみ');
+        expect(articles[1]).toHaveTextContent('数量限定');
     });
 
     it('画像が欠けている場合に警告とプレースホルダーを表示する', async () => {

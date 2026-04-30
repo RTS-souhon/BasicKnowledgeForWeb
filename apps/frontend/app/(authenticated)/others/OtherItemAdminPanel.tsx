@@ -4,19 +4,39 @@ import {
     createOtherItemAction,
     deleteOtherItemAction,
     updateOtherItemAction,
+    uploadOtherItemImageAction,
 } from '@frontend/app/actions/others';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 type OtherItem = {
     id: string;
     title: string;
     content: string;
+    imageUrl: string | null;
     displayOrder: number;
 };
+
+async function fetchOtherItemsFromApi(
+    eventId: string,
+): Promise<OtherItem[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/others', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { items?: OtherItem[] };
+        return Array.isArray(body.items) ? body.items : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     title: string;
@@ -53,6 +73,7 @@ export default function OtherItemAdminPanel({
     const [error, setError] = useState<string | null>(null);
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
@@ -60,6 +81,7 @@ export default function OtherItemAdminPanel({
         setError(null);
         setInfoMessage(null);
         setFormMode('adding');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const openEdit = (item: OtherItem) => {
@@ -68,12 +90,29 @@ export default function OtherItemAdminPanel({
         setError(null);
         setInfoMessage(null);
         setFormMode('editing');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const closeForm = () => {
         setFormMode('idle');
         setEditingItem(null);
         setError(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const uploadImageIfSelected = async (): Promise<string | null> => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return null;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const result = await uploadOtherItemImageAction(eventId, formData);
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        return result.imageKey;
     };
 
     const handleSubmit = () => {
@@ -90,38 +129,43 @@ export default function OtherItemAdminPanel({
         }
 
         startTransition(async () => {
-            const result =
-                formMode === 'editing' && editingItem
-                    ? await updateOtherItemAction(eventId, editingItem.id, {
-                          title,
-                          content,
-                          display_order,
-                      })
-                    : await createOtherItemAction(eventId, {
-                          title,
-                          content,
-                          display_order,
-                      });
+            try {
+                const imageKey = await uploadImageIfSelected();
 
-            if (!result.success) {
-                setError(result.error);
-                return;
+                const result =
+                    formMode === 'editing' && editingItem
+                        ? await updateOtherItemAction(eventId, editingItem.id, {
+                              title,
+                              content,
+                              display_order,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          })
+                        : await createOtherItemAction(eventId, {
+                              title,
+                              content,
+                              display_order,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          });
+
+                if (!result.success) {
+                    setError(result.error);
+                    return;
+                }
+
+                const refreshed = await fetchOtherItemsFromApi(eventId);
+                setItems(refreshed ?? result.data);
+                setInfoMessage(
+                    formMode === 'adding'
+                        ? '情報を追加しました'
+                        : '情報を更新しました',
+                );
+                router.refresh();
+                closeForm();
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : '操作に失敗しました',
+                );
             }
-
-            const saved = result.data;
-            setItems((prev) =>
-                formMode === 'adding'
-                    ? [...prev, saved]
-                    : prev.map((i) => (i.id === saved.id ? saved : i)),
-            );
-
-            setInfoMessage(
-                formMode === 'adding'
-                    ? '情報を追加しました'
-                    : '情報を更新しました',
-            );
-            closeForm();
-            router.refresh();
         });
     };
 
@@ -133,7 +177,8 @@ export default function OtherItemAdminPanel({
                 setError(result.error);
                 return;
             }
-            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            const refreshed = await fetchOtherItemsFromApi(eventId);
+            setItems(refreshed ?? result.data);
             setInfoMessage('情報を削除しました');
             router.refresh();
         });
@@ -226,6 +271,23 @@ export default function OtherItemAdminPanel({
                             />
                         </div>
                         <div>
+                            <Label htmlFor='other-image'>
+                                画像ファイル（任意）
+                                {formMode === 'editing' && (
+                                    <span className='ml-1 text-muted-foreground text-xs'>
+                                        （変更する場合のみ選択）
+                                    </span>
+                                )}
+                            </Label>
+                            <input
+                                ref={fileInputRef}
+                                id='other-image'
+                                type='file'
+                                accept='image/*'
+                                className='mt-1 w-full text-muted-foreground text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:font-medium file:text-sm hover:file:bg-muted/80'
+                            />
+                        </div>
+                        <div>
                             <Label htmlFor='other-order'>表示順</Label>
                             <Input
                                 id='other-order'
@@ -301,6 +363,15 @@ export default function OtherItemAdminPanel({
                                 </div>
                             </div>
                             <div className='border-border/70 border-t pt-3'>
+                                {item.imageUrl?.trim() && (
+                                    <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <TapToZoomImage
+                                            src={item.imageUrl.trim()}
+                                            alt={item.title}
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                        />
+                                    </div>
+                                )}
                                 <p className='whitespace-pre-wrap text-muted-foreground text-sm leading-relaxed'>
                                     {item.content}
                                 </p>

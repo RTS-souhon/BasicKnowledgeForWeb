@@ -79,9 +79,15 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockCreate.mockResolvedValue({ success: true, data: CREATED_ROOM });
-    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ROOMS[0] });
-    mockDelete.mockResolvedValue({ success: true });
+    mockCreate.mockResolvedValue({
+        success: true,
+        data: [...MOCK_ROOMS, CREATED_ROOM],
+    });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ROOMS });
+    mockDelete.mockResolvedValue({
+        success: true,
+        data: MOCK_ROOMS.slice(1),
+    });
     mockUseRouter.mockReturnValue(createRouterMock());
 });
 

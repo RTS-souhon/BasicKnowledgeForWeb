@@ -17,6 +17,15 @@ jest.mock('@frontend/app/actions/others', () => ({
     createOtherItemAction: jest.fn(),
     updateOtherItemAction: jest.fn(),
     deleteOtherItemAction: jest.fn(),
+    uploadOtherItemImageAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const actions =
@@ -28,25 +37,49 @@ const OtherItemAdminPanel =
 const mockCreate = jest.mocked(actions.createOtherItemAction);
 const mockUpdate = jest.mocked(actions.updateOtherItemAction);
 const mockDelete = jest.mocked(actions.deleteOtherItemAction);
+const mockUploadImage = jest.mocked(actions.uploadOtherItemImageAction);
 
 const MOCK_ITEMS = [
-    { id: '1', title: '緊急連絡先', content: '内線123', displayOrder: 1 },
-    { id: '2', title: 'Wi-Fi情報', content: 'SSID: EventStaff', displayOrder: 2 },
+    {
+        id: '1',
+        title: '緊急連絡先',
+        content: '内線123',
+        imageUrl: null,
+        displayOrder: 1,
+    },
+    {
+        id: '2',
+        title: 'Wi-Fi情報',
+        content: 'SSID: EventStaff',
+        imageUrl: null,
+        displayOrder: 2,
+    },
 ];
 
 const CREATED_ITEM = {
     id: 'created-id',
     title: '新しいタイトル',
     content: '新しい内容',
+    imageUrl: null,
     displayOrder: 999,
 };
 
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
-    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
-    mockDelete.mockResolvedValue({ success: true });
+    mockCreate.mockResolvedValue({
+        success: true,
+        data: [...MOCK_ITEMS, CREATED_ITEM],
+    });
+    mockUploadImage.mockResolvedValue({
+        success: true,
+        imageKey: 'others/event-1/new.webp',
+    });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS });
+    mockDelete.mockResolvedValue({
+        success: true,
+        data: MOCK_ITEMS.slice(1),
+    });
 });
 
 describe('OtherItemAdminPanel', () => {
@@ -215,5 +248,25 @@ describe('OtherItemAdminPanel', () => {
             'タイトルと内容は必須です',
         );
         expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('画像を選択して保存すると uploadOtherItemImageAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        render(<OtherItemAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/タイトル/), '画像付きお知らせ');
+        await user.type(screen.getByLabelText(/内容/), '本文');
+        const fileInput = screen.getByLabelText(/画像ファイル/);
+        const file = new File(['dummy'], 'other.png', { type: 'image/png' });
+        await user.upload(fileInput, file);
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockUploadImage).toHaveBeenCalledTimes(1);
+        });
     });
 });

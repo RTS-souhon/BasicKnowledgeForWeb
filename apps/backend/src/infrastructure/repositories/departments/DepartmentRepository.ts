@@ -29,6 +29,13 @@ export class DepartmentRepository implements IDepartmentRepository {
         return created;
     }
 
+    async createBulk(inputs: CreateDepartmentInput[]): Promise<Department[]> {
+        if (inputs.length === 0) {
+            return [];
+        }
+        return this.db.insert(departments).values(inputs).returning();
+    }
+
     async update(
         id: string,
         eventId: string,

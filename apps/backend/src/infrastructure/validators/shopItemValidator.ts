@@ -1,12 +1,9 @@
 import { z } from 'zod';
 
-const stockStatusSchema = z.enum(['available', 'low', 'sold_out']);
-
 const baseShopItemSchema = z.object({
     event_id: z.string().uuid(),
     name: z.string().min(1).max(255),
     price: z.number().int().min(0),
-    stock_status: stockStatusSchema,
     description: z.string().max(2000).nullable().optional(),
     image_key: z.string().min(1).max(512),
 });

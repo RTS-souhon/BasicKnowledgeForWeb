@@ -1,12 +1,20 @@
-import { AuthHeader } from '@frontend/components/AuthHeader';
+import {
+    AuthHeader,
+    buildNavigationHref,
+} from '@frontend/components/AuthHeader';
 import { AppRouterWrapper } from '@frontend/tests/helpers/createMockRouter';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+const mockUseSearchParams = jest
+    .fn()
+    .mockReturnValue(new URLSearchParams());
+const mockUsePathname = jest.fn().mockReturnValue('/');
+
 jest.mock('next/navigation', () => ({
-    usePathname: jest.fn().mockReturnValue('/'),
-    useSearchParams: jest.fn().mockReturnValue(new URLSearchParams()),
+    usePathname: mockUsePathname,
+    useSearchParams: mockUseSearchParams,
 }));
 
 jest.mock('next/link', () => {
@@ -32,7 +40,6 @@ const ACCESS_CODES = [
     { id: 'event-2', eventName: '第2回イベント' },
 ];
 
-
 const defaultProps = {
     role: 'user',
     userName: 'テストユーザー',
@@ -53,6 +60,8 @@ function renderHeader(props = defaultProps) {
 describe('AuthHeader', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockUsePathname.mockReturnValue('/');
+        mockUseSearchParams.mockReturnValue(new URLSearchParams());
     });
 
     describe('ナビゲーション', () => {
@@ -75,7 +84,7 @@ describe('AuthHeader', () => {
                 screen.getAllByRole('link', { name: '情報' }).length,
             ).toBeGreaterThanOrEqual(1);
             expect(
-                screen.getAllByRole('link', { name: '情報検索' }).length,
+                screen.getAllByRole('link', { name: '検索' }).length,
             ).toBeGreaterThanOrEqual(1);
         });
 
@@ -88,6 +97,19 @@ describe('AuthHeader', () => {
 
     });
 
+    describe('buildNavigationHref', () => {
+        it('検索クエリは検索ページ以外に引き継がれないこと', () => {
+            const rawParams = 'event_id=event-1&q=hogehoge';
+
+            expect(
+                buildNavigationHref('/timetable', rawParams),
+            ).toBe('/timetable?event_id=event-1');
+            expect(buildNavigationHref('/search', rawParams)).toBe(
+                '/search?event_id=event-1&q=hogehoge',
+            );
+        });
+    });
+
     describe('会期セレクター — 権限制御', () => {
         it('user ロールでは会期セレクターが表示されないこと', () => {
             renderHeader({ ...defaultProps, role: 'user', accessCodes: ACCESS_CODES });
@@ -98,9 +120,12 @@ describe('AuthHeader', () => {
 
         it('admin ロールでは会期セレクターが表示されること', () => {
             renderHeader({ ...defaultProps, role: 'admin', accessCodes: ACCESS_CODES });
-            expect(
-                screen.getAllByRole('combobox', { name: '会期を選択' }).length,
-            ).toBeGreaterThanOrEqual(1);
+            const selectors = screen.getAllByRole('combobox', {
+                name: '会期を選択',
+            });
+
+            expect(selectors.length).toBeGreaterThanOrEqual(1);
+            expect(selectors[0]).toHaveClass('text-[var(--header-fg)]');
         });
 
     });

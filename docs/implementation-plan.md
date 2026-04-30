@@ -109,7 +109,7 @@
 - トークン/OTP は平文保存しない（hash 保存）
 - `trusted_device` Cookie は `HttpOnly`, `Secure`, `SameSite=Lax`
 - 信頼デバイス有効期限は 30 日
-- 内部 API は service binding + 共有 secret で二重防御
+- 内部 API は service binding を前提にし、email-worker は公開 URL を持たない
 
 ## 実装ステップ
 

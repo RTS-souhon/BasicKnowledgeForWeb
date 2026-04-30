@@ -32,7 +32,6 @@ const MOCK_ITEMS = [
         id: '1',
         title: '開会式',
         startTime: '2025-08-01T00:00:00.000Z',
-        endTime: '2025-08-01T00:30:00.000Z',
         location: '大ホール',
         description: null,
     },
@@ -40,7 +39,6 @@ const MOCK_ITEMS = [
         id: '2',
         title: 'スタッフ集合',
         startTime: '2025-08-01T23:00:00.000Z',
-        endTime: '2025-08-01T23:30:00.000Z',
         location: 'ロビー',
         description: '全員参加',
     },
@@ -50,7 +48,6 @@ const CREATED_ITEM = {
     id: 'created-id',
     title: '閉会式',
     startTime: '2025-08-02T00:00:00.000Z',
-    endTime: '2025-08-02T00:30:00.000Z',
     location: '大ホール',
     description: null,
 };
@@ -59,9 +56,15 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockUseRouter.mockReset();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockCreate.mockResolvedValue({ success: true, data: CREATED_ITEM });
-    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS[0] });
-    mockDelete.mockResolvedValue({ success: true });
+    mockCreate.mockResolvedValue({
+        success: true,
+        data: [...MOCK_ITEMS, CREATED_ITEM],
+    });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS });
+    mockDelete.mockResolvedValue({
+        success: true,
+        data: MOCK_ITEMS.slice(1),
+    });
     mockUseRouter.mockReturnValue(createRouterMock());
 });
 
@@ -132,9 +135,34 @@ describe('TimetableAdminPanel', () => {
         await user.click(screen.getByRole('button', { name: '保存' }));
 
         expect(screen.getByRole('alert')).toHaveTextContent(
-            'タイトル・開始・終了・場所は必須です',
+            'タイトル・開始は必須です',
         );
         expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('場所が空でも保存できる', async () => {
+        const user = userEvent.setup();
+        render(<TimetableAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/タイトル/), '場所未定アナウンス');
+        await user.type(
+            screen.getByLabelText(/開始時刻/),
+            '2025-08-01T09:00',
+        );
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockCreate).toHaveBeenCalledWith(
+                'event-1',
+                expect.objectContaining({
+                    title: '場所未定アナウンス',
+                    location: '',
+                }),
+            );
+        });
     });
 
     it('削除ボタンクリック + confirm で deleteTimetableItemAction を呼ぶ', async () => {

@@ -4,8 +4,9 @@ import {
     createAccessCodeAction,
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 
 type AccessCode = {
     id: string;
@@ -19,6 +20,19 @@ type Props = {
     codes: AccessCode[];
     initialError?: string | null;
 };
+
+async function fetchAccessCodesFromApi(): Promise<AccessCode[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/access-codes', {
+            credentials: 'include',
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { codes?: AccessCode[] };
+        return Array.isArray(body.codes) ? body.codes : null;
+    } catch {
+        return null;
+    }
+}
 
 function getStatus(validFrom: string, validTo: string) {
     const now = Date.now();
@@ -63,6 +77,10 @@ export default function AccessCodeAdminPanel({
     initialError = null,
 }: Props) {
     const router = useRouter();
+    const [codeList, setCodeList] = useState(codes);
+    useEffect(() => {
+        setCodeList(codes);
+    }, [codes]);
     const [eventName, setEventName] = useState('');
     const [code, setCode] = useState('');
     const [validFrom, setValidFrom] = useState('');
@@ -72,13 +90,6 @@ export default function AccessCodeAdminPanel({
     const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isFormSubmitting, setIsFormSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [isRefreshing, startTransition] = useTransition();
-
-    const refreshCodes = () => {
-        startTransition(() => {
-            router.refresh();
-        });
-    };
 
     const handleCreate = () => {
         setFormError(null);
@@ -104,12 +115,14 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setFormError(result.error);
             } else {
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
                 setEventName('');
                 setCode('');
                 setValidFrom('');
                 setValidTo('');
                 setInfoMessage('アクセスコードを生成しました');
-                refreshCodes();
+                router.refresh();
             }
             setIsFormSubmitting(false);
         })().catch(() => {
@@ -127,7 +140,9 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setGlobalError(result.error);
             } else {
-                refreshCodes();
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
+                router.refresh();
             }
             setDeletingId(null);
         })().catch(() => {
@@ -135,7 +150,7 @@ export default function AccessCodeAdminPanel({
         });
     };
 
-    const isBusy = isFormSubmitting || isRefreshing;
+    const isBusy = isFormSubmitting;
 
     return (
         <div className='space-y-8'>
@@ -275,7 +290,7 @@ export default function AccessCodeAdminPanel({
                     </p>
                 )}
 
-                {codes.length === 0 ? (
+                {codeList.length === 0 ? (
                     <p className='text-muted-foreground text-sm'>
                         登録されているコードはありません
                     </p>
@@ -307,7 +322,7 @@ export default function AccessCodeAdminPanel({
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-border bg-card'>
-                                    {codes.map((c) => {
+                                    {codeList.map((c) => {
                                         const status = getStatus(
                                             c.validFrom,
                                             c.validTo,
@@ -340,7 +355,7 @@ export default function AccessCodeAdminPanel({
                                                             handleDelete(c.id)
                                                         }
                                                         disabled={
-                                                            isRefreshing ||
+                                                            isBusy ||
                                                             deletingId === c.id
                                                         }
                                                         className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
@@ -357,7 +372,7 @@ export default function AccessCodeAdminPanel({
 
                         {/* Mobile cards */}
                         <div className='space-y-3 md:hidden'>
-                            {codes.map((c) => {
+                            {codeList.map((c) => {
                                 const status = getStatus(
                                     c.validFrom,
                                     c.validTo,
@@ -391,7 +406,7 @@ export default function AccessCodeAdminPanel({
                                                     handleDelete(c.id)
                                                 }
                                                 disabled={
-                                                    isRefreshing ||
+                                                    isBusy ||
                                                     deletingId === c.id
                                                 }
                                                 className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'

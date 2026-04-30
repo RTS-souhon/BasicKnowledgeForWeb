@@ -2,13 +2,20 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/actions/access-codes', () => ({
     createAccessCodeAction: jest.fn(),
     deleteAccessCodeAction: jest.fn(),
-}));
-
-jest.mock('next/navigation', () => ({
-    useRouter: jest.fn(),
 }));
 
 const actions =
@@ -16,13 +23,9 @@ const actions =
 const AccessCodeAdminPanel =
     require('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel')
         .default as typeof import('@frontend/app/(authenticated)/admin/access-codes/AccessCodeAdminPanel').default;
-const navigation =
-    require('next/navigation') as typeof import('next/navigation');
 
 const mockCreate = jest.mocked(actions.createAccessCodeAction);
 const mockDelete = jest.mocked(actions.deleteAccessCodeAction);
-const mockUseRouter = jest.mocked(navigation.useRouter);
-let mockRefresh: jest.Mock;
 
 const now = new Date();
 const past = (days: number) =>
@@ -57,8 +60,6 @@ const MOCK_CODES = [
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
-    mockRefresh = jest.fn();
-    mockUseRouter.mockReturnValue({ refresh: mockRefresh } as never);
 });
 
 describe('AccessCodeAdminPanel', () => {
@@ -117,7 +118,19 @@ describe('AccessCodeAdminPanel', () => {
 
     it('正常に新規コードを生成できる', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        const createdList = [
+            {
+                id: 'new',
+                code: 'TEST01',
+                eventName: 'テストイベント',
+                validFrom: new Date('2025-07-01').toISOString(),
+                validTo: new Date('2025-08-01').toISOString(),
+            },
+        ];
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: createdList,
+        });
         render(<AccessCodeAdminPanel codes={[]} />);
 
         await user.type(screen.getByLabelText('イベント名'), 'テストイベント');
@@ -136,7 +149,11 @@ describe('AccessCodeAdminPanel', () => {
                     eventName: 'テストイベント',
                 }),
             );
-            expect(mockRefresh).toHaveBeenCalled();
+        });
+        await waitFor(() => {
+            expect(
+                screen.getAllByText('テストイベント').length,
+            ).toBeGreaterThan(0);
         });
     });
 
@@ -177,7 +194,11 @@ describe('AccessCodeAdminPanel', () => {
 
     it('削除ボタン + confirm で deleteAccessCodeAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
+        const remaining = MOCK_CODES.slice(1);
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: remaining,
+        });
         render(<AccessCodeAdminPanel codes={MOCK_CODES} />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });
@@ -187,7 +208,9 @@ describe('AccessCodeAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('1');
-            expect(mockRefresh).toHaveBeenCalled();
+        });
+        await waitFor(() => {
+            expect(screen.queryByText('2025夏イベント')).not.toBeInTheDocument();
         });
     });
 

@@ -6,7 +6,6 @@ export type UpdateShopItemInput = {
     payload: {
         name?: string;
         price?: number;
-        stockStatus?: 'available' | 'low' | 'sold_out';
         description?: string | null;
         imageKey?: string;
     };

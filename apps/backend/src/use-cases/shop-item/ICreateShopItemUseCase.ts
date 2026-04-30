@@ -4,7 +4,6 @@ export type CreateShopItemInput = {
     eventId: string;
     name: string;
     price: number;
-    stockStatus: 'available' | 'low' | 'sold_out';
     description?: string | null;
     imageKey: string;
 };

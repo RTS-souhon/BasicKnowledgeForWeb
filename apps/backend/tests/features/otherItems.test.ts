@@ -18,6 +18,7 @@ const otherItem1: OtherItem = {
     eventId: EVENT_ID,
     title: '注意事項',
     content: '当日の持ち物について...',
+    imageUrl: null,
     displayOrder: 1,
     createdBy: '00000000-0000-0000-0000-000000000099',
     createdAt: new Date('2025-01-01'),

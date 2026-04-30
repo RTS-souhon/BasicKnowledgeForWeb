@@ -16,7 +16,7 @@ description: docs/tasks/phase1-auth-hardening-for-claude.md の Task1/2/3 を再
 ### 1. Frontend middleware テスト
 - MSW と `@edge-runtime/vm` 設定を流用して `apps/frontend` の Jest 環境で middleware をテスト。
 - ケース:
-  1. `auth_token`(admin/developer) で `/admin/*` と各コンテンツページを許可。
+  1. `auth_token`(admin) で `/admin/*` と各コンテンツページを許可。
   2. `access_token` (user) でコンテンツページを許可。
   3. 未認証で `/access` or `/login` にリダイレクト。
   4. `JWT_SECRET` 未設定/不正署名トークンで fail-closed。
@@ -26,7 +26,7 @@ description: docs/tasks/phase1-auth-hardening-for-claude.md の Task1/2/3 を再
 - 対象: `authRoutes`, `accessCodeRoutes`, `authMiddleware`, `roleGuard`。
 - Feature tests で以下を網羅:
   - `POST /api/auth/login`: 正常 / 認証失敗 / バリデーション。
-  - `GET/POST/DELETE /api/access-codes`: ロール別の認可境界 (admin/developer のみ許可)。
+  - `GET/POST/DELETE /api/access-codes`: ロール別の認可境界 (admin のみ許可)。
   - `POST /api/access-codes/verify`: 正常 / 期限切れ / 不正コード。
   - Cookie 有無と role に応じた 401 / 403。
 - 追加で middleware unit test を補強しても良い。

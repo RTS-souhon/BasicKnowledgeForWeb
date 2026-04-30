@@ -27,6 +27,9 @@ export async function getShopItems(c: Context, useCase: IGetShopItemsUseCase) {
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
+    c.header('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
     return c.json({ items: result.data }, 200);
 }
 
@@ -61,7 +64,6 @@ export async function createShopItem(
         eventId,
         name: parsed.data.name,
         price: parsed.data.price,
-        stockStatus: parsed.data.stock_status,
         description: parsed.data.description ?? null,
         imageKey: parsed.data.image_key,
     });
@@ -98,7 +100,6 @@ export async function updateShopItem(
         payload: {
             name: parsed.data.name,
             price: parsed.data.price,
-            stockStatus: parsed.data.stock_status,
             description: parsed.data.description,
             imageKey: parsed.data.image_key,
         },

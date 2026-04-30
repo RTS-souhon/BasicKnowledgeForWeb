@@ -1,172 +1,70 @@
 # タイムテーブル `/timetable`
 
 ## 概要
-
-イベント会期のタイムスケジュールを一覧表示する。
-Admin/Developer はインライン編集・追加・削除が可能。
-
----
+- 会期ごとのタイムテーブルを表示・管理するページ。
+- `admin` は編集UI、`user` は閲覧UIを利用する。
 
 ## アクセス制御
-
-| 条件 | 挙動 |
-|---|---|
-| access_token 有効 | 閲覧のみ |
-| auth_token 有効（admin） | 閲覧 + 編集 |
-| それ以外 | `/access` へリダイレクト |
-
----
+- `GET /api/timetable`
+  - `contentAccessMiddleware` 適用
+  - `access_token + x-event-id一致` または `auth_token(role=admin)` が必要
+- 編集 API（POST/PUT/DELETE）
+  - `contentEditMiddleware` + `roleGuard(['admin'])`
+  - `auth_token(role=admin)` + `x-event-id` 必須
 
 ## 画面構成
-
-### 閲覧（全ユーザー）— デスクトップ
-
-```
-┌──────────────────────────────────────────┐
-│  タイムテーブル                            │
-│                                          │
-│  10:00 - 11:00  開会式       [会場 A]     │
-│  11:00 - 12:00  ○○企画      [会場 B]     │
-│  ...                                     │
-└──────────────────────────────────────────┘
-```
-
-### 閲覧（全ユーザー）— スマートフォン
-
-```
-┌──────────────────────┐
-│  タイムテーブル        │
-│                      │
-│  10:00 〜 11:00       │  ← 時間帯を上段
-│  開会式               │  ← タイトルを中段（大きめフォント）
-│  📍 会場 A            │  ← 会場を下段
-│  ─────────────────── │
-│  11:00 〜 12:00       │
-│  ○○企画              │
-│  📍 会場 B            │
-│  ...                 │
-└──────────────────────┘
-```
-
-### 編集モード（Admin/Developer のみ表示）
-
-#### デスクトップ
-
-```
-│  [+ 追加]                                 │
-│  10:00 - 11:00  開会式  [会場 A]  [編集] [削除] │
-```
-
-#### スマートフォン
-
-```
-┌──────────────────────┐
-│  [+ 追加]            │
-│                      │
-│  10:00 〜 11:00       │
-│  開会式               │
-│  📍 会場 A            │
-│               [⋮]    │  ← 3点リーダーボタン（タップで編集/削除メニュー）
-│  ─────────────────── │
-```
-
-**スマートフォン固有の要件:**
-- 各アイテムはカード形式（時間・タイトル・会場を縦積み）で表示
-- 横並びのテーブルレイアウトは使用しない
-- 編集・削除は縦方向のアクションシートまたはドロップダウンメニュー（`[⋮]`）で提供
-- タッチターゲットは最低 44px 確保
-
----
+- `user`
+  - 日付ごとにグルーピング表示
+  - 項目: 時刻、タイトル、場所（設定されている場合のみ）、説明
+- `admin`
+  - `TimetableAdminPanel` で一覧・作成・更新・削除
 
 ## データ構造
-
-```typescript
+```ts
 type TimetableItem = {
-    id: string
-    event_id: string
-    title: string
-    start_time: string   // ISO 8601
-    end_time: string
-    location: string
-    description: string | null
+  id: string;
+  eventId: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string; // 空文字の場合あり
+  description: string | null;
 }
 ```
 
----
-
 ## API
+### `GET /api/timetable`
+- ヘッダー: `x-event-id`
+- レスポンス: `{ "items": TimetableItem[] }`
 
-### GET `/api/timetable?event_id=<id>`
-
-- `event_id` の解決:
-  - User: `access_token` Cookie の `event_id` を自動付与（Server Component で処理）
-  - Admin/Developer: URL クエリパラメータ `?event_id=xxx` を使用（未指定時はデータなし）
-- レスポンス: `{ items: TimetableItem[] }`（`start_time` 昇順）
-
-### POST `/api/timetable` （admin）
-
+### `POST /api/timetable`（admin）
 ```json
-{ "event_id": "...", "title": "...", "start_time": "...", "end_time": "...", "location": "...", "description": "..." }
+{
+  "event_id": "uuid",
+  "title": "開会",
+  "start_time": "2026-05-01T09:00:00.000Z",
+  "description": "任意"
+}
 ```
+- `location` は任意（未指定時は空文字で保存）
+- レスポンス: `{ "item": TimetableItem }`
 
-- 認可: `auth_token` + admin ロール必須。`contentEditMiddleware` が `x-event-id` ヘッダーを検証し、`event_id` と一致しない場合は 400。
-- バリデーション: `start_time < end_time`、`title`/`location` は 1〜255 文字、`description` は 2000 文字以内。
-- レスポンス: 成功時は `201 { item: TimetableItem }`。リポジトリエラー時は 500 を返す。
+### `PUT /api/timetable/:id`（admin）
+- ボディは部分更新可（1項目以上必須）
+- レスポンス: `{ "item": TimetableItem }`
 
-### PUT `/api/timetable/:id` （admin）
+### `DELETE /api/timetable/:id`（admin）
+- レスポンス: `{ "id": "uuid" }`
 
-部分更新可。変更フィールドのみ送信。
+## 実装メモ
+- ページ: `apps/frontend/app/(authenticated)/timetable/page.tsx`
+- Action: `apps/frontend/app/actions/timetable.ts`
+- バックエンド: `timetableController.ts`, `timetableRoutes.ts`
+- 現行実装では `end_time` は入力せず、`start_time` と同値で保存される
 
-- 認可は POST と同じ。`id` は UUID 形式。`payload` が空の場合は 400。
-- レスポンス: `200 { item: TimetableItem }`、対象なしは 404。
-
-### DELETE `/api/timetable/:id` （admin）
-
-- 認可は POST と同じ。`id` の UUID 検証後、削除できなければ 404。
-- レスポンス: `200 { id: string }`。
-
----
-
-## フロントエンド実装
-
-- `page.tsx`: Server Component → `GET /api/timetable` でデータ取得
-- 編集 UI: Client Component（モーダルまたはインラインフォーム）
-  - `useAuth()` でロールを確認し admin の場合のみ表示
-- フォーム: `react-hook-form` + `timetableSchema`（フロントエンド定義）
-
----
-
-## バックエンド実装
-
-### 新規ファイル
-
-```
-src/db/schema.ts                         timetable_items テーブル追加
-src/infrastructure/
-  validators/timetableValidator.ts
-  repositories/timetable/
-    ITimetableRepository.ts
-    TimetableRepository.ts
-src/use-cases/timetable/
-  ICreateTimetableItemUseCase.ts / CreateTimetableItemUseCase.ts
-  IGetTimetableItemsUseCase.ts  / GetTimetableItemsUseCase.ts
-  IUpdateTimetableItemUseCase.ts / UpdateTimetableItemUseCase.ts
-  IDeleteTimetableItemUseCase.ts / DeleteTimetableItemUseCase.ts
-src/presentation/
-  controllers/timetableController.ts
-  routes/timetableRoutes.ts
-```
-
----
-
-## テスト項目
-
-| # | テスト内容 |
-|---|---|
-| 1 | タイムテーブル一覧が表示されること |
-| 2 | 開始時刻順に並んでいること |
-| 3 | user ロール時に編集 UI が表示されないこと |
-| 4 | admin ロール時に編集ボタンが表示されること |
-| 5 | 追加フォームから新規アイテムを登録できること |
-| 6 | 編集フォームで既存アイテムを更新できること |
-| 7 | 削除ボタンでアイテムを削除できること |
+## テスト観点
+- 会期未選択時の表示
+- `user` で閲覧のみ可能
+- `admin` で CRUD 成功/失敗時メッセージ
+- `x-event-id` 不備時の `400`
+- 認証不備時の `401/403`

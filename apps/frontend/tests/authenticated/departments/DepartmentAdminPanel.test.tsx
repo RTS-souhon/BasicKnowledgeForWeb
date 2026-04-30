@@ -20,13 +20,30 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@frontend/app/actions/departments', () => ({
+    copyDepartmentsFromEventAction: jest.fn(),
     createDepartmentAction: jest.fn(),
     updateDepartmentAction: jest.fn(),
     deleteDepartmentAction: jest.fn(),
 }));
+jest.mock('@frontend/app/lib/backendFetch', () => ({
+    fetchFromBackend: jest.fn(),
+}));
+jest.mock('@frontend/app/utils/client', () => ({
+    client: {
+        api: {
+            'access-codes': {
+                $get: jest.fn(),
+            },
+        },
+    },
+}));
 
 const actions =
     require('@frontend/app/actions/departments') as typeof import('@frontend/app/actions/departments');
+const backendFetch =
+    require('@frontend/app/lib/backendFetch') as typeof import('@frontend/app/lib/backendFetch');
+const frontendClient =
+    require('@frontend/app/utils/client') as typeof import('@frontend/app/utils/client');
 const DepartmentAdminPanel =
     require('@frontend/app/(authenticated)/departments/DepartmentAdminPanel')
         .default as typeof import('@frontend/app/(authenticated)/departments/DepartmentAdminPanel').default;
@@ -34,6 +51,11 @@ const DepartmentAdminPanel =
 const mockCreate = jest.mocked(actions.createDepartmentAction);
 const mockUpdate = jest.mocked(actions.updateDepartmentAction);
 const mockDelete = jest.mocked(actions.deleteDepartmentAction);
+const mockCopy = jest.mocked(actions.copyDepartmentsFromEventAction);
+const mockFetchFromBackend = jest.mocked(backendFetch.fetchFromBackend);
+const mockAccessCodesGet = jest.mocked(
+    frontendClient.client.api['access-codes'].$get,
+);
 
 const MOCK_DEPARTMENTS = [
     { id: '1', name: '企画部' },
@@ -43,6 +65,16 @@ const MOCK_DEPARTMENTS = [
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockAccessCodesGet.mockResolvedValue({
+        ok: false,
+        json: async () => ({}),
+    } as never);
+    mockFetchFromBackend.mockResolvedValue(
+        new Response('{}', {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+        }),
+    );
 });
 
 describe('DepartmentAdminPanel', () => {
@@ -127,7 +159,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('フォーム送信で createDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -144,7 +179,13 @@ describe('DepartmentAdminPanel', () => {
 
     it('編集フォーム送信で updateDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
+        mockUpdate.mockResolvedValue({
+            success: true,
+            data: [
+                { id: '1', name: '変更後部署名' },
+                MOCK_DEPARTMENTS[1],
+            ],
+        });
         render(
             <DepartmentAdminPanel
                 departments={MOCK_DEPARTMENTS}
@@ -172,7 +213,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteDepartmentAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
+        mockDelete.mockResolvedValue({
+            success: true,
+            data: MOCK_DEPARTMENTS.slice(1),
+        });
         render(
             <DepartmentAdminPanel
                 departments={MOCK_DEPARTMENTS}
@@ -241,7 +285,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('成功時に成功メッセージを表示しフォームを閉じる', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -261,7 +308,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('IME 変換中の Enter では送信しない', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -277,7 +327,10 @@ describe('DepartmentAdminPanel', () => {
 
     it('IME 変換確定後の Enter では送信される', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
+        mockCreate.mockResolvedValue({
+            success: true,
+            data: [{ id: '3', name: '新部署' }],
+        });
         render(<DepartmentAdminPanel departments={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -290,6 +343,94 @@ describe('DepartmentAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockCreate).toHaveBeenCalledWith('event-1', { name: '新部署' });
+        });
+    });
+
+    it('コピー元会期未選択でコピーするとエラーを表示する', async () => {
+        const user = userEvent.setup();
+        mockAccessCodesGet.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                codes: [{ id: 'event-2', eventName: '前回会期' }],
+            }),
+        } as never);
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: 'コピーして追加' })).toBeEnabled();
+        });
+        await user.click(screen.getByRole('button', { name: 'コピーして追加' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'コピー元会期を選択してください',
+        );
+        expect(mockCopy).not.toHaveBeenCalled();
+    });
+
+    it('コピー元会期を選択してコピーできる', async () => {
+        const user = userEvent.setup();
+        mockAccessCodesGet.mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                codes: [
+                    { id: 'event-1', eventName: '現在会期' },
+                    { id: 'event-2', eventName: '前回会期' },
+                ],
+            }),
+        } as never);
+        mockFetchFromBackend.mockResolvedValueOnce(
+            new Response(
+                JSON.stringify({
+                    departments: [
+                        { id: '1', name: '企画部' },
+                        { id: '2', name: '運営部' },
+                        { id: '3', name: '広報部' },
+                    ],
+                }),
+                {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                },
+            ),
+        );
+        mockCopy.mockResolvedValue({
+            success: true,
+            data: [
+                { id: '1', name: '企画部' },
+                { id: '2', name: '運営部' },
+                { id: '3', name: '広報部' },
+            ],
+        });
+
+        render(
+            <DepartmentAdminPanel
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByRole('option', { name: '前回会期' })).toBeVisible();
+        });
+        await user.selectOptions(
+            screen.getByRole('combobox', { name: 'コピー元会期' }),
+            'event-2',
+        );
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: 'コピーして追加' }));
+        });
+
+        await waitFor(() => {
+            expect(mockCopy).toHaveBeenCalledWith('event-1', 'event-2');
+            expect(screen.getByRole('status')).toHaveTextContent(
+                '過去会期から部署をコピーしました',
+            );
         });
     });
 });

@@ -4,6 +4,7 @@ const baseOtherItemSchema = z.object({
     event_id: z.string().uuid(),
     title: z.string().min(1).max(255),
     content: z.string().min(1),
+    image_key: z.string().min(1).max(512).nullable().optional(),
     display_order: z.number().int().nonnegative(),
 });
 

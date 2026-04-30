@@ -29,6 +29,9 @@ export async function getTimetableItems(
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
+    c.header('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
     return c.json({ items: result.data }, 200);
 }
 
@@ -63,7 +66,6 @@ export async function createTimetableItem(
         eventId,
         title: parsed.data.title,
         startTime: parsed.data.start_time,
-        endTime: parsed.data.end_time,
         location: parsed.data.location,
         description: parsed.data.description ?? null,
     });
@@ -100,7 +102,6 @@ export async function updateTimetableItem(
         payload: {
             title: parsed.data.title,
             startTime: parsed.data.start_time,
-            endTime: parsed.data.end_time,
             location: parsed.data.location,
             description: parsed.data.description,
         },

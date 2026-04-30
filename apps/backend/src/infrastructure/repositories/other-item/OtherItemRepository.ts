@@ -16,7 +16,17 @@ export class OtherItemRepository implements IOtherItemRepository {
 
     async findByEventId(eventId: string): Promise<OtherItem[]> {
         return this.db
-            .select()
+            .select({
+                id: otherItems.id,
+                eventId: otherItems.eventId,
+                title: otherItems.title,
+                content: otherItems.content,
+                imageUrl: otherItems.imageUrl,
+                displayOrder: otherItems.displayOrder,
+                createdBy: otherItems.createdBy,
+                createdAt: otherItems.createdAt,
+                updatedAt: otherItems.updatedAt,
+            })
             .from(otherItems)
             .where(eq(otherItems.eventId, eventId))
             .orderBy(asc(otherItems.displayOrder));
@@ -25,7 +35,17 @@ export class OtherItemRepository implements IOtherItemRepository {
     async search(keyword: string, eventId: string): Promise<OtherItem[]> {
         const pattern = createIlikePattern(keyword);
         return this.db
-            .select()
+            .select({
+                id: otherItems.id,
+                eventId: otherItems.eventId,
+                title: otherItems.title,
+                content: otherItems.content,
+                imageUrl: otherItems.imageUrl,
+                displayOrder: otherItems.displayOrder,
+                createdBy: otherItems.createdBy,
+                createdAt: otherItems.createdAt,
+                updatedAt: otherItems.updatedAt,
+            })
             .from(otherItems)
             .where(
                 and(
@@ -43,7 +63,7 @@ export class OtherItemRepository implements IOtherItemRepository {
             .insert(otherItems)
             .values(input)
             .returning();
-        return created;
+        return this.mapRecord(created);
     }
 
     async update(
@@ -56,7 +76,7 @@ export class OtherItemRepository implements IOtherItemRepository {
             .set({ ...input, updatedAt: new Date() })
             .where(and(eq(otherItems.id, id), eq(otherItems.eventId, eventId)))
             .returning();
-        return updated ?? null;
+        return updated ? this.mapRecord(updated) : null;
     }
 
     async delete(id: string, eventId: string): Promise<boolean> {
@@ -65,5 +85,10 @@ export class OtherItemRepository implements IOtherItemRepository {
             .where(and(eq(otherItems.id, id), eq(otherItems.eventId, eventId)))
             .returning({ id: otherItems.id });
         return deleted.length > 0;
+    }
+
+    private mapRecord(record: typeof otherItems.$inferSelect): OtherItem {
+        const { imageKey: _imageKey, ...rest } = record;
+        return rest;
     }
 }
