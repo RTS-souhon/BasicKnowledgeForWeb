@@ -162,6 +162,54 @@ export async function deleteDepartmentAction(
     }
 }
 
+export async function copyDepartmentsFromEventAction(
+    eventId: string,
+    sourceEventId: string,
+): Promise<ActionResult> {
+    const authToken = await getAuthToken();
+    if (!authToken) return { success: false, error: '認証が必要です' };
+
+    const endpoint = '/api/departments/copy';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+            body: JSON.stringify({ source_event_id: sourceEventId }),
+        });
+        logAction(
+            'copyDepartmentsFromEventAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        if (!res.ok) {
+            const body = (await res.json()) as { error?: string };
+            return {
+                success: false,
+                error: body.error ?? '部署のコピーに失敗しました',
+            };
+        }
+        const snapshot = await fetchDepartmentsSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
+        revalidatePath('/departments');
+        return snapshot;
+    } catch (err) {
+        logActionError(
+            'copyDepartmentsFromEventAction',
+            'POST',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '部署のコピーに失敗しました' };
+    }
+}
+
 async function fetchDepartmentsSnapshot(
     eventId: string,
     authToken: string,

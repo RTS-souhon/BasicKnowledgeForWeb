@@ -23,6 +23,7 @@
   - 成功メッセージ（追加/更新/削除）
   - エラーメッセージ
 - 編集機能（admin）
+  - 過去会期からコピー（コピー元会期を選択して部署名を一括追加）
   - 追加フォーム（部署名）
   - 一覧行ごとの編集・削除
 
@@ -70,6 +71,28 @@ type Department = {
 - 備考
   - 更新項目が空の場合は `400`
 
+### `POST /api/departments/copy`（admin）
+- リクエスト
+```json
+{
+  "source_event_id": "uuid"
+}
+```
+- レスポンス
+```json
+{
+  "departments": [
+    { "id": "uuid", "eventId": "uuid", "name": "広報部" }
+  ],
+  "createdCount": 1,
+  "skippedCount": 2
+}
+```
+- 備考
+  - `source_event_id === x-event-id` は `400`
+  - コピー元会期に部署がない場合は `404`
+  - コピー先に同名部署がある場合はスキップされる
+
 ### `DELETE /api/departments/:id`（admin）
 - レスポンス
 ```json
@@ -89,5 +112,6 @@ type Department = {
 - `user` で `/dashboard` にリダイレクトされること
 - `x-event-id` 不備時に `400` が返ること
 - `event_id` と `x-event-id` の不一致で `400` になること
+- 同名部署を重複作成せずコピーできること
 - 部署が部屋に紐づく場合の削除 `409` が返ること
 - 追加/更新/削除後に一覧が再取得されること

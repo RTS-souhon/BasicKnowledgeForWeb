@@ -7,6 +7,10 @@ const baseDepartmentSchema = z.object({
 
 export const createDepartmentSchema = baseDepartmentSchema;
 
+export const copyDepartmentsSchema = z.object({
+    source_event_id: z.string().uuid(),
+});
+
 export const updateDepartmentSchema = baseDepartmentSchema
     .omit({ event_id: true })
     .partial()
