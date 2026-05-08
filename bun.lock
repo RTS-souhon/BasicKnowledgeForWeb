@@ -41,7 +41,7 @@
       "dependencies": {
         "@base-ui/react": "^1.4.1",
         "@hookform/resolvers": "^5.2.2",
-        "@opennextjs/cloudflare": "^1.19.5",
+        "@opennextjs/cloudflare": "^1.19.6",
         "backend": "^0.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -621,7 +621,7 @@
 
     "@opennextjs/aws": ["@opennextjs/aws@3.10.4", "", { "dependencies": { "@ast-grep/napi": "^0.40.5", "@aws-sdk/client-cloudfront": "3.984.0", "@aws-sdk/client-dynamodb": "3.984.0", "@aws-sdk/client-lambda": "3.984.0", "@aws-sdk/client-s3": "3.984.0", "@aws-sdk/client-sqs": "3.984.0", "@node-minify/core": "^8.0.6", "@node-minify/terser": "^8.0.6", "@tsconfig/node18": "^1.0.3", "aws4fetch": "^1.0.20", "chalk": "^5.6.2", "cookie": "^1.0.2", "esbuild": "0.25.4", "express": "^5.1.0", "path-to-regexp": "^6.3.0", "urlpattern-polyfill": "^10.1.0", "yaml": "^2.8.1" }, "peerDependencies": { "next": ">=15.5.15 <16 || >=16.2.3" }, "bin": { "open-next": "dist/index.js" } }, "sha512-xVmWHGdptJgVhQivuoeAYqsWpIgGoDEeZJC6AYMgvQYisDicGuS7gh10Z8MEmrgsJxNGdZ0arCCDieGxM88afw=="],
 
-    "@opennextjs/cloudflare": ["@opennextjs/cloudflare@1.19.5", "", { "dependencies": { "@ast-grep/napi": "^0.40.5", "@dotenvx/dotenvx": "1.31.0", "@opennextjs/aws": "3.10.4", "ci-info": "^4.2.0", "cloudflare": "^4.4.1", "comment-json": "^4.5.1", "enquirer": "^2.4.1", "glob": "^12.0.0", "ts-tqdm": "^0.8.6", "yargs": "^18.0.0" }, "peerDependencies": { "next": ">=15.5.15 <16 || >=16.2.3", "wrangler": "^4.86.0" }, "bin": { "opennextjs-cloudflare": "dist/cli/index.js" } }, "sha512-EE3RiAyxqqlKBImUFuSdK+jYgSuWvQBn0iLnh1USF0nPAGbYjmjRLmOpxNPd234yE+JerDK3GkJ787xF86lHCw=="],
+    "@opennextjs/cloudflare": ["@opennextjs/cloudflare@1.19.6", "", { "dependencies": { "@ast-grep/napi": "^0.40.5", "@dotenvx/dotenvx": "1.31.0", "@opennextjs/aws": "3.10.4", "ci-info": "^4.2.0", "cloudflare": "^4.4.1", "comment-json": "^4.5.1", "enquirer": "^2.4.1", "glob": "^12.0.0", "ts-tqdm": "^0.8.6", "yargs": "^18.0.0" }, "peerDependencies": { "next": ">=15.5.15 <16 || >=16.2.3", "wrangler": "^4.86.0" }, "bin": { "opennextjs-cloudflare": "dist/cli/index.js" } }, "sha512-2Qd0IbcqPdsjsiaFrmACxuJHR8Pxm1JrUJIn/tFoTu+HsfFR7W921NZI50KQ5bulqg1e//Lb5TonwQlEgmSBGw=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
@@ -2178,8 +2178,6 @@
     "finalhandler/statuses": ["statuses@2.0.1", "", {}, "sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ=="],
 
     "form-data/mime-types": ["mime-types@2.1.35", "", { "dependencies": { "mime-db": "1.52.0" } }, "sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw=="],
-
-    "frontend/zod": ["zod@4.4.1", "", {}, "sha512-a6ENMBBGZBsnlSebQ/eKCguSBeGKSf4O7BPnqVPmYGtpBYI7VSqoVqw+QcB7kPRjbqPwhYTpFbVj/RqNz/CT0Q=="],
 
     "http-errors/statuses": ["statuses@2.0.1", "", {}, "sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ=="],
 
