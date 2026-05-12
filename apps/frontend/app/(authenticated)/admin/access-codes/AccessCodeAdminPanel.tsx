@@ -72,6 +72,42 @@ function generateCode(): string {
     ).join('');
 }
 
+function parseDateInput(value: string): {
+    year: number;
+    month: number;
+    day: number;
+} | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+        return null;
+    }
+
+    return { year, month, day };
+}
+
+function toUtcStartOfDayIso(value: string): string | null {
+    const parsed = parseDateInput(value);
+    if (!parsed) return null;
+
+    const { year, month, day } = parsed;
+    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).toISOString();
+}
+
+function toUtcEndOfDayIso(value: string): string | null {
+    const parsed = parseDateInput(value);
+    if (!parsed) return null;
+
+    const { year, month, day } = parsed;
+    return new Date(
+        Date.UTC(year, month - 1, day, 23, 59, 59, 999),
+    ).toISOString();
+}
+
 export default function AccessCodeAdminPanel({
     codes,
     initialError = null,
@@ -99,7 +135,15 @@ export default function AccessCodeAdminPanel({
             setFormError('すべての項目を入力してください');
             return;
         }
-        if (new Date(validTo) <= new Date(validFrom)) {
+
+        const validFromIso = toUtcStartOfDayIso(validFrom);
+        const validToIso = toUtcEndOfDayIso(validTo);
+        if (!validFromIso || !validToIso) {
+            setFormError('日付形式が正しくありません');
+            return;
+        }
+
+        if (new Date(validToIso) <= new Date(validFromIso)) {
             setFormError('有効終了日は開始日より後にしてください');
             return;
         }
@@ -109,8 +153,8 @@ export default function AccessCodeAdminPanel({
             const result = await createAccessCodeAction({
                 code: code.trim(),
                 eventName: eventName.trim(),
-                validFrom: new Date(validFrom).toISOString(),
-                validTo: new Date(validTo).toISOString(),
+                validFrom: validFromIso,
+                validTo: validToIso,
             });
             if (!result.success) {
                 setFormError(result.error);
