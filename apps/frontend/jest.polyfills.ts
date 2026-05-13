@@ -37,10 +37,19 @@ Object.assign(global, { MessagePort, MessageChannel, BroadcastChannel });
 //    実行環境によっては Request 実装が混在し MSW で不安定になる。
 //    ここでは cross-fetch を明示的に読み込み、fetch 系実装を固定する。
 const crossFetch = require('cross-fetch') as any;
+const RequestWithSignal = class extends crossFetch.Request {
+    constructor(input: unknown, init?: { signal?: AbortSignal | null }) {
+        const normalizedInit =
+            init?.signal != null
+                ? init
+                : { ...(init ?? {}), signal: new AbortController().signal };
+        super(input, normalizedInit);
+    }
+};
 Object.assign(global, {
     fetch: crossFetch.fetch,
     Headers: crossFetch.Headers,
-    Request: crossFetch.Request,
+    Request: RequestWithSignal,
     Response: crossFetch.Response,
 });
 
