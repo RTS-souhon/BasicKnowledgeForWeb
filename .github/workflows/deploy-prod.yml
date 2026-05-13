@@ -40,7 +40,7 @@ jobs:
 
       - name: Deploy to Cloudflare Workers (Production)
         id: deploy-backend
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -97,7 +97,7 @@ jobs:
 
       - name: Build and deploy to Cloudflare Workers (Production)
         id: deploy-frontend
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
