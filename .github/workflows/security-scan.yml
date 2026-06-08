@@ -25,12 +25,20 @@ jobs:
           ref: "refs/pull/${{ github.event.number }}/merge"
 
       # Bunをセットアップ
-      - name: Setup root dependencies
+      - name: Setup root package manager
         uses: ./.github/actions/setup-bun-project
+        with:
+          install: "false"
 
       # AikidoSec Safe Chainをセットアップ
       - name: Install safe-chain
         run: curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh -s -- --ci
+
+      - name: Verify safe-chain
+        run: bun safe-chain-verify
+
+      - name: Scan dependencies with safe-chain
+        run: bun install
 
       # Betterleaksをセットアップ
       - name: Set up Homebrew
