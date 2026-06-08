@@ -1,0 +1,21 @@
+name: Auto Assign
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  add-reviewers:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Add reviewers and assignees
+        uses: kentaro-m/auto-assign-action@v2.0.2
