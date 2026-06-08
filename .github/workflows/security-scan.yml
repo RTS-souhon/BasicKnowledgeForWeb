@@ -72,14 +72,8 @@ jobs:
       - name: Betterleaks scan
         run: /tmp/betterleaks/betterleaks git .
 
-      # Anti-trojan-sourceをセットアップ
-      - name: Install anti-trojan-source
-        run: |
-          bun install anti-trojan-source
-
       - name: Anti-trojan-source scan
-        run: |
-          bunx anti-trojan-source --scan .
+        run: bunx anti-trojan-source --scan .
 
       # GitHub Actions workflowをzizmorでスキャン
       - name: Zizmor scan
