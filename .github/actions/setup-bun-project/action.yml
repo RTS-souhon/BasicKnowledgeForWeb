@@ -34,4 +34,4 @@ runs:
       if: inputs.install == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: bun install
+      run: bun install --frozen-lockfile
