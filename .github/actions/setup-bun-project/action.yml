@@ -2,9 +2,6 @@ name: Setup Bun project
 description: Set up Node.js, Bun, and install dependencies without caches.
 
 inputs:
-  working-directory:
-    description: Directory where dependencies should be installed.
-    default: "."
   node-version:
     description: Node.js version to install.
     default: "24"
@@ -33,5 +30,4 @@ runs:
     - name: Install dependencies
       if: inputs.install == 'true'
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
       run: bun install --frozen-lockfile

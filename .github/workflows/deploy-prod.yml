@@ -21,10 +21,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup backend dependencies
+      - name: Setup Bun workspace
         uses: ./.github/actions/setup-bun-project
-        with:
-          working-directory: apps/backend
 
       - name: Run database migrations
         run: |
@@ -66,10 +64,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup frontend dependencies
+      - name: Setup Bun workspace
         uses: ./.github/actions/setup-bun-project
-        with:
-          working-directory: apps/frontend
 
       - name: Build frontend
         run: |
