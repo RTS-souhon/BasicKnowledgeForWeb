@@ -83,7 +83,7 @@ describe('HomePage', () => {
             screen.getByRole('link', { name: /その他のお知らせ/ }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole('link', { name: /情報検索/ }),
+            screen.getByRole('link', { name: /検索/ }),
         ).toBeInTheDocument();
     });
 

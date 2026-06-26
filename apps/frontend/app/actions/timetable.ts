@@ -8,11 +8,25 @@ import {
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-type ActionResult = { success: true } | { success: false; error: string };
+type TimetableItemData = {
+    id: string;
+    title: string;
+    startTime: string;
+    location: string;
+    description: string | null;
+};
+
+type TimetableResult =
+    | { success: true; data: TimetableItemData[] }
+    | { success: false; error: string };
 
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
+}
+
+function revalidateTimetablePage(_eventId: string) {
+    revalidatePath('/timetable', 'layout');
 }
 
 export async function createTimetableItemAction(
@@ -20,11 +34,10 @@ export async function createTimetableItemAction(
     data: {
         title: string;
         start_time: string;
-        end_time: string;
-        location: string;
+        location?: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<TimetableResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -52,8 +65,12 @@ export async function createTimetableItemAction(
                 error: body.error ?? '登録に失敗しました',
             };
         }
-        revalidatePath('/timetable');
-        return { success: true };
+        const snapshot = await fetchTimetableSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
+        revalidateTimetablePage(eventId);
+        return snapshot;
     } catch (err) {
         logActionError(
             'createTimetableItemAction',
@@ -71,11 +88,10 @@ export async function updateTimetableItemAction(
     data: {
         title?: string;
         start_time?: string;
-        end_time?: string;
         location?: string;
         description?: string | null;
     },
-): Promise<ActionResult> {
+): Promise<TimetableResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -103,8 +119,12 @@ export async function updateTimetableItemAction(
                 error: body.error ?? '更新に失敗しました',
             };
         }
-        revalidatePath('/timetable');
-        return { success: true };
+        const snapshot = await fetchTimetableSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
+        revalidateTimetablePage(eventId);
+        return snapshot;
     } catch (err) {
         logActionError(
             'updateTimetableItemAction',
@@ -119,7 +139,7 @@ export async function updateTimetableItemAction(
 export async function deleteTimetableItemAction(
     eventId: string,
     id: string,
-): Promise<ActionResult> {
+): Promise<TimetableResult> {
     const authToken = await getAuthToken();
     if (!authToken) return { success: false, error: '認証が必要です' };
 
@@ -145,8 +165,12 @@ export async function deleteTimetableItemAction(
                 error: body.error ?? '削除に失敗しました',
             };
         }
-        revalidatePath('/timetable');
-        return { success: true };
+        const snapshot = await fetchTimetableSnapshot(eventId, authToken);
+        if (!snapshot.success) {
+            return snapshot;
+        }
+        revalidateTimetablePage(eventId);
+        return snapshot;
     } catch (err) {
         logActionError(
             'deleteTimetableItemAction',
@@ -155,5 +179,52 @@ export async function deleteTimetableItemAction(
             err,
         );
         return { success: false, error: '削除に失敗しました' };
+    }
+}
+
+async function fetchTimetableSnapshot(
+    eventId: string,
+    authToken: string,
+): Promise<TimetableResult> {
+    const endpoint = '/api/timetable';
+    try {
+        const res = await fetchFromBackend(endpoint, {
+            headers: {
+                Cookie: `auth_token=${authToken}`,
+                'x-event-id': eventId,
+            },
+        });
+        logAction(
+            'fetchTimetableSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            res.status,
+        );
+        let body: unknown = null;
+        try {
+            body = await res.json();
+        } catch {
+            body = null;
+        }
+        if (!res.ok) {
+            const errorBody = body as { error?: string } | null;
+            return {
+                success: false,
+                error: errorBody?.error ?? '最新データの取得に失敗しました',
+            };
+        }
+        const list = (body as { items?: TimetableItemData[] } | null)?.items;
+        if (!Array.isArray(list)) {
+            return { success: false, error: '最新データの取得に失敗しました' };
+        }
+        return { success: true, data: list };
+    } catch (err) {
+        logActionError(
+            'fetchTimetableSnapshot',
+            'GET',
+            buildBackendUrl(endpoint),
+            err,
+        );
+        return { success: false, error: '最新データの取得に失敗しました' };
     }
 }

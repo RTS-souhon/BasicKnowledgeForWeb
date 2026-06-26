@@ -4,8 +4,9 @@ import {
     createAccessCodeAction,
     deleteAccessCodeAction,
 } from '@frontend/app/actions/access-codes';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 
 type AccessCode = {
     id: string;
@@ -19,6 +20,19 @@ type Props = {
     codes: AccessCode[];
     initialError?: string | null;
 };
+
+async function fetchAccessCodesFromApi(): Promise<AccessCode[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/access-codes', {
+            credentials: 'include',
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { codes?: AccessCode[] };
+        return Array.isArray(body.codes) ? body.codes : null;
+    } catch {
+        return null;
+    }
+}
 
 function getStatus(validFrom: string, validTo: string) {
     const now = Date.now();
@@ -58,35 +72,78 @@ function generateCode(): string {
     ).join('');
 }
 
+function parseDateInput(value: string): {
+    year: number;
+    month: number;
+    day: number;
+} | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+        return null;
+    }
+
+    return { year, month, day };
+}
+
+function toUtcStartOfDayIso(value: string): string | null {
+    const parsed = parseDateInput(value);
+    if (!parsed) return null;
+
+    const { year, month, day } = parsed;
+    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).toISOString();
+}
+
+function toUtcEndOfDayIso(value: string): string | null {
+    const parsed = parseDateInput(value);
+    if (!parsed) return null;
+
+    const { year, month, day } = parsed;
+    return new Date(
+        Date.UTC(year, month - 1, day, 23, 59, 59, 999),
+    ).toISOString();
+}
+
 export default function AccessCodeAdminPanel({
     codes,
     initialError = null,
 }: Props) {
     const router = useRouter();
+    const [codeList, setCodeList] = useState(codes);
+    useEffect(() => {
+        setCodeList(codes);
+    }, [codes]);
     const [eventName, setEventName] = useState('');
     const [code, setCode] = useState('');
     const [validFrom, setValidFrom] = useState('');
     const [validTo, setValidTo] = useState('');
     const [formError, setFormError] = useState<string | null>(null);
     const [globalError, setGlobalError] = useState<string | null>(initialError);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isFormSubmitting, setIsFormSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [isRefreshing, startTransition] = useTransition();
-
-    const refreshCodes = () => {
-        startTransition(() => {
-            router.refresh();
-        });
-    };
 
     const handleCreate = () => {
         setFormError(null);
+        setInfoMessage(null);
 
         if (!eventName.trim() || !code.trim() || !validFrom || !validTo) {
             setFormError('すべての項目を入力してください');
             return;
         }
-        if (new Date(validTo) <= new Date(validFrom)) {
+
+        const validFromIso = toUtcStartOfDayIso(validFrom);
+        const validToIso = toUtcEndOfDayIso(validTo);
+        if (!validFromIso || !validToIso) {
+            setFormError('日付形式が正しくありません');
+            return;
+        }
+
+        if (new Date(validToIso) <= new Date(validFromIso)) {
             setFormError('有効終了日は開始日より後にしてください');
             return;
         }
@@ -96,17 +153,20 @@ export default function AccessCodeAdminPanel({
             const result = await createAccessCodeAction({
                 code: code.trim(),
                 eventName: eventName.trim(),
-                validFrom: new Date(validFrom).toISOString(),
-                validTo: new Date(validTo).toISOString(),
+                validFrom: validFromIso,
+                validTo: validToIso,
             });
             if (!result.success) {
                 setFormError(result.error);
             } else {
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
                 setEventName('');
                 setCode('');
                 setValidFrom('');
                 setValidTo('');
-                refreshCodes();
+                setInfoMessage('アクセスコードを生成しました');
+                router.refresh();
             }
             setIsFormSubmitting(false);
         })().catch(() => {
@@ -124,7 +184,9 @@ export default function AccessCodeAdminPanel({
             if (!result.success) {
                 setGlobalError(result.error);
             } else {
-                refreshCodes();
+                const refreshed = await fetchAccessCodesFromApi();
+                setCodeList(refreshed ?? result.data);
+                router.refresh();
             }
             setDeletingId(null);
         })().catch(() => {
@@ -132,7 +194,7 @@ export default function AccessCodeAdminPanel({
         });
     };
 
-    const isBusy = isFormSubmitting || isRefreshing;
+    const isBusy = isFormSubmitting;
 
     return (
         <div className='space-y-8'>
@@ -149,6 +211,14 @@ export default function AccessCodeAdminPanel({
                     新規コード生成
                 </h2>
                 <div className='rounded-lg border border-border bg-card p-6'>
+                    {infoMessage && (
+                        <p
+                            role='status'
+                            className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        >
+                            {infoMessage}
+                        </p>
+                    )}
                     <div className='space-y-4'>
                         <div>
                             <label
@@ -264,7 +334,7 @@ export default function AccessCodeAdminPanel({
                     </p>
                 )}
 
-                {codes.length === 0 ? (
+                {codeList.length === 0 ? (
                     <p className='text-muted-foreground text-sm'>
                         登録されているコードはありません
                     </p>
@@ -296,7 +366,7 @@ export default function AccessCodeAdminPanel({
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-border bg-card'>
-                                    {codes.map((c) => {
+                                    {codeList.map((c) => {
                                         const status = getStatus(
                                             c.validFrom,
                                             c.validTo,
@@ -329,7 +399,7 @@ export default function AccessCodeAdminPanel({
                                                             handleDelete(c.id)
                                                         }
                                                         disabled={
-                                                            isRefreshing ||
+                                                            isBusy ||
                                                             deletingId === c.id
                                                         }
                                                         className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'
@@ -346,7 +416,7 @@ export default function AccessCodeAdminPanel({
 
                         {/* Mobile cards */}
                         <div className='space-y-3 md:hidden'>
-                            {codes.map((c) => {
+                            {codeList.map((c) => {
                                 const status = getStatus(
                                     c.validFrom,
                                     c.validTo,
@@ -380,7 +450,7 @@ export default function AccessCodeAdminPanel({
                                                     handleDelete(c.id)
                                                 }
                                                 disabled={
-                                                    isRefreshing ||
+                                                    isBusy ||
                                                     deletingId === c.id
                                                 }
                                                 className='rounded bg-destructive px-3 py-1 font-medium text-destructive-foreground text-xs hover:bg-destructive/90 disabled:opacity-50'

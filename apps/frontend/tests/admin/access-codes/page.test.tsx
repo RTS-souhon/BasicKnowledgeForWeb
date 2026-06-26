@@ -24,8 +24,8 @@ jest.mock('@frontend/app/actions/access-codes', () => ({
 const serverAuth =
     require('@frontend/app/lib/serverAuth') as typeof import('@frontend/app/lib/serverAuth');
 const AccessCodesPage =
-    require('@frontend/app/admin/access-codes/page')
-        .default as typeof import('@frontend/app/admin/access-codes/page').default;
+    require('@frontend/app/(authenticated)/admin/access-codes/page')
+        .default as typeof import('@frontend/app/(authenticated)/admin/access-codes/page').default;
 const navigation =
     require('next/navigation') as typeof import('next/navigation');
 

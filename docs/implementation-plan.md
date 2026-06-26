@@ -24,14 +24,14 @@
 - Cookie 名: `auth_token`
 - ログイン: `POST /api/auth/login` → HttpOnly Cookie 発行
 - 対象ページ: `/login`, `/dashboard`, `/admin/*`
-- Admin/Developer はユーザー認証のみでコンテンツページも閲覧・編集可
+- admin はユーザー認証のみでコンテンツページも閲覧・編集可
 
 ### 2. アクセスコード認証（JWT Cookie）
 
 - Cookie 名: `access_token`
 - 入力: `POST /api/access-codes/verify` → HttpOnly Cookie 発行
 - 対象ページ: `/`, `/timetable`, `/rooms`, `/events`, `/shop`, `/search`
-- User ロールのみ必要（Admin/Developer はユーザー認証で代替）
+- user は access_token が必要（admin は auth_token で代替可）
 - Cookie payload: `{ event_id, exp }`
 
 ---
@@ -118,9 +118,9 @@ shop_items（販売物）
   event_id    uuid FK→access_codes.id
   name        varchar(255)
   price       integer
-  stock_status varchar(50)   -- 'available' | 'low' | 'sold_out'
   description text
-  created_by  uuid FK→users.id
+  image_key   varchar(512)
+  image_url   text
   created_at, updated_at timestamp
 
 other_items（その他の情報）
@@ -156,7 +156,8 @@ other_items（その他の情報）
   /dashboard                プロフィール・パスワード変更・ロール確認
 
 管理者（auth_token + admin）
-  /admin/access-code        アクセスコード管理
+  /departments              部署管理
+  /admin/access-codes       アクセスコード管理
 ```
 
 ---
@@ -189,23 +190,24 @@ PUT /api/users/:id/role       admin  → ロール変更
 
 ### コンテンツ（各ドメイン共通パターン）
 
-```
-GET    /api/timetable?event_id=xxx   access_token or admin
+``` 
+GET    /api/timetable               access_token or admin (header: x-event-id)
 POST   /api/timetable                admin
 PUT    /api/timetable/:id            admin
 DELETE /api/timetable/:id            admin
 
--- rooms, programs, shop-items, others も同パターン
+-- rooms, programs, shop-items, departments, others も同パターン
 GET/POST/PUT/DELETE /api/rooms
 GET/POST/PUT/DELETE /api/programs
 GET/POST/PUT/DELETE /api/shop-items
+GET/POST/PUT/DELETE /api/departments
 GET/POST/PUT/DELETE /api/others
 ```
 
 ### 検索
 
 ```
-GET /api/search?q=keyword&event_id=xxx   access_token or admin
+GET /api/search?q=keyword              access_token or admin (header: x-event-id)
   → timetable_items / rooms / programs / shop_items / other_items を横断
 ```
 
@@ -216,10 +218,12 @@ GET /api/search?q=keyword&event_id=xxx   access_token or admin
 ```
 src/
 ├── db/
-│   └── schema.ts                    access_codes, timetable_items, rooms, programs, shop_items 追加
+│   └── schema.ts                    access_codes, departments, user_departments,
+│                                    timetable_items, rooms, programs, shop_items, other_items
 ├── infrastructure/
 │   ├── validators/
 │   │   ├── accessCodeValidator.ts
+│   │   ├── departmentValidator.ts
 │   │   ├── timetableValidator.ts
 │   │   ├── roomValidator.ts
 │   │   ├── programValidator.ts
@@ -229,6 +233,7 @@ src/
 │   └── repositories/
 │       ├── user/                    IUserRepository (既存), UserRepository (既存) + updateRole 追加
 │       ├── access-code/             IAccessCodeRepository, AccessCodeRepository
+│       ├── departments/             IDepartmentRepository, DepartmentRepository
 │       ├── timetable/               ITimetableRepository, TimetableRepository
 │       ├── room/                    IRoomRepository, RoomRepository
 │       ├── program/                 IProgramRepository, ProgramRepository
@@ -240,6 +245,7 @@ src/
 │   ├── user/                        IGetUsersUseCase, GetUsersUseCase
 │   │                                IUpdateUserRoleUseCase, UpdateUserRoleUseCase
 │   ├── access-code/                 Create / Verify / GetList / Delete
+│   ├── department/                  Create / GetList / Update / Delete
 │   ├── timetable/                   Create / GetList / Update / Delete
 │   ├── room/                        Create / GetList / Update / Delete
 │   ├── program/                     Create / GetList / Update / Delete
@@ -254,6 +260,7 @@ src/
     │   ├── authController.ts
     │   ├── userController.ts
     │   ├── accessCodeController.ts
+    │   ├── departmentController.ts
     │   ├── timetableController.ts
     │   ├── roomController.ts
     │   ├── programController.ts
@@ -264,6 +271,7 @@ src/
         ├── authRoutes.ts
         ├── userRoutes.ts
         ├── accessCodeRoutes.ts
+        ├── departmentRoutes.ts
         ├── timetableRoutes.ts
         ├── roomRoutes.ts
         ├── programRoutes.ts
@@ -282,19 +290,19 @@ app/
 │   ├── login/page.tsx
 │   ├── register/page.tsx             実装済み
 │   └── access/page.tsx
-├── (authenticated)/                  アクセスコード認証済み
-│   ├── layout.tsx                    共通ヘッダー・ナビゲーション + イベントセレクター
-│   ├── page.tsx                      TOPページ
-│   ├── timetable/page.tsx
-│   ├── rooms/page.tsx
-│   ├── events/page.tsx
-│   ├── shop/page.tsx
-│   ├── others/page.tsx
-│   └── search/page.tsx
-├── dashboard/page.tsx                ユーザー認証済み（プロフィール・PW変更・ロール管理）
-└── admin/
-    ├── layout.tsx                    admin ロールチェック
-    └── access-code/page.tsx
+└── (authenticated)/                  認証済みページ
+    ├── layout.tsx                    共通ヘッダー・ナビゲーション + イベントセレクター
+    ├── page.tsx                      TOPページ
+    ├── timetable/page.tsx
+    ├── rooms/page.tsx
+    ├── events/page.tsx
+    ├── shop/page.tsx
+    ├── departments/page.tsx          部署管理（admin 専用）
+    ├── others/page.tsx
+    ├── search/page.tsx
+    ├── dashboard/page.tsx            プロフィール・PW変更・ロール管理
+    └── admin/
+        └── access-codes/page.tsx
 middleware.ts                         ルート保護
 hooks/
 └── useAuth.ts                        auth_token → /api/auth/me
@@ -308,12 +316,12 @@ hooks/
 
 - すべての POST/PUT/DELETE ルートは `contentEditMiddleware` → `roleGuard(['admin'])` → controller の順で実行し、`contentEditMiddleware` が `auth_token`（admin）と `x-event-id` を検証して `event_id` をコンテキストに渡す。controller では body の `event_id` が異なる場合は 400 を返す。
 - 各ドメインの Create/Update/Delete use-case と controller に単体テストを追加し、Feature テストで JWT / ヘッダーのエラーケースも網羅する。
-- 販売物の `image_url` は `SHOP_ITEM_ASSET_BASE_URL` 環境変数のプレフィックスから server-side で組み立てる。クライアントは `image_key` のみ送信し、`POST /api/shop-items/upload-url` で署名付き URL を取得してからアップロードする。
+- 販売物の `image_url` は `SHOP_ITEM_ASSET_BASE_URL` 環境変数のプレフィックスから server-side で組み立てる。クライアントは `image_key` のみ送信し、`POST /api/shop-items/upload` でアップロードしたファイルのキーを受け取ってから登録する。
 
-### イベント選択（Admin/Developer）
+### イベント選択（admin）
 
 - User は access_token の Cookie payload（`event_id`）を使用して会期が決まる
-- Admin/Developer は access_token を持たないため、各コンテンツページで会期をドロップダウンで選択する
+- admin は access_token を持たないため、各コンテンツページで会期をドロップダウンで選択する
 - 選択した `event_id` は URL クエリパラメータ（`?event_id=xxx`）で管理する
 - `(authenticated)/layout.tsx` の共通ヘッダーに会期セレクターを配置し、auth_token + admin の場合のみ表示
 
@@ -335,7 +343,7 @@ hooks/
 
 | # | 対象 | 内容 |
 |---|---|---|
-| 2-1 | Backend | 各コンテンツテーブル + GET API（timetable / rooms / programs / shop-items / other-items） |
+| 2-1 | Backend | 各コンテンツテーブル + GET API（timetable / rooms / programs / shop-items / departments / other-items） |
 | 2-2 | Frontend | `(authenticated)` layout・ナビゲーション |
 | 2-3 | Frontend | `/`・`/timetable`・`/rooms`・`/events`・`/shop`・`/others` |
 
@@ -354,7 +362,8 @@ hooks/
 | 4-2 | Backend | ユーザー管理 API（GET /api/users・PUT /api/users/:id/role） |
 | 4-3 | Frontend | 各コンテンツページに編集 UI 追加（admin のみ表示） |
 | 4-4 | Frontend | `/dashboard` ページ（プロフィール・PW変更・ロール管理） |
-| 4-5 | Frontend | `/admin/access-code` ページ |
+| 4-5 | Frontend | `/admin/access-codes` ページ |
+| 4-6 | Frontend | `/departments` ページ（admin 専用） |
 
 ---
 
@@ -370,7 +379,7 @@ hooks/
 - [ ] Frontend: `middleware.ts`
 
 ### フェーズ 2
-- [ ] Backend: timetable_items / rooms / programs / shop_items / other_items スキーマ
+- [ ] Backend: timetable_items / rooms / programs / shop_items / departments / other_items スキーマ
 - [ ] Backend: 各コンテンツ GET API
 - [ ] Frontend: `(authenticated)` layout・ナビゲーション
 - [ ] Frontend: `/` TOPページ + テスト
@@ -389,4 +398,5 @@ hooks/
 - [x] Backend: ユーザー管理 API（GET /api/users・PUT /api/users/:id/role）
 - [ ] Frontend: 各コンテンツページへ編集 UI 追加 + テスト
 - [ ] Frontend: `/dashboard` （プロフィール・PW変更・ロール管理） + テスト
-- [ ] Frontend: `/admin/access-code` + テスト
+- [ ] Frontend: `/admin/access-codes` + テスト
+- [ ] Frontend: `/departments` + テスト

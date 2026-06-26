@@ -3,6 +3,7 @@ import {
     buildContentFetchHeaders,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Clock3, MapPin } from 'lucide-react';
 import ProgramAdminPanel from './ProgramAdminPanel';
 
@@ -15,6 +16,7 @@ type Program = {
     startTime: string;
     endTime: string;
     description: string | null;
+    imageUrl: string | null;
 };
 
 const dayFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -125,6 +127,7 @@ export default async function EventsPage({
             ) : (
                 <div className='grid gap-4 md:grid-cols-2'>
                     {sorted.map((program) => {
+                        const imageUrl = program.imageUrl?.trim() ?? '';
                         const schedule = describeSchedule(
                             program.startTime,
                             program.endTime,
@@ -134,6 +137,15 @@ export default async function EventsPage({
                                 key={program.id}
                                 className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
                             >
+                                {imageUrl && (
+                                    <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <TapToZoomImage
+                                            src={imageUrl}
+                                            alt={program.name}
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                        />
+                                    </div>
+                                )}
                                 <p className='font-semibold text-foreground text-sm leading-tight'>
                                     {program.name}
                                 </p>
@@ -155,7 +167,7 @@ export default async function EventsPage({
                                     </div>
                                 </div>
                                 {program.description && (
-                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                    <p className='mt-4 whitespace-pre-wrap border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
                                         {program.description}
                                     </p>
                                 )}

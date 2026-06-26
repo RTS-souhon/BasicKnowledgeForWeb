@@ -27,7 +27,6 @@ export class CreateShopItemUseCase implements ICreateShopItemUseCase {
                 eventId: input.eventId,
                 name: input.name,
                 price: input.price,
-                stockStatus: input.stockStatus,
                 description: input.description ?? null,
                 imageKey: input.imageKey,
                 imageUrl: this.buildImageUrl(input.imageKey),

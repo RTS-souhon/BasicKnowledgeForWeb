@@ -26,6 +26,9 @@ export async function getRooms(c: Context, useCase: IGetRoomsUseCase) {
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
+    c.header('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
     return c.json({ rooms: result.data }, 200);
 }
 

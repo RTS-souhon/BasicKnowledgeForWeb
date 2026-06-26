@@ -1,117 +1,67 @@
 # ログイン画面 `/login`
 
 ## 概要
-
-メールアドレスとパスワードでログインし、`auth_token` Cookie を取得する。
-成功後は `/dashboard` へリダイレクト。
-
----
+- 管理者がメールアドレスとパスワードでログインする画面。
+- ログイン成功時は `auth_token` Cookie を受け取り、`/dashboard` に遷移する。
+- 一般ユーザーの入口は `/access` を使う想定。
 
 ## アクセス制御
-
-| 条件 | 挙動 |
-|---|---|
-| 未認証 | 表示 |
-| 認証済み（auth_token 有効） | `/dashboard` へリダイレクト |
-
----
+- 未ログインでも表示可能。
+- 画面自体にロール制限はない。
+- 実際の管理機能へのアクセス可否は `auth_token` と `role=admin` で判定される。
 
 ## 画面構成
+- 入力項目
+  - メールアドレス
+  - パスワード
+- 表示要素
+  - バリデーションエラー
+  - サーバーエラー
+  - `/register` への導線
 
-単一カラムのフォームのため、デスクトップ・スマートフォンで共通のレイアウトを使用する。
+## フォームバリデーション
+- `email`: メール形式必須
+- `password`: 1文字以上必須
 
-```
-┌─────────────────────────────┐
-│         ログイン             │
-│  メールアドレス [          ] │
-│  パスワード     [          ] │
-│  [エラーメッセージ（任意）]   │
-│         [ログインする]        │
-│  アカウント未登録？ /register │
-└─────────────────────────────┘
-```
-
-**スマートフォン固有の要件:**
-- フォームカードは画面中央に配置し、左右に `px-4` 程度のパディングを確保
-- 入力欄・ボタンはフルワイド（`w-full`）
-- メールフィールドに `inputMode="email"` を付与（モバイルキーボード最適化）
-
----
-
-## フォームバリデーション（クライアント側）
-
-| フィールド | ルール |
-|---|---|
-| email | 必須・メール形式 |
-| password | 必須 |
-
----
-
-## API
-
+## 利用 API
 ### `POST /api/auth/login`
-
-**リクエスト**
+- リクエスト
 ```json
-{ "email": "user@example.com", "password": "password123" }
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
 ```
+- 成功時
+  - `200 OK`
+  - `Set-Cookie: auth_token=...`
+  - レスポンス: `{ "message": "ログインしました" }`
+- 失敗時
+  - `400`: バリデーションエラー
+  - `401`: 認証失敗（メールまたはパスワード不一致）
 
-**レスポンス**
-```
-201 Set-Cookie: auth_token=<JWT>; HttpOnly; Secure; SameSite=Strict
-{ "user": { "id", "name", "email", "role" } }
+### `GET /api/auth/me`（ログイン状態確認用）
+- `auth_token` 必須
+- レスポンス: `{ id, name, email, role }`
 
-400 { "error": "メールアドレスまたはパスワードが正しくありません" }
-```
-
-### JWT payload
-
+## JWT ペイロード（`auth_token`）
 ```json
-{ "sub": "<user_id>", "role": "user|admin", "exp": <timestamp> }
+{
+  "id": "user-uuid",
+  "name": "管理者",
+  "email": "admin@example.com",
+  "role": "admin",
+  "exp": 1700000000
+}
 ```
 
-Cookie 有効期限: 24 時間
+## 実装メモ
+- フロント: `apps/frontend/app/login/page.tsx`
+- バックエンド: `POST /api/auth/login` は `authController.login` が担当
+- Cookie は `httpOnly`, `secure`, `sameSite=Lax`, `maxAge=7日`
 
----
-
-## フロントエンド実装
-
-- `'use client'` コンポーネント
-- `react-hook-form` + `zodResolver`
-- バリデーションスキーマは `loginSchema`（フロントエンド独自定義）
-- 成功時: `router.push('/dashboard')`
-- 400 エラー時: フォーム上部にグローバルエラー表示
-
----
-
-## バックエンド実装
-
-### 新規ファイル
-
-```
-src/presentation/
-  controllers/authController.ts
-  routes/authRoutes.ts
-  middleware/
-    authMiddleware.ts    ← Cookie の JWT を検証し c.set('user', payload)
-    roleGuard.ts         ← role: ['admin'] チェック
-```
-
-### authController.ts の責務
-
-1. `AuthenticateUserUseCase.execute({ email, password })` を呼ぶ
-2. 成功時: `hono/jwt` で JWT を署名し Cookie にセット
-3. 失敗時: 400 エラーを返す
-
-> `AuthenticateUserUseCase` は既に実装済み。JWT 発行と Cookie セットのみ追加する。
-
----
-
-## テスト項目
-
-| # | テスト内容 |
-|---|---|
-| 1 | フォームフィールドが表示されること |
-| 2 | 空送信でバリデーションエラーが表示されること |
-| 3 | 正しい認証情報で成功メッセージ/リダイレクトされること |
-| 4 | 誤った認証情報でエラーメッセージが表示されること |
+## テスト観点
+- 正常ログインで `200` と Cookie が返る
+- 不正認証で `401`
+- バリデーション不正で `400`
+- ログイン後に `/dashboard` へ遷移できる

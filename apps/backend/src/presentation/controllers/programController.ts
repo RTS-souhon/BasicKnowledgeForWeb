@@ -8,6 +8,7 @@ import type { ICreateProgramUseCase } from '@backend/src/use-cases/program/ICrea
 import type { IDeleteProgramUseCase } from '@backend/src/use-cases/program/IDeleteProgramUseCase';
 import type { IGetProgramsUseCase } from '@backend/src/use-cases/program/IGetProgramsUseCase';
 import type { IUpdateProgramUseCase } from '@backend/src/use-cases/program/IUpdateProgramUseCase';
+import type { IUploadProgramImageUseCase } from '@backend/src/use-cases/program/IUploadProgramImageUseCase';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
@@ -26,6 +27,9 @@ export async function getPrograms(c: Context, useCase: IGetProgramsUseCase) {
     if (!result.success) {
         return c.json({ error: result.error }, 500);
     }
+    c.header('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    c.header('Pragma', 'no-cache');
+    c.header('Expires', '0');
     return c.json({ programs: result.data }, 200);
 }
 
@@ -56,14 +60,19 @@ export async function createProgram(
         return c.json({ error: 'event_id が一致しません' }, 400);
     }
 
-    const result = await useCase.execute({
+    const input = {
         eventId,
         name: parsed.data.name,
         location: parsed.data.location,
         startTime: parsed.data.start_time,
         endTime: parsed.data.end_time,
         description: parsed.data.description ?? null,
-    });
+        ...(parsed.data.image_key !== undefined
+            ? { imageKey: parsed.data.image_key }
+            : {}),
+    };
+
+    const result = await useCase.execute(input);
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
     }
@@ -91,16 +100,21 @@ export async function updateProgram(
         );
     }
 
+    const payload = {
+        name: parsed.data.name,
+        location: parsed.data.location,
+        startTime: parsed.data.start_time,
+        endTime: parsed.data.end_time,
+        description: parsed.data.description,
+        ...(parsed.data.image_key !== undefined
+            ? { imageKey: parsed.data.image_key }
+            : {}),
+    };
+
     const result = await useCase.execute({
         id: idParsed.data,
         eventId: c.get('eventId'),
-        payload: {
-            name: parsed.data.name,
-            location: parsed.data.location,
-            startTime: parsed.data.start_time,
-            endTime: parsed.data.end_time,
-            description: parsed.data.description,
-        },
+        payload,
     });
     if (!result.success) {
         return c.json({ error: result.error }, toStatus(result.status));
@@ -128,4 +142,33 @@ export async function deleteProgram(
         return c.json({ error: result.error }, toStatus(result.status));
     }
     return c.json({ id: result.data.id }, 200);
+}
+
+export async function uploadProgramImage(
+    c: AdminContext,
+    useCase: IUploadProgramImageUseCase,
+) {
+    let formData: FormData;
+    try {
+        formData = await c.req.formData();
+    } catch {
+        return c.json({ error: 'フォームデータの解析に失敗しました' }, 400);
+    }
+
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+        return c.json({ error: 'file フィールドが必要です' }, 400);
+    }
+
+    const body = await file.arrayBuffer();
+    const result = await useCase.execute({
+        eventId: c.get('eventId'),
+        body,
+        contentType: file.type || 'application/octet-stream',
+        fileName: file.name,
+    });
+    if (!result.success) {
+        return c.json({ error: result.error }, toStatus(result.status));
+    }
+    return c.json(result.data, 200);
 }

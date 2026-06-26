@@ -6,6 +6,7 @@ export type UpdateOtherItemInput = {
     payload: {
         title?: string;
         content?: string;
+        imageKey?: string | null;
         displayOrder?: number;
     };
 };

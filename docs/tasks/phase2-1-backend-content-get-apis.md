@@ -6,7 +6,7 @@
 - `docs/pages/06-rooms.md`
 - `docs/pages/07-events.md`
 - `docs/pages/08-shop.md`
-- `docs/pages/12-others.md`
+- `docs/pages/13-others.md`
 
 ## 目的
 

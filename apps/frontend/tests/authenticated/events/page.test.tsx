@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
@@ -10,6 +21,14 @@ jest.mock('@frontend/app/actions/programs', () => ({
     createProgramAction: jest.fn(),
     updateProgramAction: jest.fn(),
     deleteProgramAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const serverAuth =
@@ -41,6 +60,7 @@ const MOCK_PROGRAMS = [
         startTime: '2025-08-01T10:00:00.000Z',
         endTime: '2025-08-01T11:00:00.000Z',
         description: null,
+        imageUrl: null,
     },
     {
         id: '2',
@@ -48,7 +68,8 @@ const MOCK_PROGRAMS = [
         location: '多目的室',
         startTime: '2025-08-01T13:00:00.000Z',
         endTime: '2025-08-01T15:00:00.000Z',
-        description: '参加費無料',
+        description: '参加費無料\n事前申込制',
+        imageUrl: null,
     },
 ];
 
@@ -141,7 +162,14 @@ describe('EventsPage', () => {
         });
         render(element);
 
-        expect(screen.getByText('参加費無料')).toBeInTheDocument();
+        const description = screen.getByText(
+            (_, element) =>
+                element?.classList.contains('whitespace-pre-wrap') === true &&
+                element.textContent?.includes('参加費無料') === true &&
+                element.textContent?.includes('事前申込制') === true,
+        );
+        expect(description).toBeInTheDocument();
+        expect(description).toHaveClass('whitespace-pre-wrap');
     });
 
     it('日時が不正な場合は日時未定を表示する', async () => {
@@ -157,6 +185,7 @@ describe('EventsPage', () => {
                             startTime: 'invalid',
                             endTime: 'invalid',
                             description: null,
+                            imageUrl: null,
                         },
                     ],
                 }),

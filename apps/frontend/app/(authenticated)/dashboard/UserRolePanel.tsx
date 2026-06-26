@@ -1,13 +1,15 @@
 'use client';
 
 import { updateUserRoleAction } from '@frontend/app/actions/dashboard';
-import { useState, useTransition } from 'react';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 
 type User = {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: 'user' | 'admin';
 };
 
 type Props = {
@@ -19,18 +21,41 @@ const ROLE_LABELS: Record<string, string> = {
     admin: '管理者',
 };
 
+function buildSelectedRoles(users: User[]): Record<string, 'user' | 'admin'> {
+    return Object.fromEntries(users.map((u) => [u.id, u.role])) as Record<
+        string,
+        'user' | 'admin'
+    >;
+}
+
+async function fetchUsersFromApi(): Promise<User[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/users', {
+            credentials: 'include',
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { users?: User[] };
+        return Array.isArray(body.users) ? body.users : null;
+    } catch {
+        return null;
+    }
+}
+
 export default function UserRolePanel({ initialUsers }: Props) {
+    const router = useRouter();
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [pendingId, setPendingId] = useState<string | null>(null);
     const [selectedRoles, setSelectedRoles] = useState<
         Record<string, 'user' | 'admin'>
-    >(
-        Object.fromEntries(
-            initialUsers.map((u) => [u.id, u.role as 'user' | 'admin']),
-        ),
-    );
+    >(buildSelectedRoles(initialUsers));
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [, startTransition] = useTransition();
+
+    useEffect(() => {
+        setUsers(initialUsers);
+        setSelectedRoles(buildSelectedRoles(initialUsers));
+    }, [initialUsers]);
 
     const handleRoleChange = (userId: string) => {
         const newRole = selectedRoles[userId];
@@ -38,28 +63,31 @@ export default function UserRolePanel({ initialUsers }: Props) {
 
         setError(null);
         setPendingId(userId);
+        setInfoMessage(null);
+        const currentRole = users.find((u) => u.id === userId)?.role;
 
         startTransition(async () => {
             const result = await updateUserRoleAction(userId, newRole);
             setPendingId(null);
             if (!result.success) {
                 setError(result.error);
-                const actualRole = users.find((u) => u.id === userId)?.role as
-                    | 'user'
-                    | 'admin'
-                    | undefined;
-                if (actualRole) {
+                if (currentRole) {
                     setSelectedRoles((prev) => ({
                         ...prev,
-                        [userId]: actualRole,
+                        [userId]: currentRole,
                     }));
                 }
             } else {
-                setUsers((prev) =>
-                    prev.map((u) =>
-                        u.id === userId ? { ...u, role: newRole } : u,
-                    ),
+                // スナップショットが遅延していても、更新したユーザーのロール表示は確実に反映する。
+                const nextUsers = result.data.map((user) =>
+                    user.id === userId ? { ...user, role: newRole } : user,
                 );
+                const refreshed = await fetchUsersFromApi();
+                const sourceUsers = refreshed ?? nextUsers;
+                setUsers(sourceUsers);
+                setSelectedRoles(buildSelectedRoles(sourceUsers));
+                setInfoMessage('ユーザーのロールを更新しました');
+                router.refresh();
             }
         });
     };
@@ -72,6 +100,14 @@ export default function UserRolePanel({ initialUsers }: Props) {
             >
                 ユーザー管理
             </h2>
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-3 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
             {error && (
                 <p role='alert' className='mb-3 text-destructive text-sm'>
                     {error}

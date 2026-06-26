@@ -19,6 +19,8 @@ type RoomWithDepartments = {
     notes: string | null;
 };
 
+type Department = { id: string; name: string };
+
 async function fetchRooms(
     eventId: string,
     authToken: string | null,
@@ -38,6 +40,30 @@ async function fetchRooms(
         if (!res.ok) return [];
         const data = (await res.json()) as { rooms: RoomWithDepartments[] };
         return data.rooms ?? [];
+    } catch {
+        return [];
+    }
+}
+
+async function fetchDepartments(
+    eventId: string,
+    authToken: string | null,
+    accessToken: string | null,
+    role: string,
+): Promise<Department[]> {
+    try {
+        const res = await fetchFromBackend('/api/departments', {
+            headers: buildContentFetchHeaders(
+                eventId,
+                authToken,
+                accessToken,
+                role,
+            ),
+            cache: 'no-store',
+        });
+        if (!res.ok) return [];
+        const data = (await res.json()) as { departments: Department[] };
+        return data.departments ?? [];
     } catch {
         return [];
     }
@@ -65,10 +91,19 @@ export default async function RoomsPage({
         );
     }
 
-    const rooms = await fetchRooms(eventId, authToken, accessToken, role);
+    const [rooms, departments] = await Promise.all([
+        fetchRooms(eventId, authToken, accessToken, role),
+        fetchDepartments(eventId, authToken, accessToken, role),
+    ]);
 
     if (role === 'admin') {
-        return <RoomAdminPanel rooms={rooms} eventId={eventId} />;
+        return (
+            <RoomAdminPanel
+                rooms={rooms}
+                departments={departments}
+                eventId={eventId}
+            />
+        );
     }
 
     const sorted = [...rooms].sort((a, b) => {

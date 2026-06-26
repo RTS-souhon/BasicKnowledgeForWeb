@@ -4,11 +4,17 @@ import {
     decodeJwtPayload,
     resolveAuth,
 } from '@frontend/app/lib/serverAuth';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PasswordChangeForm from './PasswordChangeForm';
 import UserRolePanel from './UserRolePanel';
 
-type UserEntry = { id: string; name: string; email: string; role: string };
+type UserEntry = {
+    id: string;
+    name: string;
+    email: string;
+    role: 'user' | 'admin';
+};
 
 const ROLE_LABELS: Record<string, string> = {
     user: 'スタッフ',
@@ -22,15 +28,33 @@ async function fetchUsers(authToken: string): Promise<UserEntry[]> {
             cache: 'no-store',
         });
         if (!res.ok) return [];
-        const data = (await res.json()) as { users: UserEntry[] };
-        return data.users ?? [];
+        const data = (await res.json()) as {
+            users: Array<Omit<UserEntry, 'role'> & { role: string }>;
+        };
+        return (data.users ?? []).map((user) => ({
+            ...user,
+            role: user.role === 'admin' ? 'admin' : 'user',
+        }));
     } catch {
         return [];
     }
 }
 
-export default async function DashboardPage() {
-    const { authToken, role } = await resolveAuth();
+export default async function DashboardPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ event_id?: string }>;
+}) {
+    const resolvedParams = (await searchParams) ?? {};
+    const preservedQuery = new URLSearchParams();
+    if (resolvedParams.event_id) {
+        preservedQuery.set('event_id', resolvedParams.event_id);
+    }
+    const queryString = preservedQuery.toString();
+    const buildHref = (href: string) =>
+        queryString ? `${href}?${queryString}` : href;
+
+    const { authToken, role } = await resolveAuth(resolvedParams.event_id);
 
     if (!authToken) {
         redirect('/login');
@@ -102,12 +126,20 @@ export default async function DashboardPage() {
                         管理メニュー
                     </h2>
                     <div className='rounded-lg border border-border bg-card p-6'>
-                        <a
-                            href='/admin/access-codes'
-                            className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
-                        >
-                            アクセスコード管理 →
-                        </a>
+                        <div className='flex flex-col gap-3'>
+                            <Link
+                                href={buildHref('/admin/access-codes')}
+                                className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
+                            >
+                                アクセスコード管理 →
+                            </Link>
+                            <Link
+                                href={buildHref('/departments')}
+                                className='inline-flex items-center gap-2 font-medium text-primary text-sm hover:underline'
+                            >
+                                部署管理 →
+                            </Link>
+                        </div>
                     </div>
                 </section>
             )}

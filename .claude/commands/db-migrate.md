@@ -1,82 +1,40 @@
 ---
 name: db-migrate
-description: Drizzle マイグレーションを生成・適用する。CockroachDB の複合FK制約に対応した安全な手順をガイドする。
+description: Drizzle のスキーマ変更後に CockroachDB 向けマイグレーションを生成・検証・適用する具体的な手順。複合FKでのインデックス順序チェックや失敗時の対処も含む。
 ---
 
-# /db-migrate — データベースマイグレーション
+# Drizzle マイグレーション手順
 
-`src/db/schema.ts` を変更した後にこのスキルを使用する。
+/.claude/commands/db-migrate.md のガイドをプロジェクトローカル化。`apps/backend/src/db/schema.ts` を触ったら即実施する。
 
-## 手順
-
-### 1. ローカル CockroachDB が起動しているか確認
-
+## 1. ローカル CockroachDB を起動
 ```bash
 cd apps/backend
 docker compose up -d
 ```
+`.env` に `DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable` を設定してから続行。
 
-`.env` に以下が設定されていること:
-```env
-DATABASE_URL=postgresql://root@localhost:26257/basic-knowledge-for-web?sslmode=disable
-```
-
-### 2. Migration ファイルを生成
-
+## 2. Migration ファイル生成
 ```bash
 bun run db:generate
 ```
+生成物は `apps/backend/drizzle/` 以下。
 
-生成されたファイルは `drizzle/` 以下に配置される。
+## 3. `migration.sql` を必ず目視確認
+- 複合 FK を追加する場合、`CREATE UNIQUE INDEX IF NOT EXISTS ...` が `ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY` より前に来ているかチェック。
+- 順序が逆なら手で並び替える。
+- `IF NOT EXISTS` を付けておくと途中失敗後の再実行でも安全。
 
-### 3. Migration SQL を確認する（重要）
-
-生成された `migration.sql` を必ず開いて確認する:
-
-**⚠️ CockroachDB — 複合 FK の順序チェック:**
-
-複合外部キー（例: `rooms.(event_id, day_manager_id) → departments(event_id, id)`）が含まれる場合、
-`CREATE UNIQUE INDEX` が `ADD CONSTRAINT ... FOREIGN KEY` より**前**に来ているか確認する。
-
-Drizzle が逆順で生成した場合は手動で並び替える:
-
-```sql
--- ✅ 正しい順序
-CREATE UNIQUE INDEX IF NOT EXISTS "departments_event_id_id_idx" ON "departments" ("event_id","id");--> statement-breakpoint
-ALTER TABLE "rooms" ADD CONSTRAINT "..." FOREIGN KEY ...;
-
--- ❌ 誤った順序（FK が先だと CockroachDB がエラーになる）
-ALTER TABLE "rooms" ADD CONSTRAINT "..." FOREIGN KEY ...;
-CREATE UNIQUE INDEX ...;
-```
-
-`IF NOT EXISTS` を付けることで、部分実行後の再試行時にエラーにならない。
-
-### 4. Migration を適用
-
+## 4. Migration 適用
 ```bash
 bun run db:migrate
 ```
+失敗したら SQL を修正し、必要に応じて `db:generate` → `db:migrate` をやり直す。
 
-### 5. 失敗した場合の対処
+## 5. トラブルシューティング
+- `index already exists` → `CREATE INDEX` に `IF NOT EXISTS` を追加。
+- `constraint does not exist`（DROP CONSTRAINT 失敗）→ その行を削除して再実行。
+- 状態がわからない場合 → `bun run db:check` で未適用 migration を確認。
 
-**「index already exists」エラー:**
-migration.sql の `CREATE INDEX` に `IF NOT EXISTS` を追加して再実行。
-
-**「constraint does not exist」で DROP CONSTRAINT が失敗:**
-migration が参照している制約がDBに存在しない場合。
-`ALTER TABLE ... DROP CONSTRAINT ...` の行を削除して再実行。
-
-**migration の状態確認:**
-```bash
-bun run db:check   # 未適用の migration を確認
-```
-
-### 6. CI での確認
-
-`pull-request.yml` の `verify-migration-backend` ジョブが:
-- CockroachDB を Docker で起動
-- DB を作成
-- `bun run db:migrate` を実行
-
-ローカルで通った migration がCIでも通ることを確認してからPRを作成する。
+## 6. CI との整合
+`pull-request.yml` の `verify-migration-backend` ジョブでは Docker で CockroachDB を立ち上げ、`bun run db:migrate` を実行する。ローカルで通らない migration は CI でも必ず落ちるため、上記手順で安全性を担保してからコミットする。

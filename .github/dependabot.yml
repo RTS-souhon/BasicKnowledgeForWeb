@@ -3,9 +3,9 @@ updates:
   - package-ecosystem: "bun"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     cooldown:
-      default-days: 5
+      default-days: 7
       semver-minor-days: 7
       semver-patch-days: 3
     ignore:
@@ -15,26 +15,22 @@ updates:
   - package-ecosystem: "bun"
     directory: "/apps/backend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     cooldown:
-      default-days: 5
+      default-days: 7
       semver-minor-days: 7
       semver-patch-days: 3
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-    groups:
-      drizzle:
-        patterns:
-          - "drizzle-orm"
-          - "drizzle-kit"
-
+      - dependency-name: "drizzle-orm"
+      - dependency-name: "drizzle-kit"
   - package-ecosystem: "bun"
     directory: "/apps/frontend"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     cooldown:
-      default-days: 5
+      default-days: 7
       semver-minor-days: 7
       semver-patch-days: 3
     ignore:
@@ -52,3 +48,5 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7

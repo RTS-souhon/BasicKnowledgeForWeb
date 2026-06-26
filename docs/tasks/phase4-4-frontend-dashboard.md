@@ -20,7 +20,7 @@
 ## このフェーズでやらないこと
 
 - backend API 追加（Phase 4-2）
-- `/admin/access-code` の UI（Phase 4-5）
+- `/admin/access-codes` の UI（Phase 4-5）
 
 ## テスト
 

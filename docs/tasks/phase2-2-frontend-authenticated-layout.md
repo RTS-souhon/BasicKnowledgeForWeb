@@ -26,7 +26,7 @@
 
 ## 実装時の前提
 
-- `/dashboard` と `/admin/access-code` は Phase 4 まで未実装
+- `/dashboard` と `/admin/access-codes` は Phase 4 まで未実装
 - そのため、Phase 2 の layout では将来ページへのリンクを出さない
 - docs のうち共通ヘッダー・会期セレクター・ナビゲーション部分を優先して実装する
 

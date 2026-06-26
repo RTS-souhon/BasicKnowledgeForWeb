@@ -12,7 +12,7 @@
 ## 実装内容
 
 1. `(authenticated)/search/page.tsx` を Client Component として作成し、URL クエリ `?q=` で検索状態を管理する
-2. `fetch` で `GET /api/search?q=<keyword>&event_id=<id>` を呼び出し、会期未選択時は検索 UI のみ表示する
+2. `fetch` で `GET /api/search?q=<keyword> (header: x-event-id)` を呼び出し、会期未選択時は検索 UI のみ表示する
 3. 入力欄とボタンをモバイルではフルワイド縦配置、デスクトップでは横並びにする
 4. 各カテゴリごとに結果セクションを作り、件数とリスト（カード表示）を描画する
 5. 全カテゴリ 0 件のときは「該当する情報が見つかりません」を表示する

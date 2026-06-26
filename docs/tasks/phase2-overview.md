@@ -13,7 +13,7 @@ Phase 2 は「閲覧用コンテンツ基盤」の実装フェーズです。
 
 - 各コンテンツの POST / PUT / DELETE API
 - admin 向けの編集 UI
-- `/dashboard` と `/admin/access-code`
+- `/dashboard` `/departments` と `/admin/access-codes`
 - `/search`
 
 編集 UI は docs 各ページに将来仕様として記載されていますが、**Phase 2 では閲覧 UI のみ** 実装します。  

@@ -5,10 +5,12 @@ import {
     deleteRoomAction,
     updateRoomAction,
 } from '@frontend/app/actions/rooms';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
-import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 
 type RoomWithDepartments = {
     id: string;
@@ -23,6 +25,22 @@ type RoomWithDepartments = {
     dayPurpose: string;
     notes: string | null;
 };
+
+async function fetchRoomsFromApi(
+    eventId: string,
+): Promise<RoomWithDepartments[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/rooms', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { rooms?: RoomWithDepartments[] };
+        return Array.isArray(body.rooms) ? body.rooms : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     building_name: string;
@@ -59,9 +77,24 @@ function itemToForm(item: RoomWithDepartments): FormData {
     };
 }
 
-type Props = { rooms: RoomWithDepartments[]; eventId: string };
+type Department = { id: string; name: string };
 
-export default function RoomAdminPanel({ rooms, eventId }: Props) {
+type Props = {
+    rooms: RoomWithDepartments[];
+    departments: Department[];
+    eventId: string;
+};
+
+export default function RoomAdminPanel({
+    rooms: initialRooms,
+    departments,
+    eventId,
+}: Props) {
+    const router = useRouter();
+    const [rooms, setRooms] = useState(initialRooms);
+    useEffect(() => {
+        setRooms(initialRooms);
+    }, [initialRooms]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
@@ -70,12 +103,14 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
     );
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
     };
 
@@ -83,6 +118,7 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
     };
 
@@ -106,7 +142,7 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
             !day_manager_id ||
             !day_purpose
         ) {
-            setError('建物名・階・部屋名・当日担当ID・当日用途は必須です');
+            setError('建物名・階・部屋名・当日担当部署・当日用途は必須です');
             return;
         }
 
@@ -140,7 +176,18 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
 
             if (!result.success) {
                 setError(result.error);
+                return;
             }
+
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
+            setInfoMessage(
+                formMode === 'adding'
+                    ? '部屋割りを追加しました'
+                    : '部屋割りを更新しました',
+            );
+            router.refresh();
+            closeForm();
         });
     };
 
@@ -148,7 +195,14 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
         if (!confirm(`「${item.roomName}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteRoomAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            const refreshed = await fetchRoomsFromApi(eventId);
+            setRooms(refreshed ?? result.data);
+            setInfoMessage('部屋割りを削除しました');
+            router.refresh();
         });
     };
 
@@ -182,6 +236,15 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                 )}
             </div>
 
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
+
             {error && (
                 <p
                     role='alert'
@@ -198,9 +261,6 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                             ? '新しい部屋割りを追加'
                             : '部屋割りを編集'}
                     </h2>
-                    <p className='mb-3 text-muted-foreground text-xs'>
-                        担当者IDは部署ID（UUID）を入力してください。
-                    </p>
                     <div className='space-y-3'>
                         <div className='grid grid-cols-3 gap-3'>
                             <div>
@@ -261,10 +321,10 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                         <div className='grid grid-cols-2 gap-3'>
                             <div>
                                 <Label htmlFor='room-day-mgr'>
-                                    当日担当ID
+                                    当日担当部署
                                     <span className='ml-1 text-red-500'>*</span>
                                 </Label>
-                                <Input
+                                <select
                                     id='room-day-mgr'
                                     value={formData.day_manager_id}
                                     onChange={(e) =>
@@ -273,9 +333,15 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                                             day_manager_id: e.target.value,
                                         }))
                                     }
-                                    placeholder='部署UUID'
-                                    className='mt-1 font-mono text-xs'
-                                />
+                                    className='mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                                >
+                                    <option value=''>部署を選択</option>
+                                    {departments.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <Label htmlFor='room-day-purpose'>
@@ -299,9 +365,9 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                         <div className='grid grid-cols-2 gap-3'>
                             <div>
                                 <Label htmlFor='room-pre-mgr'>
-                                    前日担当ID（任意）
+                                    前日担当部署（任意）
                                 </Label>
-                                <Input
+                                <select
                                     id='room-pre-mgr'
                                     value={formData.pre_day_manager_id}
                                     onChange={(e) =>
@@ -310,9 +376,15 @@ export default function RoomAdminPanel({ rooms, eventId }: Props) {
                                             pre_day_manager_id: e.target.value,
                                         }))
                                     }
-                                    placeholder='部署UUID'
-                                    className='mt-1 font-mono text-xs'
-                                />
+                                    className='mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                                >
+                                    <option value=''>（なし）</option>
+                                    {departments.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <Label htmlFor='room-pre-purpose'>

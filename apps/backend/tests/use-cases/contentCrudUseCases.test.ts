@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import type { Department, IDepartmentRepository } from '@backend/src/infrastructure/repositories/departments/IDepartmentRepository';
 import type { TimetableItem } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
 import type { RoomWithDepartments } from '@backend/src/infrastructure/repositories/room/IRoomRepository';
 import type { Program } from '@backend/src/infrastructure/repositories/program/IProgramRepository';
@@ -24,9 +25,21 @@ import { DeleteShopItemUseCase } from '@backend/src/use-cases/shop-item/DeleteSh
 import { CreateOtherItemUseCase } from '@backend/src/use-cases/other-item/CreateOtherItemUseCase';
 import { UpdateOtherItemUseCase } from '@backend/src/use-cases/other-item/UpdateOtherItemUseCase';
 import { DeleteOtherItemUseCase } from '@backend/src/use-cases/other-item/DeleteOtherItemUseCase';
+import { CreateDepartmentUseCase } from '@backend/src/use-cases/department/CreateDepartmentUseCase';
+import { UpdateDepartmentUseCase } from '@backend/src/use-cases/department/UpdateDepartmentUseCase';
+import { DeleteDepartmentUseCase } from '@backend/src/use-cases/department/DeleteDepartmentUseCase';
+import { GetDepartmentsUseCase } from '@backend/src/use-cases/department/GetDepartmentsUseCase';
 
 const EVENT_ID = '00000000-0000-4000-8000-000000000001';
 const OTHER_EVENT_ID = '00000000-0000-4000-8000-000000000002';
+
+const baseDepartment: Department = {
+    id: '60000000-0000-4000-8000-000000000001',
+    eventId: EVENT_ID,
+    name: '企画部',
+    createdAt: new Date('2025-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2025-01-01T00:00:00.000Z'),
+};
 
 const baseTimetable: TimetableItem = {
     id: '10000000-0000-4000-8000-000000000001',
@@ -65,6 +78,7 @@ const baseProgram: Program = {
     startTime: new Date('2025-08-01T12:00:00.000Z'),
     endTime: new Date('2025-08-01T13:00:00.000Z'),
     description: null,
+    imageUrl: null,
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-01T00:00:00.000Z'),
 };
@@ -74,7 +88,6 @@ const baseShopItem: ShopItem = {
     eventId: EVENT_ID,
     name: 'グッズA',
     price: 500,
-    stockStatus: 'available',
     description: null,
     imageUrl: 'https://assets.example.com/a.webp',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
@@ -88,6 +101,7 @@ const baseOtherItem: OtherItem = {
     eventId: EVENT_ID,
     title: '注意事項',
     content: '集合時間は9時です',
+    imageUrl: null,
     displayOrder: 1,
     createdBy: 'admin',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
@@ -168,6 +182,25 @@ function mockShopItemRepository(overrides: Partial<IShopItemRepository> = {}) {
     } as unknown as jest.Mocked<IShopItemRepository>;
 }
 
+function mockDepartmentRepository(overrides: Partial<IDepartmentRepository> = {}) {
+    return {
+        findByEventId: jest.fn(),
+        create: jest
+            .fn<IDepartmentRepository['create']>()
+            .mockImplementation(() => Promise.resolve(baseDepartment)),
+        createBulk: jest
+            .fn<IDepartmentRepository['createBulk']>()
+            .mockImplementation(() => Promise.resolve([baseDepartment])),
+        update: jest
+            .fn<IDepartmentRepository['update']>()
+            .mockImplementation(() => Promise.resolve(baseDepartment)),
+        delete: jest
+            .fn<IDepartmentRepository['delete']>()
+            .mockImplementation(() => Promise.resolve(true)),
+        ...overrides,
+    } as unknown as jest.Mocked<IDepartmentRepository>;
+}
+
 function mockOtherItemRepository(overrides: Partial<IOtherItemRepository> = {}) {
     return {
         findByEventId: jest.fn(),
@@ -194,29 +227,13 @@ function expectFailure<T extends { success: boolean }>(
 // Timetable
 
 describe('Timetable use cases', () => {
-    it('CreateTimetableItemUseCase rejects when end <= start', async () => {
-        const repo = mockTimetableRepository();
-        const useCase = new CreateTimetableItemUseCase(repo);
-        const result = await useCase.execute({
-            eventId: EVENT_ID,
-            title: 'テスト',
-            startTime: '2025-08-01T11:00:00.000Z',
-            endTime: '2025-08-01T10:00:00.000Z',
-            location: 'A',
-        });
-        expectFailure(result);
-        expect(result.status).toBe(400);
-        expect(repo.create).not.toHaveBeenCalled();
-    });
-
-    it('CreateTimetableItemUseCase passes converted dates to repository', async () => {
+    it('CreateTimetableItemUseCase sets endTime to startTime', async () => {
         const repo = mockTimetableRepository();
         const useCase = new CreateTimetableItemUseCase(repo);
         await useCase.execute({
             eventId: EVENT_ID,
             title: 'テスト',
             startTime: '2025-08-01T10:00:00.000Z',
-            endTime: '2025-08-01T11:00:00.000Z',
             location: 'A',
             description: undefined,
         });
@@ -224,9 +241,39 @@ describe('Timetable use cases', () => {
             eventId: EVENT_ID,
             title: 'テスト',
             startTime: new Date('2025-08-01T10:00:00.000Z'),
-            endTime: new Date('2025-08-01T11:00:00.000Z'),
+            endTime: new Date('2025-08-01T10:00:00.000Z'),
             location: 'A',
             description: null,
+        });
+    });
+
+    it('CreateTimetableItemUseCase sets empty location when omitted', async () => {
+        const repo = mockTimetableRepository();
+        const useCase = new CreateTimetableItemUseCase(repo);
+        await useCase.execute({
+            eventId: EVENT_ID,
+            title: '場所未定の案内',
+            startTime: '2025-08-01T10:00:00.000Z',
+            description: null,
+        });
+        expect(repo.create).toHaveBeenCalledWith(
+            expect.objectContaining({ location: '' }),
+        );
+    });
+
+    it('UpdateTimetableItemUseCase sets endTime to startTime when start is updated', async () => {
+        const repo = mockTimetableRepository();
+        const useCase = new UpdateTimetableItemUseCase(repo);
+        await useCase.execute({
+            id: baseTimetable.id,
+            eventId: EVENT_ID,
+            payload: {
+                startTime: '2025-08-01T12:00:00.000Z',
+            },
+        });
+        expect(repo.update).toHaveBeenCalledWith(baseTimetable.id, EVENT_ID, {
+            startTime: new Date('2025-08-01T12:00:00.000Z'),
+            endTime: new Date('2025-08-01T12:00:00.000Z'),
         });
     });
 
@@ -310,7 +357,10 @@ describe('Room use cases', () => {
 describe('Program use cases', () => {
     it('CreateProgramUseCase validates start/end order', async () => {
         const repo = mockProgramRepository();
-        const useCase = new CreateProgramUseCase(repo);
+        const useCase = new CreateProgramUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
         const result = await useCase.execute({
             eventId: EVENT_ID,
             name: '企画',
@@ -324,7 +374,10 @@ describe('Program use cases', () => {
 
     it('UpdateProgramUseCase converts ISO strings to Date', async () => {
         const repo = mockProgramRepository();
-        const useCase = new UpdateProgramUseCase(repo);
+        const useCase = new UpdateProgramUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
         await useCase.execute({
             id: baseProgram.id,
             eventId: EVENT_ID,
@@ -337,6 +390,45 @@ describe('Program use cases', () => {
             startTime: new Date('2025-08-01T12:00:00.000Z'),
             endTime: new Date('2025-08-01T13:00:00.000Z'),
         });
+    });
+
+    it('CreateProgramUseCase builds imageUrl from base URL', async () => {
+        const repo = mockProgramRepository();
+        const useCase = new CreateProgramUseCase(
+            repo,
+            `${SHOP_ITEM_ASSET_BASE_URL}/`,
+        );
+        const imageKey = `programs/${EVENT_ID}/program.webp`;
+        await useCase.execute({
+            eventId: EVENT_ID,
+            name: '企画',
+            location: 'ホール',
+            startTime: '2025-08-01T12:00:00.000Z',
+            endTime: '2025-08-01T13:00:00.000Z',
+            imageKey,
+        });
+        expect(repo.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                imageKey,
+                imageUrl: `${SHOP_ITEM_ASSET_BASE_URL}/${imageKey}`,
+            }),
+        );
+    });
+
+    it('UpdateProgramUseCase rejects invalid image key', async () => {
+        const repo = mockProgramRepository();
+        const useCase = new UpdateProgramUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
+        const result = await useCase.execute({
+            id: baseProgram.id,
+            eventId: EVENT_ID,
+            payload: { imageKey: 'invalid/path' },
+        });
+        expectFailure(result);
+        expect(result.status).toBe(400);
+        expect(repo.update).not.toHaveBeenCalled();
     });
 
     it('DeleteProgramUseCase returns 404 when repository reports missing', async () => {
@@ -365,7 +457,6 @@ describe('Shop item use cases', () => {
             eventId: EVENT_ID,
             name: 'グッズ',
             price: 500,
-            stockStatus: 'available',
             imageKey: 'invalid/path',
         });
         expectFailure(result);
@@ -384,7 +475,6 @@ describe('Shop item use cases', () => {
             eventId: EVENT_ID,
             name: 'グッズ',
             price: 500,
-            stockStatus: 'available',
             imageKey,
         });
         expect(repo.create).toHaveBeenCalledWith(
@@ -448,7 +538,10 @@ describe('Shop item use cases', () => {
 describe('Other item use cases', () => {
     it('CreateOtherItemUseCase forwards createdBy', async () => {
         const repo = mockOtherItemRepository();
-        const useCase = new CreateOtherItemUseCase(repo);
+        const useCase = new CreateOtherItemUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
         await useCase.execute({
             eventId: EVENT_ID,
             title: '連絡',
@@ -460,14 +553,58 @@ describe('Other item use cases', () => {
             eventId: EVENT_ID,
             title: '連絡',
             content: 'テスト',
+            imageKey: null,
+            imageUrl: null,
             displayOrder: 1,
             createdBy: 'admin',
         });
     });
 
+    it('CreateOtherItemUseCase builds imageUrl from base URL', async () => {
+        const repo = mockOtherItemRepository();
+        const useCase = new CreateOtherItemUseCase(
+            repo,
+            `${SHOP_ITEM_ASSET_BASE_URL}/`,
+        );
+        const imageKey = `others/${EVENT_ID}/note.webp`;
+        await useCase.execute({
+            eventId: EVENT_ID,
+            title: '連絡',
+            content: 'テスト',
+            imageKey,
+            displayOrder: 1,
+            createdBy: 'admin',
+        });
+        expect(repo.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                imageKey,
+                imageUrl: `${SHOP_ITEM_ASSET_BASE_URL}/${imageKey}`,
+            }),
+        );
+    });
+
+    it('UpdateOtherItemUseCase rejects invalid image key', async () => {
+        const repo = mockOtherItemRepository();
+        const useCase = new UpdateOtherItemUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
+        const result = await useCase.execute({
+            id: baseOtherItem.id,
+            eventId: EVENT_ID,
+            payload: { imageKey: 'invalid' },
+        });
+        expectFailure(result);
+        expect(result.status).toBe(400);
+        expect(repo.update).not.toHaveBeenCalled();
+    });
+
     it('UpdateOtherItemUseCase requires at least one field', async () => {
         const repo = mockOtherItemRepository();
-        const useCase = new UpdateOtherItemUseCase(repo);
+        const useCase = new UpdateOtherItemUseCase(
+            repo,
+            SHOP_ITEM_ASSET_BASE_URL,
+        );
         const result = await useCase.execute({ id: baseOtherItem.id, eventId: EVENT_ID, payload: {} });
         expectFailure(result);
         expect(result.status).toBe(400);
@@ -484,5 +621,75 @@ describe('Other item use cases', () => {
         const result = await useCase.execute({ id: baseOtherItem.id, eventId: EVENT_ID });
         expectFailure(result);
         expect(result.status).toBe(404);
+    });
+});
+
+// Departments
+
+describe('Department use cases', () => {
+    it('GetDepartmentsUseCase forwards eventId to repository', async () => {
+        const repo = mockDepartmentRepository({
+            findByEventId: jest
+                .fn<IDepartmentRepository['findByEventId']>()
+                .mockImplementation(() => Promise.resolve([baseDepartment])),
+        });
+        const useCase = new GetDepartmentsUseCase(repo);
+        const result = await useCase.execute(EVENT_ID);
+        expect(result.success).toBe(true);
+        if (result.success) expect(result.data).toHaveLength(1);
+        expect(repo.findByEventId).toHaveBeenCalledWith(EVENT_ID);
+    });
+
+    it('CreateDepartmentUseCase forwards name and eventId to repository', async () => {
+        const repo = mockDepartmentRepository();
+        const useCase = new CreateDepartmentUseCase(repo);
+        await useCase.execute({ eventId: EVENT_ID, name: '企画部' });
+        expect(repo.create).toHaveBeenCalledWith({
+            eventId: EVENT_ID,
+            name: '企画部',
+        });
+    });
+
+    it('UpdateDepartmentUseCase returns 404 when department missing', async () => {
+        const repo = mockDepartmentRepository({
+            update: jest
+                .fn<IDepartmentRepository['update']>()
+                .mockImplementation(() => Promise.resolve(null)),
+        });
+        const useCase = new UpdateDepartmentUseCase(repo);
+        const result = await useCase.execute({
+            id: baseDepartment.id,
+            eventId: EVENT_ID,
+            payload: { name: '変更' },
+        });
+        expectFailure(result);
+        expect(result.status).toBe(404);
+        expect(result.error).toContain('見つかりません');
+    });
+
+    it('DeleteDepartmentUseCase returns 404 when not found', async () => {
+        const repo = mockDepartmentRepository({
+            delete: jest
+                .fn<IDepartmentRepository['delete']>()
+                .mockImplementation(() => Promise.resolve(false)),
+        });
+        const useCase = new DeleteDepartmentUseCase(repo);
+        const result = await useCase.execute({ id: baseDepartment.id, eventId: EVENT_ID });
+        expectFailure(result);
+        expect(result.status).toBe(404);
+    });
+
+    it('DeleteDepartmentUseCase returns 409 on FK constraint violation', async () => {
+        const repo = mockDepartmentRepository({
+            delete: jest
+                .fn<IDepartmentRepository['delete']>()
+                .mockImplementation(() =>
+                    Promise.reject(new Error('foreign key constraint violation')),
+                ),
+        });
+        const useCase = new DeleteDepartmentUseCase(repo);
+        const result = await useCase.execute({ id: baseDepartment.id, eventId: OTHER_EVENT_ID });
+        expectFailure(result);
+        expect(result.status).toBe(409);
     });
 });

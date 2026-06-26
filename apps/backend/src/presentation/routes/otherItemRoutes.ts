@@ -6,6 +6,7 @@ import {
     deleteOtherItem,
     getOtherItems,
     updateOtherItem,
+    uploadOtherItemImage,
 } from '@backend/src/presentation/controllers/otherItemController';
 import { contentAccessMiddleware } from '@backend/src/presentation/middleware/contentAccessMiddleware';
 import { contentEditMiddleware } from '@backend/src/presentation/middleware/contentEditMiddleware';
@@ -14,6 +15,7 @@ import { CreateOtherItemUseCase } from '@backend/src/use-cases/other-item/Create
 import { DeleteOtherItemUseCase } from '@backend/src/use-cases/other-item/DeleteOtherItemUseCase';
 import { GetOtherItemsUseCase } from '@backend/src/use-cases/other-item/GetOtherItemsUseCase';
 import { UpdateOtherItemUseCase } from '@backend/src/use-cases/other-item/UpdateOtherItemUseCase';
+import { UploadOtherItemImageUseCase } from '@backend/src/use-cases/other-item/UploadOtherItemImageUseCase';
 import { Hono } from 'hono';
 import type { ContentEditVariables } from '../middleware/contentEditMiddleware';
 
@@ -38,7 +40,10 @@ export function createOtherItemRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new CreateOtherItemUseCase(repository);
+            const useCase = new CreateOtherItemUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return createOtherItem(c, useCase);
         },
     );
@@ -49,7 +54,10 @@ export function createOtherItemRoutes(
         roleGuard(ADMIN_ROLES),
         async (c) => {
             const repository = repositoryFactory(c.env);
-            const useCase = new UpdateOtherItemUseCase(repository);
+            const useCase = new UpdateOtherItemUseCase(
+                repository,
+                c.env.SHOP_ITEM_ASSET_BASE_URL,
+            );
             return updateOtherItem(c, useCase);
         },
     );
@@ -62,6 +70,18 @@ export function createOtherItemRoutes(
             const repository = repositoryFactory(c.env);
             const useCase = new DeleteOtherItemUseCase(repository);
             return deleteOtherItem(c, useCase);
+        },
+    );
+
+    app.post(
+        '/others/upload',
+        contentEditMiddleware,
+        roleGuard(ADMIN_ROLES),
+        async (c) => {
+            const useCase = new UploadOtherItemImageUseCase(
+                c.env.SHOP_ITEM_ASSET_BUCKET,
+            );
+            return uploadOtherItemImage(c, useCase);
         },
     );
 

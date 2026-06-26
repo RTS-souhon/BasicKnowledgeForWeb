@@ -26,6 +26,7 @@ const customJestConfig: Config = {
         '^@asamuzakjp/css-color/(.*)$': '<rootDir>/tests/mocks/css-color.js',
     },
     testMatch: ['<rootDir>/tests/**/*.test.{ts,tsx}'],
+    modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/.open-next/'],
 };
 
 // createJestConfig は transformIgnorePatterns を next/jest デフォルトで上書きするため、
@@ -34,6 +35,7 @@ const MSW_ESM_PACKAGES = [
     'msw',
     '@mswjs/interceptors',
     'until-async',
+    'rettime',
     '@open-draft/until',
     '@open-draft/logger',
     '@open-draft/deferred-promise',

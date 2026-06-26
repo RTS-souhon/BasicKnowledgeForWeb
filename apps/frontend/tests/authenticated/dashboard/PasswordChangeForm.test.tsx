@@ -6,17 +6,34 @@ jest.mock('@frontend/app/actions/dashboard', () => ({
     changePasswordAction: jest.fn(),
     updateUserRoleAction: jest.fn(),
 }));
+jest.mock('@frontend/app/lib/backendFetch', () => ({
+    fetchFromBackend: jest.fn(),
+}));
 
 const actions =
     require('@frontend/app/actions/dashboard') as typeof import('@frontend/app/actions/dashboard');
+const backendFetch =
+    require('@frontend/app/lib/backendFetch') as typeof import('@frontend/app/lib/backendFetch');
 const PasswordChangeForm =
     require('@frontend/app/(authenticated)/dashboard/PasswordChangeForm')
         .default as typeof import('@frontend/app/(authenticated)/dashboard/PasswordChangeForm').default;
 
 const mockChangePassword = jest.mocked(actions.changePasswordAction);
+const mockFetchFromBackend = jest.mocked(backendFetch.fetchFromBackend);
 
 beforeEach(() => {
     jest.resetAllMocks();
+    mockFetchFromBackend.mockResolvedValue(
+        new Response(
+            JSON.stringify({
+                id: 'user-1',
+                name: '山田太郎',
+                email: 'yamada@example.com',
+                role: 'user',
+            }),
+            { status: 200 },
+        ),
+    );
 });
 
 describe('PasswordChangeForm', () => {
@@ -104,6 +121,9 @@ describe('PasswordChangeForm', () => {
             currentPassword: 'currentpass',
             newPassword: 'newpassword1',
         });
+        expect(mockFetchFromBackend).toHaveBeenCalledWith('/api/auth/me', {
+            credentials: 'include',
+        });
     });
 
     it('API エラー時にエラーメッセージを表示する', async () => {
@@ -133,6 +153,7 @@ describe('PasswordChangeForm', () => {
                 '現在のパスワードが正しくありません',
             );
         });
+        expect(mockFetchFromBackend).not.toHaveBeenCalled();
     });
 
     it('成功後にフォームをリセットする', async () => {

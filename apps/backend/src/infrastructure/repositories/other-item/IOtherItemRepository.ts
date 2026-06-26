@@ -1,6 +1,8 @@
 import type { otherItems } from '@backend/src/db/schema';
 
-export type OtherItem = typeof otherItems.$inferSelect;
+type OtherItemRecord = typeof otherItems.$inferSelect;
+
+export type OtherItem = Omit<OtherItemRecord, 'imageKey'>;
 
 export type CreateOtherItemInput = Omit<
     typeof otherItems.$inferInsert,

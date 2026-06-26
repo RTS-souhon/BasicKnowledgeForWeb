@@ -4,12 +4,16 @@ import {
     createProgramAction,
     deleteProgramAction,
     updateProgramAction,
+    uploadProgramImageAction,
 } from '@frontend/app/actions/programs';
+import { fetchFromBackend } from '@frontend/app/lib/backendFetch';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { Button } from '@frontend/components/ui/button';
 import { Input } from '@frontend/components/ui/input';
 import { Label } from '@frontend/components/ui/label';
 import { Clock3, MapPin } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 const DISPLAY_TIMEZONE = 'Asia/Tokyo';
 
@@ -20,7 +24,24 @@ type Program = {
     startTime: string;
     endTime: string;
     description: string | null;
+    imageUrl: string | null;
 };
+
+async function fetchProgramsFromApi(
+    eventId: string,
+): Promise<Program[] | null> {
+    try {
+        const res = await fetchFromBackend('/api/programs', {
+            credentials: 'include',
+            headers: { 'x-event-id': eventId },
+        });
+        if (!res.ok) return null;
+        const body = (await res.json()) as { programs?: Program[] };
+        return Array.isArray(body.programs) ? body.programs : null;
+    } catch {
+        return null;
+    }
+}
 
 type FormData = {
     name: string;
@@ -85,33 +106,63 @@ function describeSchedule(startIso: string, endIso: string) {
 
 type Props = { items: Program[]; eventId: string };
 
-export default function ProgramAdminPanel({ items, eventId }: Props) {
+export default function ProgramAdminPanel({
+    items: initialItems,
+    eventId,
+}: Props) {
+    const router = useRouter();
+    const [items, setItems] = useState(initialItems);
+    useEffect(() => {
+        setItems(initialItems);
+    }, [initialItems]);
     const [formMode, setFormMode] = useState<'idle' | 'adding' | 'editing'>(
         'idle',
     );
     const [editingItem, setEditingItem] = useState<Program | null>(null);
     const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openAdd = () => {
         setFormData(EMPTY_FORM);
         setEditingItem(null);
         setError(null);
+        setInfoMessage(null);
         setFormMode('adding');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const openEdit = (item: Program) => {
         setFormData(itemToForm(item));
         setEditingItem(item);
         setError(null);
+        setInfoMessage(null);
         setFormMode('editing');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const closeForm = () => {
         setFormMode('idle');
         setEditingItem(null);
         setError(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const uploadImageIfSelected = async (): Promise<string | null> => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return null;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const result = await uploadProgramImageAction(eventId, formData);
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        return result.imageKey;
     };
 
     const handleSubmit = () => {
@@ -125,26 +176,49 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
         const start_time = new Date(formData.start_time).toISOString();
         const end_time = new Date(formData.end_time).toISOString();
 
-        startTransition(async () => {
-            const result =
-                formMode === 'editing' && editingItem
-                    ? await updateProgramAction(eventId, editingItem.id, {
-                          name,
-                          location,
-                          start_time,
-                          end_time,
-                          description: formData.description.trim() || null,
-                      })
-                    : await createProgramAction(eventId, {
-                          name,
-                          location,
-                          start_time,
-                          end_time,
-                          description: formData.description.trim() || null,
-                      });
+        const description = formData.description.trim() || null;
 
-            if (!result.success) {
-                setError(result.error);
+        startTransition(async () => {
+            try {
+                const imageKey = await uploadImageIfSelected();
+
+                const result =
+                    formMode === 'editing' && editingItem
+                        ? await updateProgramAction(eventId, editingItem.id, {
+                              name,
+                              location,
+                              start_time,
+                              end_time,
+                              description,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          })
+                        : await createProgramAction(eventId, {
+                              name,
+                              location,
+                              start_time,
+                              end_time,
+                              description,
+                              ...(imageKey ? { image_key: imageKey } : {}),
+                          });
+
+                if (!result.success) {
+                    setError(result.error);
+                    return;
+                }
+
+                const refreshed = await fetchProgramsFromApi(eventId);
+                setItems(refreshed ?? result.data);
+                setInfoMessage(
+                    formMode === 'adding'
+                        ? '企画を追加しました'
+                        : '企画を更新しました',
+                );
+                router.refresh();
+                closeForm();
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : '操作に失敗しました',
+                );
             }
         });
     };
@@ -153,7 +227,14 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
         if (!confirm(`「${item.name}」を削除しますか？`)) return;
         startTransition(async () => {
             const result = await deleteProgramAction(eventId, item.id);
-            if (!result.success) setError(result.error);
+            if (!result.success) {
+                setError(result.error);
+                return;
+            }
+            const refreshed = await fetchProgramsFromApi(eventId);
+            setItems(refreshed ?? result.data);
+            setInfoMessage('企画を削除しました');
+            router.refresh();
         });
     };
 
@@ -174,6 +255,15 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                     </Button>
                 )}
             </div>
+
+            {infoMessage && (
+                <p
+                    role='status'
+                    className='mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-emerald-800 text-sm dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                >
+                    {infoMessage}
+                </p>
+            )}
 
             {error && (
                 <p
@@ -267,6 +357,23 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                             </div>
                         </div>
                         <div>
+                            <Label htmlFor='prog-image'>
+                                画像ファイル（任意）
+                                {formMode === 'editing' && (
+                                    <span className='ml-1 text-muted-foreground text-xs'>
+                                        （変更する場合のみ選択）
+                                    </span>
+                                )}
+                            </Label>
+                            <input
+                                ref={fileInputRef}
+                                id='prog-image'
+                                type='file'
+                                accept='image/*'
+                                className='mt-1 w-full text-muted-foreground text-sm file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:font-medium file:text-sm hover:file:bg-muted/80'
+                            />
+                        </div>
+                        <div>
                             <Label htmlFor='prog-desc'>説明（任意）</Label>
                             <textarea
                                 id='prog-desc'
@@ -310,6 +417,7 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
             ) : (
                 <div className='grid gap-4 md:grid-cols-2'>
                     {sorted.map((program) => {
+                        const imageUrl = program.imageUrl?.trim() ?? '';
                         const schedule = describeSchedule(
                             program.startTime,
                             program.endTime,
@@ -319,6 +427,15 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                                 key={program.id}
                                 className='rounded-2xl border border-border bg-card/80 p-5 shadow-sm'
                             >
+                                {imageUrl && (
+                                    <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                        <TapToZoomImage
+                                            src={imageUrl}
+                                            alt={program.name}
+                                            sizes='(max-width: 768px) 100vw, 400px'
+                                        />
+                                    </div>
+                                )}
                                 <div className='mb-3 flex items-start justify-between gap-2'>
                                     <p className='font-semibold text-foreground text-sm leading-tight'>
                                         {program.name}
@@ -363,7 +480,7 @@ export default function ProgramAdminPanel({ items, eventId }: Props) {
                                     </div>
                                 </div>
                                 {program.description && (
-                                    <p className='mt-4 border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
+                                    <p className='mt-4 whitespace-pre-wrap border-border border-t border-dashed pt-3 text-muted-foreground text-xs leading-relaxed'>
                                         {program.description}
                                     </p>
                                 )}

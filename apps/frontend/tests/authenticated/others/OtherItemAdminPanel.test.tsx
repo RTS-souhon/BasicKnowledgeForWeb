@@ -2,10 +2,30 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/actions/others', () => ({
     createOtherItemAction: jest.fn(),
     updateOtherItemAction: jest.fn(),
     deleteOtherItemAction: jest.fn(),
+    uploadOtherItemImageAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const actions =
@@ -17,15 +37,49 @@ const OtherItemAdminPanel =
 const mockCreate = jest.mocked(actions.createOtherItemAction);
 const mockUpdate = jest.mocked(actions.updateOtherItemAction);
 const mockDelete = jest.mocked(actions.deleteOtherItemAction);
+const mockUploadImage = jest.mocked(actions.uploadOtherItemImageAction);
 
 const MOCK_ITEMS = [
-    { id: '1', title: '緊急連絡先', content: '内線123', displayOrder: 1 },
-    { id: '2', title: 'Wi-Fi情報', content: 'SSID: EventStaff', displayOrder: 2 },
+    {
+        id: '1',
+        title: '緊急連絡先',
+        content: '内線123',
+        imageUrl: null,
+        displayOrder: 1,
+    },
+    {
+        id: '2',
+        title: 'Wi-Fi情報',
+        content: 'SSID: EventStaff',
+        imageUrl: null,
+        displayOrder: 2,
+    },
 ];
+
+const CREATED_ITEM = {
+    id: 'created-id',
+    title: '新しいタイトル',
+    content: '新しい内容',
+    imageUrl: null,
+    displayOrder: 999,
+};
 
 beforeEach(() => {
     jest.resetAllMocks();
     global.confirm = jest.fn<typeof confirm>().mockReturnValue(true);
+    mockCreate.mockResolvedValue({
+        success: true,
+        data: [...MOCK_ITEMS, CREATED_ITEM],
+    });
+    mockUploadImage.mockResolvedValue({
+        success: true,
+        imageKey: 'others/event-1/new.webp',
+    });
+    mockUpdate.mockResolvedValue({ success: true, data: MOCK_ITEMS });
+    mockDelete.mockResolvedValue({
+        success: true,
+        data: MOCK_ITEMS.slice(1),
+    });
 });
 
 describe('OtherItemAdminPanel', () => {
@@ -90,7 +144,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('フォーム送信で createOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockCreate.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={[]} eventId='event-1' />);
 
         await user.click(screen.getByRole('button', { name: '+ 追加' }));
@@ -114,7 +167,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('編集フォーム送信で updateOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdate.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const editButtons = screen.getAllByRole('button', { name: '編集' });
@@ -139,7 +191,6 @@ describe('OtherItemAdminPanel', () => {
 
     it('削除ボタンクリック + confirm で deleteOtherItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockDelete.mockResolvedValue({ success: true });
         render(<OtherItemAdminPanel items={MOCK_ITEMS} eventId='event-1' />);
 
         const deleteButtons = screen.getAllByRole('button', { name: '削除' });
@@ -197,5 +248,25 @@ describe('OtherItemAdminPanel', () => {
             'タイトルと内容は必須です',
         );
         expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it('画像を選択して保存すると uploadOtherItemImageAction を呼ぶ', async () => {
+        const user = userEvent.setup();
+        render(<OtherItemAdminPanel items={[]} eventId='event-1' />);
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/タイトル/), '画像付きお知らせ');
+        await user.type(screen.getByLabelText(/内容/), '本文');
+        const fileInput = screen.getByLabelText(/画像ファイル/);
+        const file = new File(['dummy'], 'other.png', { type: 'image/png' });
+        await user.upload(fileInput, file);
+
+        await act(async () => {
+            await user.click(screen.getByRole('button', { name: '保存' }));
+        });
+
+        await waitFor(() => {
+            expect(mockUploadImage).toHaveBeenCalledTimes(1);
+        });
     });
 });

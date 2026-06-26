@@ -21,7 +21,7 @@ const NAV_CARDS = [
     { href: '/others', label: '情報', description: 'その他のお知らせ' },
     {
         href: '/search',
-        label: '情報検索',
+        label: '検索',
         description: '全カテゴリからキーワード検索',
     },
 ] as const;

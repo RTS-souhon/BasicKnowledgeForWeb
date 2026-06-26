@@ -1,6 +1,8 @@
 import type { programs } from '@backend/src/db/schema';
 
-export type Program = typeof programs.$inferSelect;
+type ProgramRecord = typeof programs.$inferSelect;
+
+export type Program = Omit<ProgramRecord, 'imageKey'>;
 
 export type CreateProgramInput = Omit<
     typeof programs.$inferInsert,

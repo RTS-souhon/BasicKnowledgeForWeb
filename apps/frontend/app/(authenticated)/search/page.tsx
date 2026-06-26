@@ -3,6 +3,7 @@
 import type { SearchResultData } from '@backend/src/use-cases/search/ISearchUseCase';
 import { useAuthContext } from '@frontend/app/(authenticated)/auth-context';
 import { client } from '@frontend/app/utils/client';
+import TapToZoomImage from '@frontend/components/TapToZoomImage';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 
@@ -44,8 +45,22 @@ function formatRange(startIso: string, endIso: string) {
     return `${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
 }
 
+function formatTime(iso: string) {
+    return timeFormatter.format(new Date(iso));
+}
+
 function formatDateLabel(iso: string) {
     return dateFormatter.format(new Date(iso));
+}
+
+function hasText(value: string) {
+    return value.trim().length > 0;
+}
+
+function toImageUrl(value: string | null | undefined) {
+    if (!value) return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
 }
 
 function SearchPageContent() {
@@ -149,13 +164,13 @@ function SearchPageContent() {
                         <div className='mt-1 text-muted-foreground text-sm'>
                             <span>{formatDateLabel(item.startTime)}</span>
                             <span className='mx-2'>・</span>
-                            <span>
-                                {formatRange(item.startTime, item.endTime)}
-                            </span>
+                            <span>{formatTime(item.startTime)}</span>
                         </div>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            📍 {item.location}
-                        </p>
+                        {hasText(item.location) && (
+                            <p className='mt-1 text-muted-foreground text-sm'>
+                                📍 {item.location}
+                            </p>
+                        )}
                         {item.description && (
                             <p className='mt-2 text-muted-foreground text-sm'>
                                 {item.description}
@@ -197,78 +212,110 @@ function SearchPageContent() {
                 key: 'programs',
                 label: '企画',
                 items: results?.programs ?? [],
-                render: (program: ProgramResult) => (
-                    <article
-                        key={program.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <p className='font-semibold text-base text-foreground'>
-                            {program.name}
-                        </p>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            {formatDateLabel(program.startTime)} ・{' '}
-                            {formatRange(program.startTime, program.endTime)}
-                        </p>
-                        <p className='mt-1 text-muted-foreground text-sm'>
-                            📍 {program.location}
-                        </p>
-                        {program.description && (
-                            <p className='mt-2 text-muted-foreground text-sm'>
-                                {program.description}
+                render: (program: ProgramResult) => {
+                    const imageUrl = toImageUrl(program.imageUrl);
+                    return (
+                        <article
+                            key={program.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={program.name}
+                                        sizes='(max-width: 768px) 100vw, 400px'
+                                    />
+                                </div>
+                            )}
+                            <p className='font-semibold text-base text-foreground'>
+                                {program.name}
                             </p>
-                        )}
-                    </article>
-                ),
+                            <p className='mt-1 text-muted-foreground text-sm'>
+                                {formatDateLabel(program.startTime)} ・{' '}
+                                {formatRange(
+                                    program.startTime,
+                                    program.endTime,
+                                )}
+                            </p>
+                            {hasText(program.location) && (
+                                <p className='mt-1 text-muted-foreground text-sm'>
+                                    📍 {program.location}
+                                </p>
+                            )}
+                            {program.description && (
+                                <p className='mt-2 text-muted-foreground text-sm'>
+                                    {program.description}
+                                </p>
+                            )}
+                        </article>
+                    );
+                },
             },
             {
                 key: 'shopItems',
                 label: '販売物',
                 items: results?.shopItems ?? [],
-                render: (item: ShopItemResult) => (
-                    <article
-                        key={item.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                render: (item: ShopItemResult) => {
+                    const imageUrl = toImageUrl(item.imageUrl);
+                    return (
+                        <article
+                            key={item.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-36 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={item.name}
+                                        sizes='(max-width: 768px) 100vw, 360px'
+                                    />
+                                </div>
+                            )}
                             <p className='font-semibold text-base text-foreground'>
                                 {item.name}
                             </p>
-                            <span className='rounded-full bg-muted px-3 py-1 text-muted-foreground text-xs'>
-                                {item.stockStatus === 'sold_out'
-                                    ? '完売'
-                                    : item.stockStatus === 'low'
-                                      ? '残りわずか'
-                                      : '在庫あり'}
-                            </span>
-                        </div>
-                        <p className='mt-2 font-semibold text-foreground tabular-nums'>
-                            ¥{item.price.toLocaleString('ja-JP')}
-                        </p>
-                        {item.description && (
-                            <p className='mt-2 text-muted-foreground text-sm'>
-                                {item.description}
+                            <p className='mt-2 font-semibold text-foreground tabular-nums'>
+                                ¥{item.price.toLocaleString('ja-JP')}
                             </p>
-                        )}
-                    </article>
-                ),
+                            {item.description && (
+                                <p className='mt-2 text-muted-foreground text-sm'>
+                                    {item.description}
+                                </p>
+                            )}
+                        </article>
+                    );
+                },
             },
             {
                 key: 'otherItems',
                 label: 'その他情報',
                 items: results?.otherItems ?? [],
-                render: (info: OtherItemResult) => (
-                    <article
-                        key={info.id}
-                        className='rounded-lg border border-border bg-card p-4'
-                    >
-                        <p className='font-semibold text-base text-foreground'>
-                            {info.title}
-                        </p>
-                        <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
-                            {info.content}
-                        </p>
-                    </article>
-                ),
+                render: (info: OtherItemResult) => {
+                    const imageUrl = toImageUrl(info.imageUrl);
+                    return (
+                        <article
+                            key={info.id}
+                            className='rounded-lg border border-border bg-card p-4'
+                        >
+                            {imageUrl && (
+                                <div className='mb-3 h-40 w-full overflow-hidden rounded-lg'>
+                                    <TapToZoomImage
+                                        src={imageUrl}
+                                        alt={info.title}
+                                        sizes='(max-width: 768px) 100vw, 400px'
+                                    />
+                                </div>
+                            )}
+                            <p className='font-semibold text-base text-foreground'>
+                                {info.title}
+                            </p>
+                            <p className='mt-2 whitespace-pre-wrap text-muted-foreground text-sm'>
+                                {info.content}
+                            </p>
+                        </article>
+                    );
+                },
             },
         ],
         [results],
@@ -294,7 +341,7 @@ function SearchPageContent() {
                     Search
                 </p>
                 <h1 className='font-semibold text-2xl text-foreground tracking-tight sm:text-3xl'>
-                    情報検索
+                    検索
                 </h1>
                 <p className='text-muted-foreground text-sm'>
                     タイムテーブル・部屋割り・企画・販売物・その他の情報を横断検索できます。

@@ -24,9 +24,6 @@ export class UpdateShopItemUseCase implements IUpdateShopItemUseCase {
         if (input.payload.price !== undefined) {
             payload.price = input.payload.price;
         }
-        if (input.payload.stockStatus !== undefined) {
-            payload.stockStatus = input.payload.stockStatus;
-        }
         if (input.payload.description !== undefined) {
             payload.description = input.payload.description;
         }

@@ -5,8 +5,13 @@ import type {
     ICreateProgramUseCase,
 } from './ICreateProgramUseCase';
 
+const PROGRAM_IMAGE_PREFIX = 'programs';
+
 export class CreateProgramUseCase implements ICreateProgramUseCase {
-    constructor(private readonly programRepository: IProgramRepository) {}
+    constructor(
+        private readonly programRepository: IProgramRepository,
+        private readonly assetBaseUrl: string,
+    ) {}
 
     async execute(input: CreateProgramInput): Promise<CreateProgramResult> {
         const start = new Date(input.startTime);
@@ -19,6 +24,20 @@ export class CreateProgramUseCase implements ICreateProgramUseCase {
             };
         }
 
+        if (
+            input.imageKey !== undefined &&
+            input.imageKey !== null &&
+            !this.isKeyAllowed(input.imageKey, input.eventId)
+        ) {
+            return {
+                success: false,
+                error: 'image_key が許可されたプレフィックスではありません',
+                status: 400,
+            };
+        }
+
+        const imageKey = input.imageKey ?? null;
+
         try {
             const data = await this.programRepository.create({
                 eventId: input.eventId,
@@ -27,6 +46,8 @@ export class CreateProgramUseCase implements ICreateProgramUseCase {
                 startTime: start,
                 endTime: end,
                 description: input.description ?? null,
+                imageKey,
+                imageUrl: imageKey ? this.buildImageUrl(imageKey) : null,
             });
             return { success: true, data };
         } catch {
@@ -36,5 +57,14 @@ export class CreateProgramUseCase implements ICreateProgramUseCase {
                 status: 500,
             };
         }
+    }
+
+    private isKeyAllowed(key: string, eventId: string) {
+        return key.startsWith(`${PROGRAM_IMAGE_PREFIX}/${eventId}/`);
+    }
+
+    private buildImageUrl(imageKey: string) {
+        const trimmedBase = this.assetBaseUrl.replace(/\/+$/, '');
+        return `${trimmedBase}/${imageKey}`;
     }
 }

@@ -280,7 +280,6 @@ const validBody = {
     event_id: EVENT_ID,
     title: '開会式',
     start_time: '2025-08-01T10:00:00Z',
-    end_time: '2025-08-01T11:00:00Z',
     location: '会場 A',
 };
 
@@ -312,6 +311,38 @@ describe('POST /api/timetable', () => {
         expect(res.status).toBe(201);
         const body = (await res.json()) as { item: TimetableItem };
         expect(body.item.id).toBe(item1.id);
+    });
+
+    it('location なしでも 201 が返り、空文字で保存されること', async () => {
+        const created = { ...item1, location: '' };
+        const create = jest
+            .fn<ITimetableRepository['create']>()
+            .mockImplementation(() => Promise.resolve(created));
+        const repo = createMockTimetableRepository({ create });
+        const app = createTestAppWithTimetable(repo);
+
+        const res = await app.request(
+            '/api/timetable',
+            {
+                method: 'POST',
+                headers: {
+                    'x-event-id': EVENT_ID,
+                    'Content-Type': 'application/json',
+                    Cookie: `auth_token=${adminToken}`,
+                },
+                body: JSON.stringify({
+                    event_id: EVENT_ID,
+                    title: '開会式',
+                    start_time: '2025-08-01T10:00:00Z',
+                }),
+            },
+            mockEnv,
+        );
+
+        expect(res.status).toBe(201);
+        expect(create).toHaveBeenCalledWith(
+            expect.objectContaining({ location: '' }),
+        );
     });
 
     it('必須フィールドが欠けている場合は 400 が返ること', async () => {

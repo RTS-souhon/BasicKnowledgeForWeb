@@ -12,6 +12,14 @@ jest.mock('@frontend/app/(authenticated)/auth-context', () => ({
     useAuthContext: jest.fn(),
 }));
 
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
+}));
+
 const navigation =
     require('next/navigation') as jest.Mocked<typeof import('next/navigation')>;
 const mockUseSearchParams = navigation.useSearchParams;
@@ -71,9 +79,35 @@ describe('SearchPage', () => {
                     },
                 ],
                 rooms: [],
-                programs: [],
-                shopItems: [],
-                otherItems: [],
+                programs: [
+                    {
+                        id: 'pg-1',
+                        name: '企画A',
+                        location: '会場B',
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString(),
+                        description: null,
+                        imageUrl: 'https://example.com/program-a.png',
+                    },
+                ],
+                shopItems: [
+                    {
+                        id: 'sp-1',
+                        name: 'グッズA',
+                        price: 1000,
+                        description: null,
+                        imageUrl: 'https://example.com/shop-a.png',
+                    },
+                ],
+                otherItems: [
+                    {
+                        id: 'ot-1',
+                        title: '案内A',
+                        content: '説明',
+                        imageUrl: 'https://example.com/other-a.png',
+                        displayOrder: 1,
+                    },
+                ],
             }),
         );
 
@@ -92,6 +126,36 @@ describe('SearchPage', () => {
 
         expect(await screen.findByText('タイムテーブル')).toBeInTheDocument();
         expect(await screen.findByText('開会式')).toBeInTheDocument();
+        expect(await screen.findByAltText('企画A')).toBeInTheDocument();
+        expect(await screen.findByAltText('グッズA')).toBeInTheDocument();
+        expect(await screen.findByAltText('案内A')).toBeInTheDocument();
+    });
+
+    it('タイムテーブルの場所が空の場合はピン表示を出さない', async () => {
+        mockUseSearchParams.mockReturnValue(new URLSearchParams('q=open'));
+        (global.fetch as jest.Mock).mockResolvedValue(
+            mockResponse({
+                timetable: [
+                    {
+                        id: 'tt-1',
+                        title: '開会式',
+                        startTime: new Date().toISOString(),
+                        endTime: new Date().toISOString(),
+                        location: '',
+                        description: null,
+                    },
+                ],
+                rooms: [],
+                programs: [],
+                shopItems: [],
+                otherItems: [],
+            }),
+        );
+
+        render(<SearchPage />);
+
+        expect(await screen.findByText('開会式')).toBeInTheDocument();
+        expect(screen.queryByText(/📍/)).not.toBeInTheDocument();
     });
 
     it('全カテゴリ0件のとき空状態を表示する', async () => {

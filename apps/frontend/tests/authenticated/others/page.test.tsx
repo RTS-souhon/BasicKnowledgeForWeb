@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/lib/serverAuth', () => ({
     resolveAuth: jest.fn(),
     buildContentFetchHeaders: jest.fn(),
@@ -10,6 +21,14 @@ jest.mock('@frontend/app/actions/others', () => ({
     createOtherItemAction: jest.fn(),
     updateOtherItemAction: jest.fn(),
     deleteOtherItemAction: jest.fn(),
+}));
+
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ src, alt }: { src: string; alt: string }) => (
+        // biome-ignore lint/a11y/useAltText: テスト用モック
+        <img src={src} alt={alt} />
+    ),
 }));
 
 const serverAuth =
@@ -38,18 +57,21 @@ const MOCK_ITEMS = [
         id: '1',
         title: '緊急連絡先',
         content: 'スタッフ控室: 内線123\nセキュリティ: 内線456',
+        imageUrl: null,
         displayOrder: 1,
     },
     {
         id: '2',
         title: 'Wi-Fi情報',
         content: 'SSID: EventStaff2025\nPW: staff2025',
+        imageUrl: null,
         displayOrder: 2,
     },
     {
         id: '3',
         title: '駐車場案内',
         content: 'P1: スタッフ専用',
+        imageUrl: null,
         displayOrder: 0,
     },
 ];

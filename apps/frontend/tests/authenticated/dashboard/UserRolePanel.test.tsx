@@ -2,6 +2,17 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        refresh: jest.fn(),
+        prefetch: jest.fn(),
+        push: jest.fn(),
+        replace: jest.fn(),
+        back: jest.fn(),
+        forward: jest.fn(),
+    }),
+}));
+
 jest.mock('@frontend/app/actions/dashboard', () => ({
     changePasswordAction: jest.fn(),
     updateUserRoleAction: jest.fn(),
@@ -16,8 +27,8 @@ const UserRolePanel =
 const mockUpdateRole = jest.mocked(actions.updateUserRoleAction);
 
 const MOCK_USERS = [
-    { id: 'user-1', name: '山田太郎', email: 'yamada@example.com', role: 'user' },
-    { id: 'user-2', name: '管理者A', email: 'admin@example.com', role: 'admin' },
+    { id: 'user-1', name: '山田太郎', email: 'yamada@example.com', role: 'user' as const },
+    { id: 'user-2', name: '管理者A', email: 'admin@example.com', role: 'admin' as const },
 ];
 
 beforeEach(() => {
@@ -51,7 +62,10 @@ describe('UserRolePanel', () => {
 
     it('変更ボタンクリックで updateUserRoleAction を呼ぶ', async () => {
         const user = userEvent.setup();
-        mockUpdateRole.mockResolvedValue({ success: true });
+        mockUpdateRole.mockResolvedValue({
+            success: true,
+            data: Array.from(MOCK_USERS),
+        });
         render(<UserRolePanel initialUsers={MOCK_USERS} />);
 
         const changeButtons = screen.getAllByRole('button', { name: '変更' });
@@ -66,7 +80,13 @@ describe('UserRolePanel', () => {
 
     it('ロールを選択して変更ボタンを押すと新しいロールで呼ばれる', async () => {
         const user = userEvent.setup();
-        mockUpdateRole.mockResolvedValue({ success: true });
+        mockUpdateRole.mockResolvedValue({
+            success: true,
+            data: [
+                { ...MOCK_USERS[0], role: 'admin' },
+                MOCK_USERS[1],
+            ],
+        });
         render(<UserRolePanel initialUsers={MOCK_USERS} />);
 
         const selects = screen.getAllByRole('combobox', {
@@ -82,6 +102,31 @@ describe('UserRolePanel', () => {
         await waitFor(() => {
             expect(mockUpdateRole).toHaveBeenCalledWith('user-1', 'admin');
         });
+    });
+
+    it('スナップショットが古くても更新対象ユーザーの表示ロールは新しい値を維持する', async () => {
+        const user = userEvent.setup();
+        // あえて古い一覧（user-1 が user のまま）を返す
+        mockUpdateRole.mockResolvedValue({
+            success: true,
+            data: Array.from(MOCK_USERS),
+        });
+        render(<UserRolePanel initialUsers={MOCK_USERS} />);
+
+        const selects = screen.getAllByRole('combobox', {
+            name: '山田太郎のロール',
+        });
+        await user.selectOptions(selects[0], 'admin');
+
+        const changeButtons = screen.getAllByRole('button', { name: '変更' });
+        await act(async () => {
+            await user.click(changeButtons[0]);
+        });
+
+        await waitFor(() => {
+            expect(mockUpdateRole).toHaveBeenCalledWith('user-1', 'admin');
+        });
+        expect(selects[0]).toHaveValue('admin');
     });
 
     it('アクション失敗時にエラーメッセージを表示する', async () => {

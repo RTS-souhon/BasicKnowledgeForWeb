@@ -19,10 +19,9 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
             updatePayload.title = input.payload.title;
         }
         if (input.payload.startTime !== undefined) {
-            updatePayload.startTime = new Date(input.payload.startTime);
-        }
-        if (input.payload.endTime !== undefined) {
-            updatePayload.endTime = new Date(input.payload.endTime);
+            const startTime = new Date(input.payload.startTime);
+            updatePayload.startTime = startTime;
+            updatePayload.endTime = startTime;
         }
         if (input.payload.location !== undefined) {
             updatePayload.location = input.payload.location;
@@ -37,33 +36,6 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
                 error: '更新項目が指定されていません',
                 status: 400,
             };
-        }
-
-        if (
-            updatePayload.startTime !== undefined ||
-            updatePayload.endTime !== undefined
-        ) {
-            const existing = await this.timetableRepository.findById(
-                input.id,
-                input.eventId,
-            );
-            if (!existing) {
-                return {
-                    success: false,
-                    error: 'タイムテーブルが見つかりません',
-                    status: 404,
-                };
-            }
-            const effectiveStart =
-                updatePayload.startTime ?? existing.startTime;
-            const effectiveEnd = updatePayload.endTime ?? existing.endTime;
-            if (effectiveEnd <= effectiveStart) {
-                return {
-                    success: false,
-                    error: '終了時刻は開始時刻より後である必要があります',
-                    status: 400,
-                };
-            }
         }
 
         try {
