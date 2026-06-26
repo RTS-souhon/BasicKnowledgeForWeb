@@ -37,6 +37,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.105.0
           command: deploy --env dev
           workingDirectory: apps/backend
           secrets: |
@@ -86,6 +87,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: 4.105.0
           command: deploy --env dev
           workingDirectory: apps/frontend
           secrets: |
