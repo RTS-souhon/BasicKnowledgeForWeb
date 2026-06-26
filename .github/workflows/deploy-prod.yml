@@ -94,6 +94,9 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          # Wrangler の OpenNext 自動検出を無効化し、`opennextjs-cloudflare deploy` 経由の
+          # populate-cache（R2 疎通の一時失敗で deploy が落ちる）を回避する。
+          OPEN_NEXT_DEPLOY: "true"
 
       - name: Notify deployment
         env:
