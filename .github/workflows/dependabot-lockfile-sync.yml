@@ -1,0 +1,69 @@
+name: Dependabot lockfile sync
+
+# Dependabot の bun ecosystem は package.json を更新するが
+# bun.lock を必ずしも更新しないため、frozen-lockfile での bun install が失敗することがある。
+# このワークフローは Dependabot の PR で bun.lock を package.json に同期し、コミットして push する。
+#
+# 注意: GITHUB_TOKEN による push は他ワークフローを再トリガーしない（GitHub の再帰防止）。
+# このワークフローが lockfile を push したあとは、既存の失敗 CI を手動で re-run するか、
+# Dependabot の rebase を待つ必要がある。次回以降の Dependabot PR は最初から正しい lockfile になる。
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "**/package.json"
+      - "bun.lock"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync-lockfile:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+          no-cache: true
+
+      - name: Sync bun.lock with package.json
+        run: bun install
+
+      - name: Commit and push if bun.lock changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain bun.lock)" ]]; then
+            echo "bun.lock is already in sync with package.json"
+            exit 0
+          fi
+          git config user.name "dependabot[bot]"
+          git config user.email "49699333+dependabot[bot]@users.noreply.github.com"
+          git add bun.lock
+          git commit -m "chore(deps): bun.lock を package.json に同期"
+          git push
+          gh pr comment "$PR_NUMBER" --body "bun.lock を package.json と同期しました。GITHUB_TOKEN による push のため CI は自動再実行されません。失敗中のチェックは手動で **Re-run failed jobs** をクリックしてください。"
