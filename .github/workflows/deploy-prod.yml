@@ -23,6 +23,8 @@ jobs:
 
       - name: Setup Bun workspace
         uses: ./.github/actions/setup-bun-project
+        with:
+          node-version: "22"
 
       - name: Run database migrations
         run: |
@@ -67,6 +69,8 @@ jobs:
 
       - name: Setup Bun workspace
         uses: ./.github/actions/setup-bun-project
+        with:
+          node-version: "22"
 
       - name: Build frontend
         run: |
