@@ -1,5 +1,6 @@
 import {
     type EmailTemplateType,
+    isValidEmailCode,
     renderEmailTemplate,
 } from '@email-worker/src/emailTemplates';
 
@@ -46,6 +47,10 @@ async function parseBody(
         (body.template !== 'email_verification' &&
             body.template !== 'login_otp')
     ) {
+        return null;
+    }
+
+    if (!isValidEmailCode(body.code)) {
         return null;
     }
 

@@ -21,6 +21,29 @@ describe('handleInternalSend', () => {
         expect(response.status).toBe(400);
     });
 
+    test('returns 400 for invalid code format', async () => {
+        const send = jest.fn(async () => undefined);
+        const request = new Request('https://example.com/internal/email/send', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                to: 'user@example.com',
+                template: 'email_verification',
+                code: '12345',
+            }),
+        });
+
+        const response = await handleInternalSend(request, {
+            EMAIL_FROM: 'noreply@example.com',
+            EMAIL: { send },
+        });
+
+        expect(response.status).toBe(400);
+        expect(send).not.toHaveBeenCalled();
+    });
+
     test('sends email and returns 200 for valid request', async () => {
         const send = jest.fn(async () => undefined);
         const request = new Request('https://example.com/internal/email/send', {

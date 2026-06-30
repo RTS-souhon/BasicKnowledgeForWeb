@@ -10,8 +10,14 @@ export type RenderedEmail = {
     text: string;
 };
 
+const EMAIL_CODE_PATTERN = /^\d{6}$/;
+
+export function isValidEmailCode(code: string): boolean {
+    return EMAIL_CODE_PATTERN.test(code);
+}
+
 function assertCodeFormat(code: string) {
-    if (!/^\d{6}$/.test(code)) {
+    if (!isValidEmailCode(code)) {
         throw new Error('code must be 6 digits');
     }
 }
