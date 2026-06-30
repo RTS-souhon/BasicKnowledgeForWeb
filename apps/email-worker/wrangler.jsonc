@@ -16,6 +16,11 @@
     "env": {
         "dev": {
             "name": "basic-knowledge-for-web-email-worker-dev",
+            "send_email": [
+                {
+                    "name": "EMAIL"
+                }
+            ],
             "vars": {
                 "EMAIL_FROM": "noreply@dev.reitaisai.info"
             },
@@ -31,6 +36,11 @@
         },
         "prod": {
             "name": "basic-knowledge-for-web-email-worker",
+            "send_email": [
+                {
+                    "name": "EMAIL"
+                }
+            ],
             "vars": {
                 "EMAIL_FROM": "noreply@reitaisai.info"
             },
