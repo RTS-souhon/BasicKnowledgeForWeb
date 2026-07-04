@@ -33,8 +33,14 @@ Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適
 
 1. ゾーンで Image Transformations を有効化する。
 2. backend の `/assets/*` を変換対応にする。`width` / `quality` 等のクエリを受け取り、
-   `fetch(originalUrl, { cf: { image: { width, quality, format: 'auto' } } })` 経由で配信する
-   （`format: 'auto'` で WebP/AVIF を自動選択）。既存の長期 `Cache-Control` は維持する。
+   `fetch(originalUrl, { cf: { image: { width, quality, format } } })` 経由で配信する。既存の長期 `Cache-Control` は維持する。
+   - **自己ループ回避（必須）:** `originalUrl` は変換ハンドラ自身の `/assets/*` を指さないようにする。
+     R2 のオリジン（バケット公開 URL 等）や `/assets/*` とは別の「未変換オリジン」パスから取得する。
+     公式は同一パスへの自己 `fetch` による無限ループを警告している。保険として、リクエストの `Via` に
+     `image-resizing` が含まれる（リサイズ Worker からの再入）場合は変換せず素通しさせる。
+   - **フォーマットは `Accept` ヘッダーで判定する:** カスタム Worker の `cf.image` では `format: 'auto'` は
+     自動ネゴシエートしない。`Accept` を読み、`image/avif` なら `avif`、`image/webp` なら `webp` を設定する
+     （いずれも無ければ元フォーマット）。
 3. 用途別の `width` プリセット（例: `thumbnail` / `card` / `large`）を定義し、許可値以外は拒否または既定値にフォールバックする。
 4. `onerror`（原画像へのフォールバック）を設定し、変換失敗・上限超過時も画像が表示されるようにする。
 5. frontend: 一覧はサムネ、詳細は大サイズを出し分ける（`srcset` / `sizes` を付与）。
@@ -55,8 +61,9 @@ Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適
 
 ### Backend
 
-- 変換パラメータ付きリクエストで `Content-Type`（WebP/AVIF）とサイズが変化する
+- `Accept: image/avif` / `image/webp` に応じて出力フォーマット（`Content-Type`）が切り替わり、サイズが変化する
 - 不正/未許可パラメータで既定値にフォールバックする、または原画像が返る
+- 変換ハンドラが自分自身を fetch して無限ループしない（`Via` ガード / 別オリジン取得を検証）
 - 既存の無加工配信パスが回帰しない
 
 ### Frontend
