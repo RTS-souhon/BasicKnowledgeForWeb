@@ -49,6 +49,8 @@ const baseTimetable: TimetableItem = {
     endTime: new Date('2025-08-01T11:00:00.000Z'),
     location: '会場A',
     description: null,
+    isPublic: true,
+    departments: [],
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     updatedAt: new Date('2025-01-01T00:00:00.000Z'),
 };
@@ -244,6 +246,8 @@ describe('Timetable use cases', () => {
             endTime: new Date('2025-08-01T10:00:00.000Z'),
             location: 'A',
             description: null,
+            isPublic: true,
+            departmentIds: [],
         });
     });
 
@@ -261,7 +265,7 @@ describe('Timetable use cases', () => {
         );
     });
 
-    it('UpdateTimetableItemUseCase sets endTime to startTime when start is updated', async () => {
+    it('UpdateTimetableItemUseCase updates startTime only when endTime is omitted', async () => {
         const repo = mockTimetableRepository();
         const useCase = new UpdateTimetableItemUseCase(repo);
         await useCase.execute({
@@ -273,7 +277,6 @@ describe('Timetable use cases', () => {
         });
         expect(repo.update).toHaveBeenCalledWith(baseTimetable.id, EVENT_ID, {
             startTime: new Date('2025-08-01T12:00:00.000Z'),
-            endTime: new Date('2025-08-01T12:00:00.000Z'),
         });
     });
 

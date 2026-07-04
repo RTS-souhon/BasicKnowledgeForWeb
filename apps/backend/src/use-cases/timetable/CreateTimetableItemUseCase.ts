@@ -12,15 +12,18 @@ export class CreateTimetableItemUseCase implements ICreateTimetableItemUseCase {
         input: CreateTimetableItemInput,
     ): Promise<CreateTimetableItemResult> {
         const start = new Date(input.startTime);
+        const end = new Date(input.endTime ?? input.startTime);
 
         try {
             const data = await this.timetableRepository.create({
                 eventId: input.eventId,
                 title: input.title,
                 startTime: start,
-                endTime: start,
+                endTime: end,
                 location: input.location ?? '',
                 description: input.description ?? null,
+                isPublic: input.isPublic ?? true,
+                departmentIds: input.departmentIds ?? [],
             });
             return { success: true, data };
         } catch {

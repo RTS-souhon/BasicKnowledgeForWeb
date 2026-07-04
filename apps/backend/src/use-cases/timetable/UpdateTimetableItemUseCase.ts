@@ -19,15 +19,22 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
             updatePayload.title = input.payload.title;
         }
         if (input.payload.startTime !== undefined) {
-            const startTime = new Date(input.payload.startTime);
-            updatePayload.startTime = startTime;
-            updatePayload.endTime = startTime;
+            updatePayload.startTime = new Date(input.payload.startTime);
+        }
+        if (input.payload.endTime !== undefined) {
+            updatePayload.endTime = new Date(input.payload.endTime);
         }
         if (input.payload.location !== undefined) {
             updatePayload.location = input.payload.location;
         }
         if (input.payload.description !== undefined) {
             updatePayload.description = input.payload.description;
+        }
+        if (input.payload.isPublic !== undefined) {
+            updatePayload.isPublic = input.payload.isPublic;
+        }
+        if (input.payload.departmentIds !== undefined) {
+            updatePayload.departmentIds = input.payload.departmentIds;
         }
 
         if (Object.keys(updatePayload).length === 0) {

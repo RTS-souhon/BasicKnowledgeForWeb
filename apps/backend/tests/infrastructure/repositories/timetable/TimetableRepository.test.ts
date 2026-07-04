@@ -23,7 +23,12 @@ describe('TimetableRepository', () => {
             .fn()
             .mockImplementation(() => Promise.resolve([]));
         const where = jest.fn().mockReturnValue({ orderBy });
-        const from = jest.fn().mockReturnValue({ where });
+        const query = {
+            leftJoin: jest.fn(),
+            where,
+        };
+        query.leftJoin.mockReturnValue(query);
+        const from = jest.fn().mockReturnValue(query);
         const db = {
             select: jest.fn().mockReturnValue({ from }),
         } as unknown as DatabaseClient;
@@ -33,6 +38,7 @@ describe('TimetableRepository', () => {
 
         expect(db.select).toHaveBeenCalled();
         expect(from).toHaveBeenCalled();
+        expect(query.leftJoin).toHaveBeenCalledTimes(2);
         expect(where).toHaveBeenCalled();
         expect(orderBy).toHaveBeenCalled();
     });
@@ -43,7 +49,12 @@ describe('TimetableRepository', () => {
             .fn()
             .mockImplementation(() => Promise.resolve([]));
         const where = jest.fn().mockReturnValue({ orderBy });
-        const from = jest.fn().mockReturnValue({ where });
+        const query = {
+            leftJoin: jest.fn(),
+            where,
+        };
+        query.leftJoin.mockReturnValue(query);
+        const from = jest.fn().mockReturnValue(query);
         const db = {
             select: jest.fn().mockReturnValue({ from }),
         } as unknown as DatabaseClient;
@@ -52,6 +63,7 @@ describe('TimetableRepository', () => {
         await repo.search('会場_%', EVENT_ID);
 
         expect(mockedCreateIlikePattern).toHaveBeenCalledWith('会場_%');
+        expect(query.leftJoin).toHaveBeenCalledTimes(2);
         expect(where).toHaveBeenCalled();
         expect(orderBy).toHaveBeenCalled();
     });
