@@ -67,15 +67,21 @@ const MOCK_ITEMS = [
         id: '1',
         title: '開会式',
         startTime: '2025-08-01T09:00:00.000Z',
+        endTime: '2025-08-01T09:30:00.000Z',
         location: '大ホール',
         description: null,
+        isPublic: true,
+        departments: [],
     },
     {
         id: '2',
         title: 'スタッフ集合',
         startTime: '2025-08-01T08:00:00.000Z',
+        endTime: '2025-08-01T08:30:00.000Z',
         location: 'ロビー',
         description: '全員参加',
+        isPublic: true,
+        departments: [],
     },
 ];
 
@@ -84,6 +90,7 @@ const originalFetch = global.fetch;
 beforeEach(() => {
     jest.resetAllMocks();
     mockBuildHeaders.mockReturnValue({});
+    window.localStorage.clear();
 });
 
 afterEach(() => {
@@ -153,6 +160,7 @@ describe('TimetablePage', () => {
         expect(screen.getByText(lateTime)).toBeInTheDocument();
 
         expect(screen.getByText('ロビー')).toBeInTheDocument();
+        expect(screen.getAllByText('全体向け').length).toBeGreaterThan(0);
     });
 
     it('descriptionがある場合に表示する', async () => {

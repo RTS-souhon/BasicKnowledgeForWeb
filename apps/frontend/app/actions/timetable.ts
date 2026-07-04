@@ -12,8 +12,11 @@ type TimetableItemData = {
     id: string;
     title: string;
     startTime: string;
+    endTime: string;
     location: string;
     description: string | null;
+    isPublic: boolean;
+    departments: { id: string; name: string }[];
 };
 
 type TimetableResult =
@@ -34,8 +37,11 @@ export async function createTimetableItemAction(
     data: {
         title: string;
         start_time: string;
+        end_time: string;
         location?: string;
         description?: string | null;
+        is_public: boolean;
+        department_ids: string[];
     },
 ): Promise<TimetableResult> {
     const authToken = await getAuthToken();
@@ -88,8 +94,11 @@ export async function updateTimetableItemAction(
     data: {
         title?: string;
         start_time?: string;
+        end_time?: string;
         location?: string;
         description?: string | null;
+        is_public?: boolean;
+        department_ids?: string[];
     },
 ): Promise<TimetableResult> {
     const authToken = await getAuthToken();
