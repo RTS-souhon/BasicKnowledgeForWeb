@@ -144,10 +144,12 @@ describe('AccessCodeAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockCreate).toHaveBeenCalledWith(
-                expect.objectContaining({
+                {
                     code: 'TEST01',
                     eventName: 'テストイベント',
-                }),
+                    validFrom: '2025-07-01T00:00:00.000Z',
+                    validTo: '2025-08-01T23:59:59.999Z',
+                },
             );
         });
         await waitFor(() => {

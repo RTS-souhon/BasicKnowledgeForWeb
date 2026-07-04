@@ -5,6 +5,9 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-dev
 
@@ -48,17 +51,12 @@ jobs:
     environment: dev
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          bun-version: latest
+          persist-credentials: false
 
-      - name: Install dependencies
-        run: |
-          cd apps/backend
-          bun install
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-project
 
       - name: Run database migrations
         run: |
@@ -69,7 +67,7 @@ jobs:
 
       - name: Deploy to Cloudflare Workers (Dev)
         id: deploy-backend
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -84,35 +82,32 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Notify deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy-backend.outputs.deployment-url }}
         run: |
           echo "✅ Backend deployed to dev environment successfully!"
           echo "Worker: basic-knowledge-for-web-backend-dev"
-          echo "Deployment URL: ${{ steps.deploy-backend.outputs.deployment-url }}"
+          echo "Deployment URL: ${DEPLOYMENT_URL}"
 
   deploy-frontend:
     runs-on: ubuntu-latest
     environment: dev
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          bun-version: latest
+          persist-credentials: false
 
-      - name: Install dependencies
-        run: |
-          cd apps/frontend
-          bun install
+      - name: Setup Bun workspace
+        uses: ./.github/actions/setup-bun-project
 
       - name: Build frontend
         run: |
           cd apps/frontend
           rm -f .env .env.local .env.production .env.development
           {
-            echo "NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}"
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}"
+            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+            echo "JWT_SECRET=${JWT_SECRET}"
           } > .env.production
           bun run build:cloudflare
         env:
@@ -121,7 +116,7 @@ jobs:
 
       - name: Build and deploy to Cloudflare Workers (Dev)
         id: deploy-frontend
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -133,9 +128,14 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          # Wrangler の OpenNext 自動検出を無効化し、`opennextjs-cloudflare deploy` 経由の
+          # populate-cache（R2 疎通の一時失敗で deploy が落ちる）を回避する。
+          OPEN_NEXT_DEPLOY: "true"
 
       - name: Notify deployment
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy-frontend.outputs.deployment-url }}
         run: |
           echo "✅ Frontend deployed to dev environment successfully!"
           echo "Worker: basic-knowledge-for-web-frontend-dev"
-          echo "Deployment URL: ${{ steps.deploy-frontend.outputs.deployment-url }}"
+          echo "Deployment URL: ${DEPLOYMENT_URL}"

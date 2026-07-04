@@ -33,8 +33,25 @@ const { MessagePort, MessageChannel, BroadcastChannel } =
     require('node:worker_threads') as any;
 Object.assign(global, { MessagePort, MessageChannel, BroadcastChannel });
 
-// 4. Fetch API — cross-fetch は ブラウザ / Node.js 両環境で動く自己完結型ポリフィル
-require('cross-fetch/polyfill');
+// 4. Fetch API — cross-fetch/polyfill は既存 global を上書きしないため、
+//    実行環境によっては Request 実装が混在し MSW で不安定になる。
+//    ここでは cross-fetch を明示的に読み込み、fetch 系実装を固定する。
+const crossFetch = require('cross-fetch') as any;
+const RequestWithSignal = class extends crossFetch.Request {
+    constructor(input: unknown, init?: { signal?: AbortSignal | null }) {
+        const normalizedInit =
+            init?.signal != null
+                ? init
+                : { ...(init ?? {}), signal: new AbortController().signal };
+        super(input, normalizedInit);
+    }
+};
+Object.assign(global, {
+    fetch: crossFetch.fetch,
+    Headers: crossFetch.Headers,
+    Request: RequestWithSignal,
+    Response: crossFetch.Response,
+});
 
 // 5. lru-cache は CJS / ESM 両対応だが、依存ライブラリが `new LRUCache()` を期待する。
 //    Jest の CJS 変換下でも必ずクラスを提供するようエクスポートを補強する。
