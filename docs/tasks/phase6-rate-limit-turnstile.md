@@ -103,7 +103,7 @@ Workers Rate Limiting・Turnstile とも **無料**。
 
 ## 完了条件
 
-- `verify` / `login` が「回数制限 + Turnstile」で保護される
+- `verify` / `login` が「回数制限 + Turnstile」で、登録（`POST /api/users`）が Turnstile で保護される
 - `apps/backend` の `type-check`, `test`, `lint` が通る
 - `apps/frontend` の `type-check`, `test`, `lint` が通る
 - `docs/pages` の認証系ページ仕様が本対応に追従している
