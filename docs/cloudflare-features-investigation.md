@@ -46,7 +46,7 @@
 #### 3.1 Workers Rate Limiting バインディング（`ratelimit`）
 - **何**: Worker 内でキー単位のレート制限ができる公式バインディング。2025-09 に GA。
 - **なぜ本プロダクトに**: `POST /api/access-codes/verify` は「誰でも可」（`accessCodeRoutes.ts:40`）でアクセスコードの**総当たり**が可能。`POST /api/auth/login` も同様にブルートフォース対象。現状レート制限は皆無。
-- **導入**: `wrangler.jsonc` に `ratelimit` バインディング（namespace + `simple: { limit, period }`）を追加し、verify/login コントローラ先頭で IP（`CF-Connecting-IP`）や入力コード単位に `limiter.limit({ key })` を評価、超過時 429。
+- **導入**: `wrangler.jsonc` に `ratelimits`（複数形）バインディング（namespace + `simple: { limit, period }`）を追加し、verify/login コントローラ先頭で **actor 単位のキー**（`CF-Connecting-IP` + ルート識別子）で `limiter.limit({ key })` を評価、超過時 429。**入力コードはキーに含めない**（含めると値を変えるたびカウンタが分散し列挙を素通しする）。単一コード/アカウントへの分散試行には第2リミッタを任意で追加。詳細は [Phase 6](./tasks/phase6-rate-limit-turnstile.md) を正とする。
 - **コスト/工数**: 無料・Workers 標準。実装は小（ミドルウェア 1 つ + テスト）。
 - **注意**: カウンタはデータセンター単位（厳密なグローバル一貫性はない）。総当たり抑止には十分。
 
@@ -74,10 +74,10 @@
 
 #### 3.5 Cloudflare Images（Transformations）
 - **何**: 画像のリサイズ・WebP/AVIF 変換・最適化。R2 等「外部保存の画像」変換は **Free プランで月 5,000 ユニーク変換まで無料**（`cf.image` の fetch / URL インターフェース。※バインディング版は Paid プラン）。
-- **なぜ本プロダクトに**: 現状 R2 画像は `/assets/*`（`index.ts:32`）で**無加工配信**、フロントは `next/image` 未使用。shop/programs/others は画像多め。**会場のモバイル回線**でサムネ＋WebP/AVIF 配信は体験改善が大きい。
-- **導入（無料枠で）**: backend `/assets/*` を `fetch(originalR2Url, { cf: { image: { width, format: 'auto' } } })` 経由に変更、もしくはフロントで変換 URL を組み立て。`width` プリセット（thumbnail/large）で配信。
+- **なぜ本プロダクトに**: 現状 R2 画像は `/assets/*`（`index.ts:32`）で**無加工配信**、フロントは `next/image` を `unoptimized` で使用（`TapToZoomImage`）。shop/programs/others は画像多め。**会場のモバイル回線**でサムネ＋WebP/AVIF 配信は体験改善が大きい。
+- **導入（無料枠で）**: backend `/assets/*` を `fetch(originalR2Url, { cf: { image: { width, format } } })` 経由に変更（`format` は `Accept` ヘッダーで avif/webp を選択。Worker では `format: 'auto'` は自動ネゴシエートしない）、もしくはフロントで変換 URL を組み立て。`width` プリセット（thumbnail/large）で配信。
 - **コスト/工数**: Free 枠で開始可。小〜中改修。
-- **注意**: 月 5,000 ユニーク変換超で `9422`。`onerror` で原画像フォールバック可。規模拡大時は Paid 検討。
+- **注意**: 月 5,000 ユニーク変換超で `9422`。Worker 内でレスポンスを検査し原画像へフォールバック（`onerror=redirect` は URL インターフェース専用）。規模拡大時は Paid 検討。
 
 #### 3.6 Cloudflare Web Analytics
 - **何**: クッキーレス・プライバシー配慮のアクセス解析（無料）。
@@ -96,7 +96,7 @@
 
 - **Browser Rendering**: タイムテーブルの **PDF 出力**や動的 **OG 画像**生成に活用可（会期パンフ代替・SNS シェア映え）。
 - **Queues + Email Routing/Workers**: 通知メール・非同期処理が必要になった場合の選択肢。
-- **（計画済再掲）Workers AI / AI Search RAG（phase6）, Cloudflare Access（phase9）**: 実装推進を推奨。
+- **（計画済再掲）Workers AI / AI Search RAG（phase11）, Cloudflare Access（phase9）**: 実装推進を推奨。
 
 ---
 
@@ -117,7 +117,7 @@
 1. **まず設定だけで効く 3 つ**: Hyperdrive キャッシュ確認(3.2) → Smart Placement(3.3) → Web Analytics(3.6)。コード変更小、効果計測の基盤になる。
 2. **セキュリティ多層化**: Rate Limiting(3.1) → Turnstile(3.4) → WAF ルール(3.7)。アクセスコード総当たり耐性を底上げ。
 3. **体験改善**: Images 変換(3.5) を shop/others 等の画像配信に適用。
-4. **計画済みの推進**: phase6(AI Search RAG) / phase9(Cloudflare Access)。
+4. **計画済みの推進**: phase11(AI Search RAG) / phase9(Cloudflare Access)。
 
 > ↑ 上記はタスクに落とし込み済み（セキュリティは最優先で **Phase 6**、性能/UX/運用は **Phase 10**）。最新の優先順位は [tasks/roadmap.md](./tasks/roadmap.md) を正とする。
 > - [Phase 6 総当たり対策（Rate Limiting + Turnstile）](./tasks/phase6-rate-limit-turnstile.md) … 3.1 + 3.4
