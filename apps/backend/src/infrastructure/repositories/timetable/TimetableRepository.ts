@@ -12,8 +12,10 @@ import type {
     TimetableItem,
     UpdateTimetableItemInput,
 } from './ITimetableRepository';
+import { InvalidTimetableDepartmentIdsError as InvalidDepartmentIdsError } from './ITimetableRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;
+type DepartmentLinkExecutor = Pick<DatabaseClient, 'delete' | 'insert'>;
 type TimetableRecord = typeof timetableItems.$inferSelect;
 type TimetableRow = TimetableRecord & {
     departmentId: string | null;
@@ -196,15 +198,19 @@ export class TimetableRepository implements ITimetableRepository {
     async create(input: CreateTimetableItemInput): Promise<TimetableItem> {
         const { departmentIds = [], ...itemInput } = input;
         await this.assertDepartmentsExist(itemInput.eventId, departmentIds);
-        const [created] = await this.db
-            .insert(timetableItems)
-            .values(itemInput)
-            .returning();
-        await this.replaceDepartmentLinks(
-            created.id,
-            created.eventId,
-            departmentIds,
-        );
+        const created = await this.db.transaction(async (tx) => {
+            const [createdItem] = await tx
+                .insert(timetableItems)
+                .values(itemInput)
+                .returning();
+            await this.replaceDepartmentLinks(
+                tx,
+                createdItem.id,
+                createdItem.eventId,
+                departmentIds,
+            );
+            return createdItem;
+        });
         const item = await this.findById(created.id, created.eventId);
         return item ?? { ...created, departments: [] };
     }
@@ -221,21 +227,28 @@ export class TimetableRepository implements ITimetableRepository {
             await this.assertDepartmentsExist(eventId, departmentIds);
         }
 
-        if (Object.keys(itemInput).length > 0) {
-            await this.db
-                .update(timetableItems)
-                .set({ ...itemInput, updatedAt: new Date() })
-                .where(
-                    and(
-                        eq(timetableItems.id, id),
-                        eq(timetableItems.eventId, eventId),
-                    ),
-                )
-                .returning();
-        }
-        if (departmentIds !== undefined) {
-            await this.replaceDepartmentLinks(id, eventId, departmentIds);
-        }
+        await this.db.transaction(async (tx) => {
+            if (Object.keys(itemInput).length > 0) {
+                await tx
+                    .update(timetableItems)
+                    .set({ ...itemInput, updatedAt: new Date() })
+                    .where(
+                        and(
+                            eq(timetableItems.id, id),
+                            eq(timetableItems.eventId, eventId),
+                        ),
+                    )
+                    .returning();
+            }
+            if (departmentIds !== undefined) {
+                await this.replaceDepartmentLinks(
+                    tx,
+                    id,
+                    eventId,
+                    departmentIds,
+                );
+            }
+        });
         return this.findById(id, eventId);
     }
 
@@ -253,11 +266,12 @@ export class TimetableRepository implements ITimetableRepository {
     }
 
     private async replaceDepartmentLinks(
+        db: DepartmentLinkExecutor,
         timetableItemId: string,
         eventId: string,
         departmentIds: string[],
     ): Promise<void> {
-        await this.db
+        await db
             .delete(timetableItemDepartments)
             .where(
                 and(
@@ -272,7 +286,7 @@ export class TimetableRepository implements ITimetableRepository {
         const uniqueDepartmentIds = Array.from(new Set(departmentIds));
         if (uniqueDepartmentIds.length === 0) return;
 
-        await this.db.insert(timetableItemDepartments).values(
+        await db.insert(timetableItemDepartments).values(
             uniqueDepartmentIds.map((departmentId) => ({
                 eventId,
                 timetableItemId,
@@ -299,7 +313,7 @@ export class TimetableRepository implements ITimetableRepository {
             );
 
         if (rows.length !== uniqueDepartmentIds.length) {
-            throw new Error('Invalid timetable department ids');
+            throw new InvalidDepartmentIdsError();
         }
     }
 }

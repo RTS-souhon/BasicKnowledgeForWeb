@@ -126,6 +126,10 @@ export default function TimetableAdminPanel({
             setError('終了時刻は開始時刻以降にしてください');
             return;
         }
+        if (!formData.is_public && formData.department_ids.length === 0) {
+            setError('全体向けまたは部署タグを1つ以上選択してください');
+            return;
+        }
 
         const payload = {
             title,

@@ -239,6 +239,35 @@ describe('TimetableAdminPanel', () => {
         });
     });
 
+    it('全体向けでも部署タグ付きでもない場合は保存しない', async () => {
+        const user = userEvent.setup();
+        render(
+            <TimetableAdminPanel
+                items={[]}
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: '+ 追加' }));
+        await user.type(screen.getByLabelText(/タイトル/), '対象なし予定');
+        await user.type(
+            screen.getByLabelText(/開始時刻/),
+            '2025-08-01T09:00',
+        );
+        await user.type(
+            screen.getByLabelText(/終了時刻/),
+            '2025-08-01T10:00',
+        );
+        await user.click(screen.getByLabelText('全体向けに表示'));
+        await user.click(screen.getByRole('button', { name: '保存' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            '全体向けまたは部署タグを1つ以上選択してください',
+        );
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
     it('削除ボタンクリック + confirm で deleteTimetableItemAction を呼ぶ', async () => {
         const user = userEvent.setup();
         render(
@@ -256,6 +285,40 @@ describe('TimetableAdminPanel', () => {
 
         await waitFor(() => {
             expect(mockDelete).toHaveBeenCalledWith('event-1', '1');
+        });
+    });
+
+    it('保存済み表示列がないイベントへ切り替えたら初期表示列に戻る', async () => {
+        window.localStorage.setItem(
+            'timetable:lanes:event-1',
+            JSON.stringify(['dept-1']),
+        );
+        const { rerender } = render(
+            <TimetableAdminPanel
+                items={MOCK_ITEMS}
+                departments={MOCK_DEPARTMENTS}
+                eventId='event-1'
+            />,
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByLabelText('全体向け') as HTMLInputElement,
+            ).not.toBeChecked();
+        });
+
+        rerender(
+            <TimetableAdminPanel
+                items={MOCK_ITEMS}
+                departments={[]}
+                eventId='event-2'
+            />,
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByLabelText('全体向け') as HTMLInputElement,
+            ).toBeChecked();
         });
     });
 

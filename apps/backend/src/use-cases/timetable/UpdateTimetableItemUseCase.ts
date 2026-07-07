@@ -1,6 +1,7 @@
-import type {
-    ITimetableRepository,
-    UpdateTimetableItemInput as RepositoryUpdateTimetableItemInput,
+import type { UpdateTimetableItemInput as RepositoryUpdateTimetableItemInput } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
+import {
+    InvalidTimetableDepartmentIdsError,
+    type ITimetableRepository,
 } from '@backend/src/infrastructure/repositories/timetable/ITimetableRepository';
 import type {
     IUpdateTimetableItemUseCase,
@@ -45,6 +46,49 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
             };
         }
 
+        if (
+            updatePayload.startTime !== undefined ||
+            updatePayload.endTime !== undefined ||
+            updatePayload.isPublic !== undefined ||
+            updatePayload.departmentIds !== undefined
+        ) {
+            const existing = await this.timetableRepository.findById(
+                input.id,
+                input.eventId,
+            );
+            if (!existing) {
+                return {
+                    success: false,
+                    error: 'タイムテーブルが見つかりません',
+                    status: 404,
+                };
+            }
+
+            const effectiveStart =
+                updatePayload.startTime ?? existing.startTime;
+            const effectiveEnd = updatePayload.endTime ?? existing.endTime;
+            if (effectiveEnd < effectiveStart) {
+                return {
+                    success: false,
+                    error: '終了時刻は開始時刻以降にしてください',
+                    status: 400,
+                };
+            }
+
+            const effectiveIsPublic =
+                updatePayload.isPublic ?? existing.isPublic;
+            const effectiveDepartmentIds =
+                updatePayload.departmentIds ??
+                existing.departments.map((department) => department.id);
+            if (!effectiveIsPublic && effectiveDepartmentIds.length === 0) {
+                return {
+                    success: false,
+                    error: '全体向けまたは部署タグを1つ以上指定してください',
+                    status: 400,
+                };
+            }
+        }
+
         try {
             const updated = await this.timetableRepository.update(
                 input.id,
@@ -59,7 +103,14 @@ export class UpdateTimetableItemUseCase implements IUpdateTimetableItemUseCase {
                 };
             }
             return { success: true, data: updated };
-        } catch {
+        } catch (error) {
+            if (error instanceof InvalidTimetableDepartmentIdsError) {
+                return {
+                    success: false,
+                    error: '指定された部署タグが見つかりません',
+                    status: 400,
+                };
+            }
             return {
                 success: false,
                 error: 'タイムテーブルの更新中にエラーが発生しました',

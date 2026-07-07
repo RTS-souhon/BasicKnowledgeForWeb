@@ -134,10 +134,16 @@ export default function TimetableLaneView({
 
     useEffect(() => {
         const stored = window.localStorage.getItem(storageKey);
-        if (!stored) return;
+        if (!stored) {
+            setSelectedLaneIds(getInitialLaneIds(items, lanes));
+            return;
+        }
         try {
             const parsed = JSON.parse(stored) as unknown;
-            if (!Array.isArray(parsed)) return;
+            if (!Array.isArray(parsed)) {
+                setSelectedLaneIds(getInitialLaneIds(items, lanes));
+                return;
+            }
             const laneIds = parsed.filter(
                 (value): value is string =>
                     typeof value === 'string' &&
@@ -145,9 +151,9 @@ export default function TimetableLaneView({
             );
             setSelectedLaneIds(laneIds);
         } catch {
-            // Ignore malformed localStorage.
+            setSelectedLaneIds(getInitialLaneIds(items, lanes));
         }
-    }, [lanes, storageKey]);
+    }, [items, lanes, storageKey]);
 
     useEffect(() => {
         window.localStorage.setItem(

@@ -25,6 +25,13 @@ export type UpdateTimetableItemInput = Partial<
     departmentIds?: string[];
 };
 
+export class InvalidTimetableDepartmentIdsError extends Error {
+    constructor() {
+        super('Invalid timetable department ids');
+        this.name = 'InvalidTimetableDepartmentIdsError';
+    }
+}
+
 export interface ITimetableRepository {
     findByEventId(eventId: string): Promise<TimetableItem[]>;
     findById(id: string, eventId: string): Promise<TimetableItem | null>;
