@@ -23,6 +23,9 @@
 ### A. WAF
 
 1. **Rate limiting rule** を作成し、`/api/access-codes/verify` と `/api/auth/login` に適用する。
+   - **検証中は `dev.reitaisai.info` のホスト名条件を必ず付ける。** dev と prod は同一ゾーンのため、
+     パスのみの条件だと prod にも即適用され、実ユーザーを誤ブロックしうる。dev で検証後に
+     `reitaisai.info` 用へ昇格/複製する。
    - 「Protect your login」テンプレート（5 分で 5 POST 超過時に 15 分ブロック）を起点に、運用に合わせて調整する。
 2. **Managed Rules** / **Bot Fight Mode** をプラン範囲で有効化する。
 3. 誤検知・例外を監視し、必要に応じてスキップルールを追加する。
@@ -53,6 +56,6 @@
 
 ## 完了条件
 
-- login/verify 系に WAF レート制限ルールが適用されている
+- login/verify 系に WAF レート制限ルールが適用されている（検証は dev ホスト名限定 → prod へ昇格の順）
 - Web Analytics の計測が開始されている
 - WAF の誤検知時のロールバック手順が明文化されている
