@@ -5,12 +5,13 @@
 - `apps/backend/src/index.ts`（`/assets/*` ハンドラ）
 - `apps/frontend`（画像表示箇所: shop / others / events の一覧・詳細）
 - Cloudflare ダッシュボード（ゾーンの Image Transformations 有効化）
-- `docs/pages/08-shop.md` / `13-others.md`
+- `docs/pages/07-events.md` / `08-shop.md` / `13-others.md`
 
 ## 背景・目的
 
 現状、R2 の画像は `apps/backend/src/index.ts` の `/assets/*` で **無加工配信**され、
-frontend は `next/image` を使用していない。shop / programs / others は画像が多く、
+frontend は `next/image` を `unoptimized` で使用している（`components/TapToZoomImage.tsx`）。
+不足しているのは最適化（loader / 変換配信）であり、`next/image` 導入そのものではない。shop / programs / others は画像が多く、
 **会場のモバイル回線**では転送量・表示速度が課題になりやすい。
 
 Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適化を行い、体験を改善する。
@@ -42,7 +43,10 @@ Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適
      自動ネゴシエートしない。`Accept` を読み、`image/avif` なら `avif`、`image/webp` なら `webp` を設定する
      （いずれも無ければ元フォーマット）。
 3. 用途別の `width` プリセット（例: `thumbnail` / `card` / `large`）を定義し、許可値以外は拒否または既定値にフォールバックする。
-4. `onerror`（原画像へのフォールバック）を設定し、変換失敗・上限超過時も画像が表示されるようにする。
+4. **変換失敗時のフォールバックは Worker 内でレスポンスを検査して行う。** `fetch` の `cf.image` 経由では
+   `onerror=redirect` は使えない（URL インターフェース専用オプション）。変換レスポンスが `ok` / `redirected`
+   でなければ未変換の原画像を返す（`Response.redirect(originalUrl, 307)` もしくは原画像を `fetch`）。
+   これにより変換失敗・上限超過（`9422`）時も画像が表示される。
 5. frontend: 一覧はサムネ、詳細は大サイズを出し分ける（`srcset` / `sizes` を付与）。
 
 ## このフェーズでやらないこと
@@ -53,7 +57,7 @@ Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適
 
 ## 注意・コスト
 
-- Free 枠は **月 5,000 ユニーク変換**。超過すると新規変換は `9422` エラーになるため、`onerror` で原画像へフォールバックする。
+- Free 枠は **月 5,000 ユニーク変換**。超過すると新規変換は `9422` エラーになるため、上記の Worker 内フォールバック（レスポンス検査 → 原画像）で表示を維持する。
 - 変換のバリエーション（width × format）を増やしすぎるとユニーク数が増える。プリセットを絞る。
 - 規模拡大時は Images Paid を検討する。
 
@@ -77,4 +81,4 @@ Cloudflare Images の **Transformations** で WebP/AVIF 変換とサイズ最適
 - 画像が WebP/AVIF・用途別サイズで配信される
 - 変換失敗・上限超過時に原画像へフォールバックする
 - `apps/backend` / `apps/frontend` の `type-check`, `test`, `lint` が通る
-- `docs/pages` の shop / others が本対応に追従している
+- `docs/pages` の events / shop / others が本対応に追従している
