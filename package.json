@@ -6,7 +6,7 @@
         "@types/jest": "^30.0.0",
         "@types/node": "^24.13.1",
         "jest": "^30.4.2",
-        "tsx": "^4.22.4",
+        "tsx": "^4.23.0",
         "wrangler": "^4.105.0"
     },
     "private": true,
