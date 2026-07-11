@@ -7,7 +7,7 @@
         "@types/node": "^24.13.1",
         "jest": "^30.4.2",
         "tsx": "^4.23.0",
-        "wrangler": "^4.105.0"
+        "wrangler": "^4.107.0"
     },
     "private": true,
     "workspaces": [
