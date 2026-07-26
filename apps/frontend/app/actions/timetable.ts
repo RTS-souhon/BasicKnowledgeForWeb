@@ -5,7 +5,6 @@ import {
     buildBackendUrl,
     fetchFromBackend,
 } from '@frontend/app/lib/backendFetch';
-import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
 type TimetableItemData = {
@@ -26,10 +25,6 @@ type TimetableResult =
 async function getAuthToken(): Promise<string | null> {
     const store = await cookies();
     return store.get('auth_token')?.value ?? null;
-}
-
-function revalidateTimetablePage(_eventId: string) {
-    revalidatePath('/timetable', 'layout');
 }
 
 export async function createTimetableItemAction(
@@ -75,7 +70,6 @@ export async function createTimetableItemAction(
         if (!snapshot.success) {
             return snapshot;
         }
-        revalidateTimetablePage(eventId);
         return snapshot;
     } catch (err) {
         logActionError(
@@ -132,7 +126,6 @@ export async function updateTimetableItemAction(
         if (!snapshot.success) {
             return snapshot;
         }
-        revalidateTimetablePage(eventId);
         return snapshot;
     } catch (err) {
         logActionError(
@@ -178,7 +171,6 @@ export async function deleteTimetableItemAction(
         if (!snapshot.success) {
             return snapshot;
         }
-        revalidateTimetablePage(eventId);
         return snapshot;
     } catch (err) {
         logActionError(

@@ -4,7 +4,7 @@
         "@biomejs/biome": "^2.5.1",
         "@cloudflare/workers-types": "^4.20260702.1",
         "@types/jest": "^30.0.0",
-        "@types/node": "^24.13.1",
+        "@types/node": "^24.13.3",
         "jest": "^30.4.2",
         "tsx": "^4.23.0",
         "wrangler": "^4.107.0"
