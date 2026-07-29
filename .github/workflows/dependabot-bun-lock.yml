@@ -2,14 +2,16 @@ name: Dependabot - Update bun.lock
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   update-bun-lock:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == github.event.pull_request.head.repo.full_name
     steps:
       - name: Checkout code
