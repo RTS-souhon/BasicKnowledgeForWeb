@@ -1,10 +1,8 @@
 name: Dependabot - Update bun.lock
 
-# zizmor: ignore[insecure-workflow-trigger]
 on:
-  workflow_run:
-    workflows: ["Pull Request Build & Test"]
-    types: [completed]
+  pull_request:
+    types: [opened, synchronize]
 
 permissions:
   contents: write
@@ -12,15 +10,12 @@ permissions:
 jobs:
   update-bun-lock:
     runs-on: ubuntu-latest
-    if: >
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == github.event.pull_request.head.repo.full_name
     steps:
-      - name: Checkout PR branch
+      - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.pull_request.head.ref }}
           persist-credentials: false
 
       - name: Setup Bun workspace
@@ -34,7 +29,7 @@ jobs:
       - name: Commit and push bun.lock if updated
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_REF: ${{ github.event.workflow_run.head_branch }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
           REPOSITORY: ${{ github.repository }}
         run: |
           if [ -n "$(git status --porcelain bun.lock)" ]; then
