@@ -1,5 +1,6 @@
 name: Dependabot - Update bun.lock
 
+# zizmor: ignore[insecure-workflow-trigger]
 on:
   workflow_run:
     workflows: ["Pull Request Build & Test"]
