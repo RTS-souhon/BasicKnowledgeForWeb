@@ -44,8 +44,8 @@ jobs:
         uses: renovatebot/github-action@e09d604f8f803bb527bd8321ed5be06c460b8682 # v46.2.2
         with:
           # GITHUB_TOKEN で作成した PR は後続ワークフローを発火させられないため、
-          # 必ず PAT（または GitHub App トークン）を使用します。
-          token: ${{ secrets.RENOVATE_TOKEN || secrets.PAT }}
+          # 必ず PAT（または GitHub App トークン）を RENOVATE_TOKEN として設定します。
+          token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_DRY_RUN: ${{ inputs.dryRun == 'full' && 'full' || '' }}
