@@ -583,6 +583,7 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 | `deploy-dev.yml` | push → `develop` | DB migrate → backend deploy → frontend deploy (env: dev) |
 | `deploy-prod.yml` | push → `main` | DB migrate → backend deploy → frontend deploy (env: prod) |
 | `security-scan.yml` | PR 作成/更新時 | AikidoSec, Betterleaks, anti-trojan-source |
+| `renovate.yml` | 毎週月曜 07:00 JST / 手動実行 | Renovate（セルフホスト）で依存更新 PR を作成 |
 
 ### PR チェック（`pull-request.yml`）— 3 並列ジョブ
 
@@ -590,7 +591,16 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 2. **verify-migration-backend**: start CockroachDB in Docker → create database → `bun run db:migrate`
 3. **lint-and-test-frontend**: install → `build:cloudflare` → lint → type-check → jest
 
-**Dependabot 自動マージ**: すべてのジョブが通過し、メジャーバージョン更新でない場合に自動承認・自動マージされます。
+**Renovate 自動マージ**: ブランチ名が `renovate/` で始まる PR は、上記 3 ジョブがすべて通過した場合に自動承認・自動マージされます。メジャーバージョン更新は `renovate.json` の `major.enabled: false` により PR 自体が作成されません。
+
+### 依存関係の更新（Renovate）
+
+依存パッケージの更新は **Renovate（セルフホスト）** で行います。設定は `renovate.json`、実行は `.github/workflows/renovate.yml` です。
+
+- PR の向き先は `baseBranches: ["develop"]` により常に `develop`
+- Renovate 自身が `bun install` を実行し、**同一コミット内で `bun.lock` を更新**します（Dependabot 時代に必要だった `bun.lock` 更新用の回避ワークフローは廃止済み）
+- 保留中の更新は Dependency Dashboard Issue から確認できます
+- `drizzle-orm` / `drizzle-kit` は beta 固定運用のため更新対象外です
 
 ### 必須シークレット
 
@@ -599,6 +609,7 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 | `CLOUDFLARE_API_TOKEN` | デプロイワークフロー |
 | `CLOUDFLARE_ACCOUNT_ID` | デプロイワークフロー |
 | `DATABASE_URL` | デプロイワークフロー（db:migrate） |
+| `RENOVATE_TOKEN`（未設定時は `PAT` を使用） | Renovate ワークフロー。`repo` + **`workflow`** スコープが必要 |
 
 ## 環境変数
 
