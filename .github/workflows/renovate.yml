@@ -1,0 +1,54 @@
+name: Renovate
+
+# 依存関係の更新は Renovate（セルフホスト）で行います。
+# Renovate 自身が bun install を実行し、同一コミット内で bun.lock を更新するため、
+# Dependabot 運用時に必要だった bun.lock 更新用の回避ワークフローは不要です。
+on:
+  schedule:
+    # 毎週月曜 07:00 JST（= 日曜 22:00 UTC）。実際の実行可否は renovate.json の schedule が判定します。
+    - cron: "0 22 * * 0"
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "ドライラン（PR を作成せずログのみ出力）"
+        type: choice
+        default: "disabled"
+        options:
+          - "disabled"
+          - "full"
+      logLevel:
+        description: "ログレベル"
+        type: choice
+        default: "info"
+        options:
+          - "info"
+          - "debug"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Run Renovate
+        uses: renovatebot/github-action@e09d604f8f803bb527bd8321ed5be06c460b8682 # v46.2.2
+        with:
+          # GITHUB_TOKEN で作成した PR は後続ワークフローを発火させられないため、
+          # 必ず PAT（または GitHub App トークン）を使用します。
+          token: ${{ secrets.RENOVATE_TOKEN || secrets.PAT }}
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun == 'full' && 'full' || '' }}
+          RENOVATE_PLATFORM: github
+          RENOVATE_AUTODISCOVER: "false"
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # デフォルトブランチ（main）に renovate.json が存在しない場合は何もせずスキップします。
+          # オンボーディング PR の自動作成を防ぎ、設定が main へ到達するまで安全に待機させる目的です。
+          RENOVATE_ONBOARDING: "false"
+          RENOVATE_REQUIRE_CONFIG: "required"

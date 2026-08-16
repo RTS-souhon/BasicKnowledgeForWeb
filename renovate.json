@@ -1,0 +1,84 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["config:recommended", ":dependencyDashboard"],
+    "timezone": "Asia/Tokyo",
+    "baseBranches": ["develop"],
+    "schedule": ["before 9am on monday"],
+    "labels": ["dependencies"],
+    "prConcurrentLimit": 5,
+    "prHourlyLimit": 2,
+    "minimumReleaseAge": "7 days",
+    "osvVulnerabilityAlerts": true,
+    "ignoreDeps": ["backend"],
+    "major": {
+        "enabled": false
+    },
+    "semanticCommits": "enabled",
+    "semanticCommitType": "chore",
+    "semanticCommitScope": "deps",
+    "commitMessageAction": "",
+    "commitMessageTopic": "{{depName}}",
+    "commitMessageExtra": "を {{#if isSingleVersion}}{{prettyNewVersion}}{{else}}{{newValue}}{{/if}} に更新",
+    "group": {
+        "commitMessageTopic": "{{{groupName}}}",
+        "commitMessageExtra": "を更新"
+    },
+    "lockFileMaintenance": {
+        "enabled": true,
+        "schedule": ["before 9am on the first day of the month"],
+        "commitMessageAction": "",
+        "commitMessageTopic": "bun.lock",
+        "commitMessageExtra": "を再生成"
+    },
+    "prHeader": "# Pull Request\n\n## What's changed\n\n依存パッケージを更新します。この Pull Request は Renovate により自動生成されました。\n",
+    "prFooter": "## Todo List\n\n- [ ] CI（backend / migration / frontend）がすべて通過することを確認\n\n## Remark\n\nこの Pull Request は Renovate により自動生成されています。`renovate.json` の設定によりメジャーバージョン更新は作成されません。\n更新の保留状況は Dependency Dashboard Issue から確認できます。\n",
+    "packageRules": [
+        {
+            "description": "パッチ更新は 3 日の安定化待機（旧 dependabot cooldown.semver-patch-days 相当）",
+            "matchUpdateTypes": ["patch"],
+            "minimumReleaseAge": "3 days"
+        },
+        {
+            "description": "drizzle-orm / drizzle-kit は beta 固定運用のため更新しない",
+            "matchPackageNames": ["drizzle-orm", "drizzle-kit"],
+            "enabled": false
+        },
+        {
+            "description": "React エコシステムはまとめて更新",
+            "matchPackageNames": [
+                "react",
+                "react-dom",
+                "@types/react",
+                "@types/react-dom"
+            ],
+            "groupName": "react"
+        },
+        {
+            "description": "Cloudflare / OpenNext 関連はまとめて更新",
+            "matchPackageNames": [
+                "wrangler",
+                "@cloudflare/**",
+                "@opennextjs/**"
+            ],
+            "groupName": "cloudflare"
+        },
+        {
+            "description": "テスト関連はまとめて更新",
+            "matchPackageNames": [
+                "jest",
+                "@types/jest",
+                "ts-jest",
+                "jest-environment-jsdom",
+                "@testing-library/**",
+                "msw"
+            ],
+            "groupName": "test tooling"
+        },
+        {
+            "description": "GitHub Actions はまとめて更新（SHA ピン留めを維持）",
+            "matchManagers": ["github-actions"],
+            "groupName": "github-actions",
+            "pinDigests": true
+        }
+    ]
+}
