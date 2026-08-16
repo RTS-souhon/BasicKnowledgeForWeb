@@ -10,9 +10,6 @@
     "minimumReleaseAge": "7 days",
     "osvVulnerabilityAlerts": true,
     "ignoreDeps": ["backend"],
-    "major": {
-        "enabled": false
-    },
     "semanticCommits": "enabled",
     "semanticCommitType": "chore",
     "semanticCommitScope": "deps",
@@ -31,12 +28,17 @@
         "commitMessageExtra": "を再生成"
     },
     "prHeader": "# Pull Request\n\n## What's changed\n\n依存パッケージを更新します。この Pull Request は Renovate により自動生成されました。\n",
-    "prFooter": "## Todo List\n\n- [ ] CI（backend / migration / frontend）がすべて通過することを確認\n\n## Remark\n\nこの Pull Request は Renovate により自動生成されています。`renovate.json` の設定によりメジャーバージョン更新は作成されません。\n更新の保留状況は Dependency Dashboard Issue から確認できます。\n",
+    "prFooter": "## Todo List\n\n- [ ] CI（backend / migration / frontend）がすべて通過することを確認\n\n## Remark\n\nこの Pull Request は Renovate により自動生成されています。`renovate.json` の設定により、依存パッケージのメジャーバージョン更新は作成されません。\nGitHub Actions のメジャー更新のみ PR が作成されますが、`major-update` ラベルが付き自動マージの対象外となるため、手動でレビュー・マージしてください。\n更新の保留状況は Dependency Dashboard Issue から確認できます。\n",
     "packageRules": [
         {
             "description": "パッチ更新は 3 日の安定化待機（旧 dependabot cooldown.semver-patch-days 相当）",
             "matchUpdateTypes": ["patch"],
             "minimumReleaseAge": "3 days"
+        },
+        {
+            "description": "メジャー更新は原則作成しない（旧 dependabot の ignore: version-update:semver-major 相当）",
+            "matchUpdateTypes": ["major"],
+            "enabled": false
         },
         {
             "description": "drizzle-orm / drizzle-kit は beta 固定運用のため更新しない",
@@ -79,6 +81,14 @@
             "matchManagers": ["github-actions"],
             "groupName": "github-actions",
             "pinDigests": true
+        },
+        {
+            "description": "GitHub Actions のメジャー更新は許可する（旧 dependabot でも github-actions は major を除外していなかったため）。ただし互換性破壊の可能性があるため別 PR に分離し、major-update ラベルで自動マージ対象から外す",
+            "matchManagers": ["github-actions"],
+            "matchUpdateTypes": ["major"],
+            "enabled": true,
+            "groupName": "github-actions major",
+            "addLabels": ["major-update"]
         }
     ]
 }
