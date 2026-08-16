@@ -488,7 +488,7 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 
 依存パッケージの更新は **Renovate（セルフホスト）** で行います。設定は `renovate.json`、実行は `.github/workflows/renovate.yml` です。
 
-- PR の向き先は `baseBranches: ["develop"]` により常に `develop`
+- PR の向き先は `baseBranchPatterns: ["develop"]` により常に `develop`
 - Renovate 自身が `bun install` を実行し、**同一コミット内で `bun.lock` を更新**します（Dependabot 時代に必要だった `bun.lock` 更新用の回避ワークフローは廃止済み）
 - 保留中の更新は Dependency Dashboard Issue から確認できます
 - `drizzle-orm` / `drizzle-kit` は beta 固定運用のため更新対象外です
