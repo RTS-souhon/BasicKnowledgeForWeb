@@ -583,7 +583,7 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 | `deploy-dev.yml` | push → `develop` | DB migrate → backend deploy → frontend deploy (env: dev) |
 | `deploy-prod.yml` | push → `main` | DB migrate → backend deploy → frontend deploy (env: prod) |
 | `security-scan.yml` | PR 作成/更新時 | AikidoSec, Betterleaks, anti-trojan-source |
-| `renovate.yml` | 毎週月曜 07:00 JST / 手動実行 | Renovate（セルフホスト）で依存更新 PR を作成 |
+| `renovate.yml` | 毎日 07:00 JST / 手動実行 | Renovate（セルフホスト）で依存更新 PR を作成。実際に PR を作るかは `renovate.json` の `schedule` が判定 |
 
 ### PR チェック（`pull-request.yml`）— 3 並列ジョブ
 
@@ -591,7 +591,15 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 2. **verify-migration-backend**: start CockroachDB in Docker → create database → `bun run db:migrate`
 3. **lint-and-test-frontend**: install → `build:cloudflare` → lint → type-check → jest
 
-**Renovate 自動マージ**: ブランチ名が `renovate/` で始まる PR は、上記 3 ジョブがすべて通過した場合に自動承認・自動マージされます。メジャーバージョン更新は `renovate.json` の `major.enabled: false` により PR 自体が作成されません。
+**Renovate 自動マージ**: `renovate-auto-merge` ジョブは、以下を **すべて** 満たす PR に限り、上記 3 ジョブの通過後に自動承認・自動マージします。1 つでも欠ければスキップする fail-closed 設計です。
+
+1. ブランチ名が `renovate/` で始まる
+2. PR 作成者が変数 `RENOVATE_ACTOR`（`RENOVATE_TOKEN` の実行主体のログイン名）と一致する
+3. ベースブランチが `develop`
+4. fork からの PR ではない
+5. `major-update` ラベルが付いていない
+
+条件 2 が無いと、書き込み権限を持つ利用者が `renovate/*` ブランチから PR を作るだけで通常のレビュー要件を迂回できてしまうため、実行主体の検証を必須にしています。条件 3 は、`main` へリターゲットされた PR が `develop` での検証と dev デプロイを飛ばして本番へ入ることを防ぎます。
 
 ### 依存関係の更新（Renovate）
 
@@ -601,6 +609,9 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 - Renovate 自身が `bun install` を実行し、**同一コミット内で `bun.lock` を更新**します（Dependabot 時代に必要だった `bun.lock` 更新用の回避ワークフローは廃止済み）
 - 保留中の更新は Dependency Dashboard Issue から確認できます
 - `drizzle-orm` / `drizzle-kit` は beta 固定運用のため更新対象外です
+- 依存パッケージのメジャー更新は `packageRules`（`matchUpdateTypes: ["major"]` → `enabled: false`）により PR 自体が作成されません
+- **GitHub Actions のメジャー更新のみ例外的に PR を作成します**（旧 `dependabot.yml` でも `github-actions` は major を除外していなかったため）。互換性破壊の可能性があるため別 PR に分離し、`major-update` ラベルを付けて自動マージ対象から外しています
+- ワークフローは毎日起動しますが、通常更新は `schedule: ["before 9am on monday"]` により週次のままです。Renovate の `schedule` は「bot の起動時刻」ではなく「ブランチを作成してよい時間帯」を制限する設定のため、週次起動にすると `lockFileMaintenance` の「毎月1日」の時間帯と交差しない月が生じてしまいます
 
 ### 必須シークレット
 
@@ -609,7 +620,13 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 | `CLOUDFLARE_API_TOKEN` | デプロイワークフロー |
 | `CLOUDFLARE_ACCOUNT_ID` | デプロイワークフロー |
 | `DATABASE_URL` | デプロイワークフロー（db:migrate） |
-| `RENOVATE_TOKEN`（未設定時は `PAT` を使用） | Renovate ワークフロー。`repo` + **`workflow`** スコープが必要 |
+| `RENOVATE_TOKEN` | Renovate ワークフロー。`repo` + **`workflow`** スコープが必要 |
+
+### 必須変数（Variables）
+
+| 変数 | 用途 |
+|---|---|
+| `RENOVATE_ACTOR` | `RENOVATE_TOKEN` の実行主体のログイン名（PAT なら所有者のユーザー名、GitHub App なら `<app-name>[bot]`）。`pull-request.yml` の `renovate-auto-merge` が PR 作成者の検証に使用します。**未設定の場合、Renovate PR の自動マージは行われません**（fail-closed） |
 
 ## 環境変数
 

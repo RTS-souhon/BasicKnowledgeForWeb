@@ -75,12 +75,13 @@
 
 ## 5. なぜこのプロジェクトでは Renovate が勝るか
 
-1. **`bun.lock` 回避策（`dependabot-bun-lock.yml`）と PAT を丸ごと廃止できる。**
-   Renovate は PR を作る同一実行内で `bun install` を回し、ルート `bun.lock` を同じコミットに含める。CI は通常どおり発火し、`secrets.PAT` も不要。運用負債が 1 つ消える。
+1. **`bun.lock` 回避策（`dependabot-bun-lock.yml`）を丸ごと廃止できる。**
+   Renovate は PR を作る同一実行内で `bun install` を回し、ルート `bun.lock` を同じコミットに含める。「Dependabot の PR に別ワークフローが後追いで `bun.lock` を push する」という二段構えが不要になり、運用負債が 1 つ消える。
+   なお PAT 自体は引き続き必要（`RENOVATE_TOKEN`）。`GITHUB_TOKEN` で作成した PR は後続ワークフローを発火させられないという GitHub の仕様は Renovate でも同じであるため。ただしトークンを使う箇所が 2 ワークフローから 1 ワークフローへ集約される。
 2. **PR / CI 爆発をグルーピングで抑制。**
    例: 「全 devDependencies を 1 PR」「Cloudflare 系（wrangler / @cloudflare/*  / @opennextjs/*）を 1 PR」「React エコシステムを 1 PR」等。約 295 件規模の PR とフル CI 実行を大幅に削減。Dependency Dashboard で保留状況も一望できる。
 3. **beta 固定パッケージの制御が明快。**
-   `drizzle-orm` / `drizzle-kit`（`1.0.0-beta.x`）は `packageRules` で `enabled:false`、メジャーは `major.enabled:false`、安定化は `minimumReleaseAge` と、現行 `dependabot.yml` の意図をそのまま・より細かく表現できる。
+   `drizzle-orm` / `drizzle-kit`（`1.0.0-beta.x`）は `packageRules` で `enabled:false`、メジャーは `matchUpdateTypes:["major"]` → `enabled:false`、安定化は `minimumReleaseAge` と、現行 `dependabot.yml` の意図をそのまま・より細かく表現できる。
 4. **既存のセキュリティ運用と整合。**
    本リポジトリは Action を SHA 固定し、AikidoSec / Betterleaks / zizmor / anti-trojan-source を回している。**セルフホスト Renovate（`renovatebot/github-action` を SHA 固定 + 最小権限トークン）**なら、第三者 App に write を渡さずに同じ思想で運用できる。
 
@@ -113,12 +114,12 @@
 | `interval: weekly` | `"schedule": ["before 9am on monday"]` + `"timezone": "Asia/Tokyo"` |
 | `cooldown.default-days: 7` | `"minimumReleaseAge": "7 days"` |
 | `cooldown.semver-patch-days: 3` | `packageRules`: `matchUpdateTypes:["patch"]` → `"minimumReleaseAge": "3 days"` |
-| `ignore: semver-major (*)` | `"major": { "enabled": false }` |
+| `ignore: semver-major (*)`（bun 3 設定のみ。`github-actions` 設定には無し） | `packageRules`: `matchUpdateTypes:["major"]` → `"enabled": false`。ただし後続ルールで `github-actions` の major のみ `"enabled": true` に戻し、旧挙動を維持 |
 | backend: `drizzle-orm`/`drizzle-kit` 無視 | `packageRules`: 該当 2 件を `"enabled": false` |
 | frontend: `react` グループ | `packageRules`: `groupName: "react"` |
 | `github-actions` エコシステム | `github-actions` マネージャ（`config:recommended` に含む）+ `pinDigests` |
 | 3 ディレクトリ個別指定 | 不要（ワークスペースを自動検出し、ルート `bun.lock` を一括更新） |
-| `dependabot-auto-merge` ジョブ | `renovate-auto-merge` ジョブ（`renovate/` ブランチ判定に置換） |
+| `dependabot-auto-merge` ジョブ（`update-type != semver-major` を判定） | `renovate-auto-merge` ジョブ（ブランチ名 + PR 作成者 + ベースブランチ + `major-update` ラベル不在を判定） |
 
 **追加したもの**（Dependabot では実現できなかった項目）:
 - `osvVulnerabilityAlerts: true` — Bun 依存の脆弱性更新 PR（Dependabot は bun 未対応）
@@ -130,13 +131,17 @@
 
 ### 6.3 マージ前に必要な手動セットアップ ⚠️
 
-1. **`RENOVATE_TOKEN` シークレットを登録する**（未設定の場合は既存の `PAT` にフォールバック）
+1. **`RENOVATE_TOKEN` シークレットを登録する**（リポジトリ or Organization レベル。フォールバックは無いため未設定だと Renovate は動作しません）
    - **`repo` スコープに加えて `workflow` スコープが必須**。これが無いと Renovate は `.github/workflows/*` を更新できず、GitHub Actions の更新 PR が作成できません。
    - `GITHUB_TOKEN` は使用不可。GitHub の仕様上、`GITHUB_TOKEN` で作成した PR では後続の CI が発火しません（旧 `dependabot-bun-lock.yml` が PAT を必要としていたのと同じ理由）。
-2. **設定が `main`（デフォルトブランチ）へ到達するまで Renovate は起動しません。**
+   - Environment（`Dev` / `Prod`）シークレットは `renovate` ジョブから参照できないため、登録先を間違えないこと。
+2. **`RENOVATE_ACTOR` 変数を登録する**（`Settings → Secrets and variables → Actions → Variables`）
+   - 値は `RENOVATE_TOKEN` の実行主体のログイン名（PAT なら所有者のユーザー名、GitHub App なら `<app-name>[bot]`）。
+   - `renovate-auto-merge` が PR 作成者の検証に使用します。**未設定の場合は自動マージが行われません**（fail-closed）。ブランチ名だけを条件にすると、書き込み権限を持つ利用者が `renovate/*` ブランチから PR を作るだけでレビュー要件を迂回できてしまうため、この検証を必須にしています。
+3. **設定が `main`（デフォルトブランチ）へ到達するまで Renovate は起動しません。**
    - ワークフローに `RENOVATE_REQUIRE_CONFIG: "required"` / `RENOVATE_ONBOARDING: "false"` を設定済み。デフォルトブランチに `renovate.json` が無い間は**何もせずスキップ**します（オンボーディング PR の暴発や `main` 宛て PR の誤作成を防止）。
    - よって有効化は `develop` → `main` のリリース後になります。
-3. **初回は必ずドライランで確認する。**
+4. **初回は必ずドライランで確認する。**
    - Actions から `Renovate` ワークフローを `workflow_dispatch` で実行し、`dryRun` に `full` を指定 → PR を作らずログのみ出力。
    - 想定どおりのグルーピング・対象になっていることを確認してから通常実行へ。
 
