@@ -130,6 +130,10 @@ jobs:
   #   4. fork からの PR ではないこと
   #   5. major-update ラベルが付いていないこと。依存パッケージのメジャー更新は renovate.json で
   #      そもそも作成されませんが、GitHub Actions のメジャー更新のみ PR が作られるため手動レビュー必須とします。
+  #      Renovate は PR 作成と addLabels を別々の API 呼び出しで行うため（createPr が PR を作った直後に
+  #      ラベルを付与する）、opened イベントの payload にはまだ major-update が載っていない場合があります。
+  #      本ワークフローは labeled では再実行されず if: の判定も payload のスナップショットのままなので、
+  #      承認・マージの直前に API で現在のラベルを取得して再確認します。
   renovate-auto-merge:
     runs-on: ubuntu-slim
     if: >-
@@ -145,13 +149,33 @@ jobs:
     timeout-minutes: 5
     needs: ["lint-and-test-backend", "verify-migration-backend", "lint-and-test-frontend"]
     steps:
+      # イベント payload ではなく現在のラベルを API から取得して再判定します。
+      # gh の呼び出しが失敗した場合は変数代入が set -e で落ち、ジョブ自体が失敗して
+      # 後続の承認・マージが実行されません（fail-closed）。
+      - name: Re-check labels
+        id: labels
+        run: |
+          set -euo pipefail
+          labels="$(gh pr view "$PR_URL" --json labels --jq '.labels[].name')"
+          if grep -Fxq 'major-update' <<<"$labels"; then
+            echo "major-update ラベルが付いているため自動マージをスキップします。"
+            echo "skip=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >>"$GITHUB_OUTPUT"
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Approve Pull Request
+        if: steps.labels.outputs.skip == 'false'
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Merge Pull Request
+        if: steps.labels.outputs.skip == 'false'
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
