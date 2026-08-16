@@ -1,46 +1,186 @@
 import type { createDatabaseClient } from '@backend/src/db/connection';
-import { timetableItems } from '@backend/src/db/schema';
+import {
+    departments,
+    timetableItemDepartments,
+    timetableItems,
+} from '@backend/src/db/schema';
 import { createIlikePattern } from '@backend/src/infrastructure/repositories/utils/escapeIlikePattern';
-import { and, asc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, or } from 'drizzle-orm';
 import type {
     CreateTimetableItemInput,
     ITimetableRepository,
     TimetableItem,
     UpdateTimetableItemInput,
 } from './ITimetableRepository';
+import { InvalidTimetableDepartmentIdsError as InvalidDepartmentIdsError } from './ITimetableRepository';
 
 type DatabaseClient = ReturnType<typeof createDatabaseClient>;
+type DepartmentLinkExecutor = Pick<DatabaseClient, 'delete' | 'insert'>;
+type TimetableRecord = typeof timetableItems.$inferSelect;
+type TimetableRow = TimetableRecord & {
+    departmentId: string | null;
+    departmentName: string | null;
+};
+
+function buildTimetableItems(rows: TimetableRow[]): TimetableItem[] {
+    const map = new Map<string, TimetableItem>();
+    for (const row of rows) {
+        const item =
+            map.get(row.id) ??
+            ({
+                id: row.id,
+                eventId: row.eventId,
+                title: row.title,
+                startTime: row.startTime,
+                endTime: row.endTime,
+                location: row.location,
+                description: row.description,
+                isPublic: row.isPublic,
+                createdAt: row.createdAt,
+                updatedAt: row.updatedAt,
+                departments: [],
+            } satisfies TimetableItem);
+
+        if (row.departmentId && row.departmentName) {
+            item.departments.push({
+                id: row.departmentId,
+                name: row.departmentName,
+            });
+        }
+        map.set(row.id, item);
+    }
+    return Array.from(map.values());
+}
 
 export class TimetableRepository implements ITimetableRepository {
     constructor(private readonly db: DatabaseClient) {}
 
     async findByEventId(eventId: string): Promise<TimetableItem[]> {
-        return this.db
-            .select()
+        const rows = await this.db
+            .select({
+                id: timetableItems.id,
+                eventId: timetableItems.eventId,
+                title: timetableItems.title,
+                startTime: timetableItems.startTime,
+                endTime: timetableItems.endTime,
+                location: timetableItems.location,
+                description: timetableItems.description,
+                isPublic: timetableItems.isPublic,
+                createdAt: timetableItems.createdAt,
+                updatedAt: timetableItems.updatedAt,
+                departmentId: departments.id,
+                departmentName: departments.name,
+            })
             .from(timetableItems)
+            .leftJoin(
+                timetableItemDepartments,
+                and(
+                    eq(
+                        timetableItemDepartments.timetableItemId,
+                        timetableItems.id,
+                    ),
+                    eq(
+                        timetableItemDepartments.eventId,
+                        timetableItems.eventId,
+                    ),
+                ),
+            )
+            .leftJoin(
+                departments,
+                and(
+                    eq(departments.id, timetableItemDepartments.departmentId),
+                    eq(departments.eventId, timetableItems.eventId),
+                ),
+            )
             .where(eq(timetableItems.eventId, eventId))
-            .orderBy(asc(timetableItems.startTime));
+            .orderBy(asc(timetableItems.startTime), asc(departments.name));
+        return buildTimetableItems(rows);
     }
 
     async findById(id: string, eventId: string): Promise<TimetableItem | null> {
-        const [item] = await this.db
-            .select()
+        const rows = await this.db
+            .select({
+                id: timetableItems.id,
+                eventId: timetableItems.eventId,
+                title: timetableItems.title,
+                startTime: timetableItems.startTime,
+                endTime: timetableItems.endTime,
+                location: timetableItems.location,
+                description: timetableItems.description,
+                isPublic: timetableItems.isPublic,
+                createdAt: timetableItems.createdAt,
+                updatedAt: timetableItems.updatedAt,
+                departmentId: departments.id,
+                departmentName: departments.name,
+            })
             .from(timetableItems)
+            .leftJoin(
+                timetableItemDepartments,
+                and(
+                    eq(
+                        timetableItemDepartments.timetableItemId,
+                        timetableItems.id,
+                    ),
+                    eq(
+                        timetableItemDepartments.eventId,
+                        timetableItems.eventId,
+                    ),
+                ),
+            )
+            .leftJoin(
+                departments,
+                and(
+                    eq(departments.id, timetableItemDepartments.departmentId),
+                    eq(departments.eventId, timetableItems.eventId),
+                ),
+            )
             .where(
                 and(
                     eq(timetableItems.id, id),
                     eq(timetableItems.eventId, eventId),
                 ),
-            )
-            .limit(1);
-        return item ?? null;
+            );
+        return buildTimetableItems(rows)[0] ?? null;
     }
 
     async search(keyword: string, eventId: string): Promise<TimetableItem[]> {
         const pattern = createIlikePattern(keyword);
-        return this.db
-            .select()
+        const rows = await this.db
+            .select({
+                id: timetableItems.id,
+                eventId: timetableItems.eventId,
+                title: timetableItems.title,
+                startTime: timetableItems.startTime,
+                endTime: timetableItems.endTime,
+                location: timetableItems.location,
+                description: timetableItems.description,
+                isPublic: timetableItems.isPublic,
+                createdAt: timetableItems.createdAt,
+                updatedAt: timetableItems.updatedAt,
+                departmentId: departments.id,
+                departmentName: departments.name,
+            })
             .from(timetableItems)
+            .leftJoin(
+                timetableItemDepartments,
+                and(
+                    eq(
+                        timetableItemDepartments.timetableItemId,
+                        timetableItems.id,
+                    ),
+                    eq(
+                        timetableItemDepartments.eventId,
+                        timetableItems.eventId,
+                    ),
+                ),
+            )
+            .leftJoin(
+                departments,
+                and(
+                    eq(departments.id, timetableItemDepartments.departmentId),
+                    eq(departments.eventId, timetableItems.eventId),
+                ),
+            )
             .where(
                 and(
                     eq(timetableItems.eventId, eventId),
@@ -51,15 +191,28 @@ export class TimetableRepository implements ITimetableRepository {
                     ),
                 ),
             )
-            .orderBy(asc(timetableItems.startTime));
+            .orderBy(asc(timetableItems.startTime), asc(departments.name));
+        return buildTimetableItems(rows);
     }
 
     async create(input: CreateTimetableItemInput): Promise<TimetableItem> {
-        const [created] = await this.db
-            .insert(timetableItems)
-            .values(input)
-            .returning();
-        return created;
+        const { departmentIds = [], ...itemInput } = input;
+        await this.assertDepartmentsExist(itemInput.eventId, departmentIds);
+        const created = await this.db.transaction(async (tx) => {
+            const [createdItem] = await tx
+                .insert(timetableItems)
+                .values(itemInput)
+                .returning();
+            await this.replaceDepartmentLinks(
+                tx,
+                createdItem.id,
+                createdItem.eventId,
+                departmentIds,
+            );
+            return createdItem;
+        });
+        const item = await this.findById(created.id, created.eventId);
+        return item ?? { ...created, departments: [] };
     }
 
     async update(
@@ -67,17 +220,36 @@ export class TimetableRepository implements ITimetableRepository {
         eventId: string,
         input: UpdateTimetableItemInput,
     ): Promise<TimetableItem | null> {
-        const [updated] = await this.db
-            .update(timetableItems)
-            .set({ ...input, updatedAt: new Date() })
-            .where(
-                and(
-                    eq(timetableItems.id, id),
-                    eq(timetableItems.eventId, eventId),
-                ),
-            )
-            .returning();
-        return updated ?? null;
+        const { departmentIds, ...itemInput } = input;
+        const existing = await this.findById(id, eventId);
+        if (!existing) return null;
+        if (departmentIds !== undefined) {
+            await this.assertDepartmentsExist(eventId, departmentIds);
+        }
+
+        await this.db.transaction(async (tx) => {
+            if (Object.keys(itemInput).length > 0) {
+                await tx
+                    .update(timetableItems)
+                    .set({ ...itemInput, updatedAt: new Date() })
+                    .where(
+                        and(
+                            eq(timetableItems.id, id),
+                            eq(timetableItems.eventId, eventId),
+                        ),
+                    )
+                    .returning();
+            }
+            if (departmentIds !== undefined) {
+                await this.replaceDepartmentLinks(
+                    tx,
+                    id,
+                    eventId,
+                    departmentIds,
+                );
+            }
+        });
+        return this.findById(id, eventId);
     }
 
     async delete(id: string, eventId: string): Promise<boolean> {
@@ -91,5 +263,57 @@ export class TimetableRepository implements ITimetableRepository {
             )
             .returning({ id: timetableItems.id });
         return deleted.length > 0;
+    }
+
+    private async replaceDepartmentLinks(
+        db: DepartmentLinkExecutor,
+        timetableItemId: string,
+        eventId: string,
+        departmentIds: string[],
+    ): Promise<void> {
+        await db
+            .delete(timetableItemDepartments)
+            .where(
+                and(
+                    eq(
+                        timetableItemDepartments.timetableItemId,
+                        timetableItemId,
+                    ),
+                    eq(timetableItemDepartments.eventId, eventId),
+                ),
+            );
+
+        const uniqueDepartmentIds = Array.from(new Set(departmentIds));
+        if (uniqueDepartmentIds.length === 0) return;
+
+        await db.insert(timetableItemDepartments).values(
+            uniqueDepartmentIds.map((departmentId) => ({
+                eventId,
+                timetableItemId,
+                departmentId,
+            })),
+        );
+    }
+
+    private async assertDepartmentsExist(
+        eventId: string,
+        departmentIds: string[],
+    ): Promise<void> {
+        const uniqueDepartmentIds = Array.from(new Set(departmentIds));
+        if (uniqueDepartmentIds.length === 0) return;
+
+        const rows = await this.db
+            .select({ id: departments.id })
+            .from(departments)
+            .where(
+                and(
+                    eq(departments.eventId, eventId),
+                    inArray(departments.id, uniqueDepartmentIds),
+                ),
+            );
+
+        if (rows.length !== uniqueDepartmentIds.length) {
+            throw new InvalidDepartmentIdsError();
+        }
     }
 }
