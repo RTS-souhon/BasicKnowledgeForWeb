@@ -46,6 +46,12 @@ jobs:
           # GITHUB_TOKEN で作成した PR は後続ワークフローを発火させられないため、
           # 必ず PAT（または GitHub App トークン）を RENOVATE_TOKEN として設定します。
           token: ${{ secrets.RENOVATE_TOKEN }}
+          # uses の SHA 固定で止まるのは Action のラッパーだけです。
+          # Renovate 本体は action.yml の既定値（メジャータグ '44'）が指す Docker イメージのため、
+          # 固定しないと実行のたびに未検証のビルドを取得します。
+          # このトークンは repo に加えて workflow スコープを持ち、ワークフロー自体を書き換えられるので、
+          # 本体バージョンも明示的に固定します。更新は renovate.json の customManagers が PR で提案します。
+          renovate-version: 44.14.12 # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_DRY_RUN: ${{ inputs.dryRun == 'full' && 'full' || '' }}

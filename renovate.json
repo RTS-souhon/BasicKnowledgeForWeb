@@ -29,6 +29,16 @@
     },
     "prHeader": "# Pull Request\n\n## What's changed\n\n依存パッケージを更新します。この Pull Request は Renovate により自動生成されました。\n",
     "prFooter": "## Todo List\n\n- [ ] CI（backend / migration / frontend）がすべて通過することを確認\n\n## Remark\n\nこの Pull Request は Renovate により自動生成されています。`renovate.json` の設定により、依存パッケージのメジャーバージョン更新は作成されません。\nGitHub Actions のメジャー更新のみ PR が作成されますが、`major-update` ラベルが付き自動マージの対象外となるため、手動でレビュー・マージしてください。\n更新の保留状況は Dependency Dashboard Issue から確認できます。\n",
+    "customManagers": [
+        {
+            "customType": "regex",
+            "description": "renovate.yml で固定している Renovate 本体のバージョンを更新対象にする",
+            "managerFilePatterns": ["/^\\.github/workflows/renovate\\.yml$/"],
+            "matchStrings": [
+                "renovate-version: (?<currentValue>\\S+) # renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)"
+            ]
+        }
+    ],
     "packageRules": [
         {
             "description": "パッチ更新は 3 日の安定化待機（旧 dependabot cooldown.semver-patch-days 相当）",
@@ -88,6 +98,13 @@
             "matchUpdateTypes": ["major"],
             "enabled": true,
             "groupName": "github-actions major",
+            "addLabels": ["major-update"]
+        },
+        {
+            "description": "Renovate 本体（renovate.yml の renovate-version）はメジャー更新も PR を作成する。固定を放置すると陳腐化するため。ただし互換性破壊の可能性があるため major-update ラベルで自動マージ対象から外す",
+            "matchPackageNames": ["ghcr.io/renovatebot/renovate"],
+            "matchUpdateTypes": ["major"],
+            "enabled": true,
             "addLabels": ["major-update"]
         }
     ]
