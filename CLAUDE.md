@@ -480,9 +480,11 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 2. PR 作成者が変数 `RENOVATE_ACTOR`（`RENOVATE_TOKEN` の実行主体のログイン名）と一致する
 3. ベースブランチが `develop`
 4. fork からの PR ではない
-5. `major-update` ラベルが付いていない
+5. `major-update` ラベルが付いていない（ジョブ実行時に API で再確認）
 
 条件 2 が無いと、書き込み権限を持つ利用者が `renovate/*` ブランチから PR を作るだけで通常のレビュー要件を迂回できてしまうため、実行主体の検証を必須にしています。条件 3 は、`main` へリターゲットされた PR が `develop` での検証と dev デプロイを飛ばして本番へ入ることを防ぎます。
+
+条件 5 は `if:` のイベント payload 判定だけでは不十分です。Renovate は PR 作成と `addLabels` を別々の API 呼び出しで行うため、`opened` イベントの payload にはまだ `major-update` が載っていない場合があり、このワークフローは `labeled` では再実行されません。そのため承認・マージの直前に `gh pr view --json labels` で現在のラベルを取得して再判定します。この取得に失敗した場合はジョブごと失敗させ、承認・マージへ進ませません。
 
 ### 依存関係の更新（Renovate）
 
@@ -495,6 +497,7 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 - 依存パッケージのメジャー更新は `packageRules`（`matchUpdateTypes: ["major"]` → `enabled: false`）により PR 自体が作成されません
 - **GitHub Actions のメジャー更新のみ例外的に PR を作成します**（旧 `dependabot.yml` でも `github-actions` は major を除外していなかったため）。互換性破壊の可能性があるため別 PR に分離し、`major-update` ラベルを付けて自動マージ対象から外しています
 - ワークフローは毎日起動しますが、通常更新は `schedule: ["before 9am on monday"]` により週次のままです。Renovate の `schedule` は「bot の起動時刻」ではなく「ブランチを作成してよい時間帯」を制限する設定のため、週次起動にすると `lockFileMaintenance` の「毎月1日」の時間帯と交差しない月が生じてしまいます
+- **Renovate 本体のバージョンは `renovate.yml` の `renovate-version` で固定します。** `uses` の SHA 固定で止まるのは Action のラッパーだけで、本体は `action.yml` の既定値（メジャータグ `'44'`）が指す Docker イメージのため、固定しないと実行のたびに未検証のビルドを取得します。`workflow` スコープを持つトークンを扱う以上、本体も明示的に固定します。更新は `renovate.json` の `customManagers` が `ghcr.io/renovatebot/renovate` の Docker タグとして PR で提案します（メジャー更新は `major-update` ラベル付きで自動マージ対象外）
 
 ### 必須シークレット
 
@@ -503,13 +506,13 @@ Jest + jsdom で MSW を動かすには、次の 3 ファイルが必須です�
 | `CLOUDFLARE_API_TOKEN` | デプロイワークフロー |
 | `CLOUDFLARE_ACCOUNT_ID` | デプロイワークフロー |
 | `DATABASE_URL` | デプロイワークフロー（db:migrate） |
-| `RENOVATE_TOKEN` | Renovate ワークフロー。`repo` + **`workflow`** スコープが必要 |
+| `RENOVATE_TOKEN` | Renovate ワークフロー。**PAT 専用**（`repo` + **`workflow`** スコープが必要）。GitHub App のインストールアクセストークンは発行から 1 時間で失効するため、静的シークレットとしては登録できません。App を使う場合は実行のたびにトークンを発行するステップが別途必要です |
 
 ### 必須変数（Variables）
 
 | 変数 | 用途 |
 |---|---|
-| `RENOVATE_ACTOR` | `RENOVATE_TOKEN` の実行主体のログイン名（PAT なら所有者のユーザー名、GitHub App なら `<app-name>[bot]`）。`pull-request.yml` の `renovate-auto-merge` が PR 作成者の検証に使用します。**未設定の場合、Renovate PR の自動マージは行われません**（fail-closed） |
+| `RENOVATE_ACTOR` | `RENOVATE_TOKEN` を発行した PAT 所有者のログイン名。`pull-request.yml` の `renovate-auto-merge` が PR 作成者の検証に使用します。**未設定の場合、Renovate PR の自動マージは行われません**（fail-closed） |
 
 ## 環境変数
 
