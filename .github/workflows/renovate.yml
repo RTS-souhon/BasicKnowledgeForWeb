@@ -5,8 +5,12 @@ name: Renovate
 # Dependabot 運用時に必要だった bun.lock 更新用の回避ワークフローは不要です。
 on:
   schedule:
-    # 毎週月曜 07:00 JST（= 日曜 22:00 UTC）。実際の実行可否は renovate.json の schedule が判定します。
-    - cron: "0 22 * * 0"
+    # 毎日 07:00 JST（= 22:00 UTC）に起動します。
+    # Renovate の schedule は「bot の起動時刻」ではなく「ブランチを作成してよい時間帯」を制限する設定のため、
+    # 起動は毎日行い、実際に更新 PR を作るかどうかは renovate.json 側の schedule に委ねます。
+    # 週次起動にすると lockFileMaintenance の「毎月1日」の時間帯と交差しない月が生じ、
+    # 月次の bun.lock 再生成が実行されません。
+    - cron: "0 22 * * *"
   workflow_dispatch:
     inputs:
       dryRun:
