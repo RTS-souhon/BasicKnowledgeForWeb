@@ -45,6 +45,9 @@ jobs:
         with:
           # GITHUB_TOKEN で作成した PR は後続ワークフローを発火させられないため、
           # 必ず PAT を RENOVATE_TOKEN として設定します。
+          # PAT は Renovate 専用のマシンユーザーで発行してください。保守担当者本人の PAT を使うと、
+          # その担当者が renovate/* ブランチから手動で PR を作るだけで pull-request.yml の
+          # renovate-auto-merge を通過し、develop の ruleset が要求するレビューを迂回できます。
           # GitHub App のインストールアクセストークンは発行から 1 時間で失効するため、
           # 静的シークレットとしては登録できません（後日の cron 実行が認証エラーになります）。
           # App を使う場合は実行のたびにトークンを発行するステップが別途必要ですが、

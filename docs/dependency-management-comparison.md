@@ -128,17 +128,20 @@
 - Cloudflare / テストツール のグルーピング — CI 実行回数をさらに削減
 - `ignoreDeps: ["backend"]` — ワークスペース内部パッケージの誤更新防止
 - `customManagers` — `renovate.yml` で固定した Renovate 本体（`ghcr.io/renovatebot/renovate`）自身を更新対象に含める
+
+**PR 数の制限について:** 通常更新のブランチ作成が許されるのは `schedule` により週 1 回（毎週月曜 07:00 JST の起動）だけなので、1 回の実行で作れる PR 数がそのまま週あたりの上限になります。移行前 90 日間の Dependabot マージ実績は 100 件（約 7.7 件/週）で、グルーピング後も週 5 件前後は見込まれます。そのため `prHourlyLimit` は `0`（無制限）とし、`prConcurrentLimit: 10` を唯一の制限としています。時間あたりの上限を残すと、その値がそのまま週あたりの上限になり恒常的なバックログが生じます。
 - コミットメッセージ / PR 本文の日本語化（`CLAUDE.md` の規約に準拠）
 
 ### 6.3 マージ前に必要な手動セットアップ ⚠️
 
 1. **`RENOVATE_TOKEN` シークレットを登録する**（リポジトリ or Organization レベル。フォールバックは無いため未設定だと Renovate は動作しません）
+   - **必ず Renovate 専用のマシンユーザーで発行してください。** `develop` は ruleset（`Protect develop branch`）で承認 1 件・必須ステータスチェック・レビュースレッド解決を要求しており、通常の PR は人手のレビューなしにマージできません。一方 `renovate-auto-merge` は条件を満たす PR へ `github-actions[bot]` の承認を自動付与します。`RENOVATE_ACTOR` が保守担当者本人のアカウントだと、その担当者は `renovate/*` ブランチから PR を作るだけでこのレビュー要件を迂回できてしまいます。
    - **PAT 専用**です。GitHub App のインストールアクセストークンは[発行から 1 時間で失効する](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)ため、静的シークレットとして登録すると後日の cron 実行が認証エラーになります。App 運用へ切り替える場合は、App ID と秘密鍵から実行のたびにトークンを発行するステップ（例: `actions/create-github-app-token`）を `renovate.yml` に追加してください。
    - **`repo` スコープに加えて `workflow` スコープが必須**。これが無いと Renovate は `.github/workflows/*` を更新できず、GitHub Actions の更新 PR が作成できません。
    - `GITHUB_TOKEN` は使用不可。GitHub の仕様上、`GITHUB_TOKEN` で作成した PR では後続の CI が発火しません（旧 `dependabot-bun-lock.yml` が PAT を必要としていたのと同じ理由）。
    - Environment（`Dev` / `Prod`）シークレットは `renovate` ジョブから参照できないため、登録先を間違えないこと。
 2. **`RENOVATE_ACTOR` 変数を登録する**（`Settings → Secrets and variables → Actions → Variables`）
-   - 値は `RENOVATE_TOKEN` を発行した PAT 所有者のログイン名。
+   - 値は `RENOVATE_TOKEN` を発行したマシンユーザーのログイン名。
    - `renovate-auto-merge` が PR 作成者の検証に使用します。**未設定の場合は自動マージが行われません**（fail-closed）。ブランチ名だけを条件にすると、書き込み権限を持つ利用者が `renovate/*` ブランチから PR を作るだけでレビュー要件を迂回できてしまうため、この検証を必須にしています。
 3. **設定が `main`（デフォルトブランチ）へ到達するまで Renovate は起動しません。**
    - ワークフローに `RENOVATE_REQUIRE_CONFIG: "required"` / `RENOVATE_ONBOARDING: "false"` を設定済み。デフォルトブランチに `renovate.json` が無い間は**何もせずスキップ**します（オンボーディング PR の暴発や `main` 宛て PR の誤作成を防止）。
@@ -153,6 +156,8 @@
 - `customManagers` の正規表現が `renovate.yml` の `renovate-version` 行から `depName=ghcr.io/renovatebot/renovate` / `datasource=docker` / `currentValue` を抽出できることを、同じ正規表現をローカルで実行して確認済み。
 - `renovatebot/github-action` の `renovate-version` 既定値がメジャータグ `'44'`（`action.yml:28`）であり、固定しなければ実行ごとにイメージ実体が変わることを確認済み。
 - Renovate が PR 作成（`createPr`）とラベル付与（`addLabels`）を別 API 呼び出しで行うことを、`lib/modules/platform/github/index.ts`（v44.0.0）でソース確認済み。`renovate-auto-merge` がラベルを実行時に再取得する根拠。
+- `develop` の保護は従来のブランチ保護ではなく **ruleset**（`Protect develop branch`、enforcement: active）で実装されていることを API で確認済み。承認 1 件・必須ステータスチェック 4 件・レビュースレッド解決・署名必須が有効。`CODEOWNERS` は未設置のため `require_code_owner_review` は実質無効で、`github-actions[bot]` の承認 1 件で必要条件を満たす。専用マシンユーザーを要求する根拠。
+- 移行前 90 日間（2026-05-18 以降）の Dependabot マージ実績が 100 件であることを Search API で確認済み。PR 数制限の設定根拠。
 - スケジュール実行時に `RENOVATE_DRY_RUN` が空文字になる件は、Renovate の env パーサが `if (!envVal) continue`（`lib/workers/global/config/parse/env.ts`）で空値をスキップする実装であることをソースで確認済み。定期実行に影響しません。
 - 上記はいずれも静的検証です。**実際の PR 生成挙動（特に Bun ワークスペースでの `bun.lock` 更新）は、6.3 のドライラン → 初回実行で必ず確認してください。**
 
