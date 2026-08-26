@@ -7,7 +7,7 @@
 Bun モノレポで、Cloudflare Workers 上の 3 アプリで構成されます。
 - `apps/backend` — Hono.js REST API（CockroachDB + Drizzle ORM）
 - `apps/frontend` — Next.js 15（App Router）+ React 19 + Tailwind CSS v4（OpenNext 経由でデプロイ）
-- `apps/email-worker` — Email Routing / SendEmail 用 Worker
+- `apps/email-worker` — Email Service / SendEmail 用 Worker
 
 ## コマンド
 
@@ -59,6 +59,7 @@ bun run deploy:dev   # Cloudflare Workers へデプロイ（dev）
 ```bash
 bun run dev          # 開発サーバー起動（8789）
 bun run build        # wrangler dry-run build
+bun run cf-typegen   # wrangler設定からbinding/runtime型を再生成
 bun run type-check   # TypeScript 検証（src + tests）
 bun run lint         # Biome lint
 bun run lint:fix     # 自動修正

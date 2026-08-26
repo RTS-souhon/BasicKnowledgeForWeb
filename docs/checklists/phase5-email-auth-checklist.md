@@ -7,7 +7,11 @@
 - [ ] `apps/backend/wrangler.jsonc` に `EMAIL_WORKER` service binding がある
 - [ ] dev/prod で service 名が環境別に設定されている
 - [ ] Email Worker の `workers_dev` が `false` で公開 URL が無効化されている
-- [ ] Email Routing の対象ドメインと Worker 設定が有効化されている
+- [ ] `wrangler types` で生成した binding/runtime 型がコミットされている
+- [ ] Workers Paid plan で任意宛先への Email Sending が利用可能になっている
+- [ ] Email Sending で `reitaisai.info` が送信ドメインとして有効化されている
+- [ ] dev 送信元を使う場合は `dev.reitaisai.info` も個別に有効化されている
+- [ ] 送信ドメインの `cf-bounce` MX、SPF、DKIM、DMARC が有効になっている
 
 ## 2. Database
 

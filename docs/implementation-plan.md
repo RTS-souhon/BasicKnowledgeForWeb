@@ -19,7 +19,17 @@
 
 - Frontend -> Backend: 既存 `BACKEND` service binding
 - Backend -> Email Worker: 新規 `EMAIL_WORKER` service binding
-- Email Worker -> Cloudflare Email: `send_email` binding
+- Email Worker -> Cloudflare Email Sending: `send_email` binding
+
+### Cloudflare 前提条件
+
+- 任意のユーザー宛メール送信が可能な Workers Paid plan を使用する
+- `reitaisai.info` を Email Sending の送信ドメインとして有効化する
+- dev で `noreply@dev.reitaisai.info` を使う場合は、サブドメインも個別に有効化する
+- Email Routing のみの場合は検証済み Destination Address にしか送信できないため、
+  登録確認・OTP 用には Email Sending を使用する
+- Backend からは Service Binding、Email Worker からは `send_email` binding を使い、
+  Worker 間通信やメール送信のための API Token をアプリへ持たせない
 
 ### 通信方針
 
@@ -110,20 +120,22 @@
 - `trusted_device` Cookie は `HttpOnly`, `Secure`, `SameSite=Lax`
 - 信頼デバイス有効期限は 30 日
 - 内部 API は service binding を前提にし、email-worker は公開 URL を持たない
+- Email Sending 失敗時は機密情報をログへ出さず `502` を返し、Worker 内で自動再試行しない
 
 ## 実装ステップ
 
-1. `apps/email-worker` を作成し、内部送信 API を実装
-2. backend wrangler に `EMAIL_WORKER` service binding を追加
-3. DB schema/migration を追加
-4. backend repository/use-case/controller/routes を更新
-5. frontend の register/login UI を更新
-6. backend/frontend のテストを追加
-7. dev 環境で e2e 相当の手動検証
+1. Cloudflare Email Sending で prod/dev の送信ドメインを有効化
+2. `apps/email-worker` を作成し、内部送信 API を実装
+3. backend wrangler に `EMAIL_WORKER` service binding を追加
+4. DB schema/migration を追加
+5. backend repository/use-case/controller/routes を更新
+6. frontend の register/login UI を更新
+7. backend/frontend/email-worker のテストを追加
+8. dev 環境で e2e 相当の手動検証
 
 ## 完了定義
 
 - 仕様どおりメール検証と OTP ログインが機能する
 - 信頼デバイス 30 日が機能し、期限切れ後に OTP が再要求される
-- backend/frontend の `type-check`, `lint`, `test` が成功する
+- backend/frontend/email-worker の `type-check`, `lint`, `test` が成功する
 - CI と Cloudflare dev デプロイで動作確認が取れる

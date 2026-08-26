@@ -25,16 +25,18 @@
 
 作業:
 
-1. `apps/email-worker` を新規作成し、Cloudflare Email Routing で利用できる Worker を作る
+1. Cloudflare Email Sending で `reitaisai.info` と dev 用サブドメインを送信ドメインとして有効化する
 2. Email Worker に `send_email` binding、必要な secrets/vars を設定する
 3. Backend Worker に `services` binding を追加し、`EMAIL_WORKER` として email-worker を参照する
 4. dev/prod の service 名を環境ごとに分離する
 5. Email Worker を `workers_dev: false` にして公開 URL を無効化する
+6. `wrangler types` で binding/runtime 型を生成し、CI で差分を検証する
 
 完了条件:
 
 - backend から email-worker へ service binding 経由で HTTP 呼び出しできる
-- Email Routing の Worker 設定と wrangler 設定が一致している
+- Email Sending の送信ドメインと `send_email` binding が一致している
+- 任意宛先への送信が可能な Workers Paid plan であることを確認できている
 
 ## Task 2: DB スキーマとリポジトリ拡張
 
