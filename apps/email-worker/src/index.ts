@@ -4,30 +4,31 @@ import {
     renderEmailTemplate,
 } from '@email-worker/src/emailTemplates';
 
-type SendEmailMessage = {
-    from: string;
-    subject: string;
-    text: string;
-    to: string;
-};
-
-type SendEmailBinding = {
-    send(message: SendEmailMessage): Promise<void>;
-};
-
-type Env = {
-    EMAIL: SendEmailBinding;
-    EMAIL_FROM: string;
-};
-
 type SendEmailRequestBody = {
     code: string;
     template: EmailTemplateType;
     to: string;
 };
 
+const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function badRequest(message: string) {
     return Response.json({ error: message }, { status: 400 });
+}
+
+function isValidEmailAddress(email: string): boolean {
+    return email.length <= 254 && EMAIL_ADDRESS_PATTERN.test(email);
+}
+
+function getEmailErrorCode(error: unknown): string {
+    if (typeof error !== 'object' || error === null || !('code' in error)) {
+        return 'unknown';
+    }
+
+    const code = error.code;
+    return typeof code === 'string' || typeof code === 'number'
+        ? String(code)
+        : 'unknown';
 }
 
 async function parseBody(
@@ -50,7 +51,7 @@ async function parseBody(
         return null;
     }
 
-    if (!isValidEmailCode(body.code)) {
+    if (!isValidEmailAddress(body.to) || !isValidEmailCode(body.code)) {
         return null;
     }
 
@@ -68,19 +69,26 @@ export async function handleInternalSend(request: Request, env: Env) {
     }
 
     const rendered = renderEmailTemplate(payload);
-    await env.EMAIL.send({
-        from: env.EMAIL_FROM,
-        to: payload.to,
-        subject: rendered.subject,
-        text: rendered.text,
-    });
+    try {
+        await env.EMAIL.send({
+            from: env.EMAIL_FROM,
+            to: payload.to,
+            subject: rendered.subject,
+            text: rendered.text,
+        });
+    } catch (error) {
+        console.error('Email delivery failed', {
+            errorCode: getEmailErrorCode(error),
+            template: payload.template,
+        });
+        return Response.json(
+            { error: 'email delivery failed' },
+            { status: 502 },
+        );
+    }
 
     return Response.json({ ok: true }, { status: 200 });
 }
-
-type WorkerEntrypoint = {
-    fetch(request: Request, env: Env): Promise<Response>;
-};
 
 export default {
     async fetch(request: Request, env: Env): Promise<Response> {
@@ -95,4 +103,4 @@ export default {
 
         return Response.json({ error: 'not found' }, { status: 404 });
     },
-} satisfies WorkerEntrypoint;
+} satisfies ExportedHandler<Env>;

@@ -5,8 +5,8 @@
         "moduleResolution": "Bundler",
         "strict": true,
         "skipLibCheck": true,
-        "lib": ["ESNext", "DOM"],
-        "types": ["@cloudflare/workers-types/2023-07-01", "node"],
+        "lib": ["ESNext"],
+        "types": ["./worker-configuration.d.ts"],
         "baseUrl": ".",
         "paths": {
             "@email-worker/*": ["./*"]
